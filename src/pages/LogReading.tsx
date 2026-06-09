@@ -14,7 +14,7 @@ import {
   validateEndPage,
 } from "../lib/pages";
 import { todayInTimezone } from "../lib/streaks";
-import { questionsForDate } from "../lib/reflectionQuestions";
+import { randomQuestion } from "../lib/reflectionQuestions";
 
 export default function LogReading() {
   const { bookId } = useParams();
@@ -31,7 +31,8 @@ export default function LogReading() {
   const [savedReachedEnd, setSavedReachedEnd] = useState<string | null>(null);
 
   const today = todayInTimezone(profile?.timezone ?? "America/Mexico_City");
-  const questions = useMemo(() => questionsForDate(today), [today]);
+  // Una sola pregunta, elegida aleatoriamente al abrir la pantalla (estable durante la sesión).
+  const [question] = useState(() => randomQuestion());
 
   const readingBooks = (books ?? []).filter((b) => b.status === "reading");
   const activeId = selectedId ?? readingBooks[0]?.id;
@@ -171,10 +172,10 @@ export default function LogReading() {
               Reflexiona lo que leíste
             </h2>
             <p className="mb-4 text-sm font-medium text-gray-400">
-              Responder mejora tu comprensión. No tienes que llenar todas.
+              Responder esto mejora tu comprensión lectora.
             </p>
             <ReflectionForm
-              questions={questions}
+              questions={[question]}
               values={reflection}
               onChange={(id, value) =>
                 setReflection((prev) => ({ ...prev, [id]: value }))

@@ -15,16 +15,22 @@
     height: 100%;
   }
 
+  /* El html toma el verde para que el overscroll en iOS sea verde en todas las pantallas */
+  html {
+    background-color: #58cc02;
+  }
+
   body {
     @apply bg-cloud text-ink font-sans antialiased;
     margin: 0;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: none;
+    /* Con black-translucent el contenido arranca desde (0,0), necesitamos compensar */
+    padding-top: env(safe-area-inset-top);
   }
 
-  /* Respeta el notch / safe areas en móvil. */
   #root {
-    padding-top: env(safe-area-inset-top);
+    background-color: #f7f7f7; /* bg-cloud */
   }
 }
 
