@@ -26,8 +26,7 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
     e.preventDefault();
     if (!materiaId) return;
     onAgregar({ materiaId, dia, horaInicio, horaFin, salon: salon.trim() || undefined });
-    setOpen(false);
-    setSalon("");
+    setOpen(false); setSalon("");
   }
 
   const getMat = (id: string) => materias.find((m) => m.id === id);
@@ -35,60 +34,46 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700">Clases</h3>
-        <button
-          onClick={() => setOpen(true)}
-          className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors"
-        >
-          + Agregar clase
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Clases</h3>
+        <button onClick={() => setOpen(true)} className="text-xs text-blue-900 font-medium hover:text-blue-950 transition-colors">
+          Agregar clase
         </button>
       </div>
 
       {clases.length === 0 ? (
-        <EmptyState icon="📅" title="Sin clases registradas" />
+        <EmptyState title="Sin clases registradas" />
       ) : (
         <div className="space-y-1">
-          {diasConClases.map((dia) => {
-            const clasesDelDia = clases.filter((c) => c.dia === dia);
-            if (clasesDelDia.length === 0) return null;
+          {diasConClases.map((d) => {
+            const clasesDelDia = clases.filter((c) => c.dia === d);
+            if (!clasesDelDia.length) return null;
             return (
-              <div key={dia}>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide py-2">
-                  {DIAS_SHORT[dia]}
+              <div key={d}>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider pt-2 pb-1">
+                  {DIAS_SHORT[d]}
                 </p>
-                <div className="space-y-1">
-                  {clasesDelDia
-                    .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
-                    .map((clase) => {
-                      const mat = getMat(clase.materiaId);
-                      return (
-                        <div
-                          key={clase.id}
-                          className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100"
-                        >
-                          <div
-                            className="w-2 h-8 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: mat?.color ?? "#94a3b8" }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">{mat?.nombre}</p>
-                            <p className="text-xs text-gray-400">
-                              {clase.horaInicio} – {clase.horaFin}
-                              {clase.salon ? ` · ${clase.salon}` : ""}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => onEliminar(clase.id)}
-                            className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      );
-                    })}
-                </div>
+                {clasesDelDia.sort((a, b) => a.horaInicio.localeCompare(b.horaInicio)).map((clase) => {
+                  const mat = getMat(clase.materiaId);
+                  return (
+                    <div key={clase.id} className="flex items-center gap-3 py-2 border-b border-gray-50">
+                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: mat?.color ?? "#94a3b8" }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 truncate">{mat?.nombre}</p>
+                        <p className="text-xs text-gray-400">
+                          {clase.horaInicio} – {clase.horaFin}{clase.salon ? ` · ${clase.salon}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => onEliminar(clase.id)}
+                        className="p-1 text-gray-300 hover:text-red-400 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -99,26 +84,16 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Materia</label>
-            <select
-              value={materiaId}
-              onChange={(e) => setMateriaId(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
+            <select value={materiaId} onChange={(e) => setMateriaId(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800 bg-white">
               {materias.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Día</label>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Dia</label>
             <div className="flex gap-1.5 flex-wrap">
               {diasConClases.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDia(d)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    dia === d ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
+                <button key={d} type="button" onClick={() => setDia(d)}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${dia === d ? "bg-blue-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                   {DIAS_SHORT[d]}
                 </button>
               ))}
@@ -127,36 +102,20 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Inicio</label>
-              <input
-                type="time"
-                value={horaInicio}
-                onChange={(e) => setHoraInicio(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+              <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Fin</label>
-              <input
-                type="time"
-                value={horaFin}
-                onChange={(e) => setHoraFin(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+              <input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Salón (opcional)</label>
-            <input
-              type="text"
-              value={salon}
-              onChange={(e) => setSalon(e.target.value)}
-              placeholder="ej. A-201"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Salon (opcional)</label>
+            <input type="text" value={salon} onChange={(e) => setSalon(e.target.value)} placeholder="ej. A-201" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800" />
           </div>
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={() => setOpen(false)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600">Cancelar</button>
-            <button type="submit" className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors">Agregar</button>
+            <button type="button" onClick={() => setOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600">Cancelar</button>
+            <button type="submit" className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-slate-900 transition-colors">Agregar</button>
           </div>
         </form>
       </Modal>

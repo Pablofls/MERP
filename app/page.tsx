@@ -12,7 +12,7 @@ export default function HomePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-6 pb-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">MERP</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-6">MERP</h1>
       <div className="space-y-6">
         <AgendaHoy clases={clases} materias={materias} />
         <div className="border-t border-gray-100" />

@@ -1,24 +1,48 @@
 "use client";
-import { useState } from "react";
-import { MATERIAS_MOCK } from "../mock-data";
+import { useEffect, useState } from "react";
+import { supabase } from "../supabase";
+import { useCurrentUser } from "./useCurrentUser";
 import type { Materia } from "../types";
 
 export function useMaterias() {
-  const [materias, setMaterias] = useState<Materia[]>(MATERIAS_MOCK);
+  const user = useCurrentUser();
+  const [materias, setMaterias] = useState<Materia[]>([]);
 
-  function agregar(datos: Omit<Materia, "id">) {
-    const nueva: Materia = { ...datos, id: `m-${Date.now()}` };
-    setMaterias((prev) => [...prev, nueva]);
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("materias")
+      .select("*")
+      .order("created_at")
+      .then(({ data }) => {
+        if (data) setMaterias(data);
+      });
+  }, [user]);
+
+  async function agregar(datos: Omit<Materia, "id">) {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("materias")
+      .insert({ ...datos, user_id: user.id })
+      .select()
+      .single();
+    if (!error && data) setMaterias((prev) => [...prev, data]);
   }
 
-  function editar(id: string, datos: Partial<Materia>) {
-    setMaterias((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, ...datos } : m))
-    );
+  async function editar(id: string, datos: Partial<Materia>) {
+    const { data, error } = await supabase
+      .from("materias")
+      .update(datos)
+      .eq("id", id)
+      .select()
+      .single();
+    if (!error && data)
+      setMaterias((prev) => prev.map((m) => (m.id === id ? data : m)));
   }
 
-  function eliminar(id: string) {
-    setMaterias((prev) => prev.filter((m) => m.id !== id));
+  async function eliminar(id: string) {
+    const { error } = await supabase.from("materias").delete().eq("id", id);
+    if (!error) setMaterias((prev) => prev.filter((m) => m.id !== id));
   }
 
   return { materias, agregar, editar, eliminar };

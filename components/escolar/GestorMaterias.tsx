@@ -4,8 +4,8 @@ import type { Materia } from "@/lib/types";
 import Modal from "@/components/ui/Modal";
 
 const COLORES = [
-  "#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6",
-  "#ec4899", "#14b8a6", "#f97316", "#06b6d4", "#84cc16",
+  "#1e4976", "#7c5c2e", "#1a5c3e", "#7c2d2d", "#4a3a6b",
+  "#2d6090", "#5c7a1a", "#6b3a1a", "#1a4a5c", "#5c1a4a",
 ];
 
 interface Props {
@@ -22,62 +22,41 @@ export default function GestorMaterias({ materias, onAgregar, onEditar, onElimin
   const [color, setColor] = useState(COLORES[0]);
 
   function abrirNueva() {
-    setEditando(null);
-    setNombre("");
-    setColor(COLORES[0]);
-    setOpen(true);
+    setEditando(null); setNombre(""); setColor(COLORES[0]); setOpen(true);
   }
-
   function abrirEditar(m: Materia) {
-    setEditando(m);
-    setNombre(m.nombre);
-    setColor(m.color);
-    setOpen(true);
+    setEditando(m); setNombre(m.nombre); setColor(m.color); setOpen(true);
   }
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!nombre.trim()) return;
-    if (editando) {
-      onEditar(editando.id, { nombre: nombre.trim(), color });
-    } else {
-      onAgregar({ nombre: nombre.trim(), color });
-    }
+    if (editando) onEditar(editando.id, { nombre: nombre.trim(), color });
+    else onAgregar({ nombre: nombre.trim(), color });
     setOpen(false);
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700">Materias</h3>
-        <button
-          onClick={abrirNueva}
-          className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors"
-        >
-          + Agregar
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Materias</h3>
+        <button onClick={abrirNueva} className="text-xs text-blue-900 font-medium hover:text-blue-950 transition-colors">
+          Agregar
         </button>
       </div>
       <div className="flex flex-wrap gap-2">
         {materias.map((m) => (
           <div
             key={m.id}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-sm cursor-pointer hover:border-gray-300 transition-colors"
             onClick={() => abrirEditar(m)}
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-gray-200 bg-white text-xs cursor-pointer hover:border-gray-300 transition-colors"
           >
-            <span
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: m.color }}
-            />
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
             <span className="text-gray-700">{m.nombre}</span>
           </div>
         ))}
       </div>
 
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title={editando ? "Editar materia" : "Nueva materia"}
-      >
+      <Modal open={open} onClose={() => setOpen(false)} title={editando ? "Editar materia" : "Nueva materia"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nombre</label>
@@ -86,7 +65,7 @@ export default function GestorMaterias({ materias, onAgregar, onEditar, onElimin
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Nombre de la materia"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800"
               autoFocus
             />
           </div>
@@ -98,10 +77,10 @@ export default function GestorMaterias({ materias, onAgregar, onEditar, onElimin
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className="w-8 h-8 rounded-full transition-transform hover:scale-110"
+                  className="w-7 h-7 rounded transition-transform hover:scale-110"
                   style={{
                     backgroundColor: c,
-                    outline: color === c ? `3px solid ${c}` : "none",
+                    outline: color === c ? `2px solid ${c}` : "none",
                     outlineOffset: "2px",
                   }}
                 />
@@ -113,23 +92,13 @@ export default function GestorMaterias({ materias, onAgregar, onEditar, onElimin
               <button
                 type="button"
                 onClick={() => { onEliminar(editando.id); setOpen(false); }}
-                className="px-4 py-3 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
+                className="px-4 py-2.5 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
               >
                 Eliminar
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={!nombre.trim()}
-              className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            >
+            <button type="button" onClick={() => setOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600">Cancelar</button>
+            <button type="submit" disabled={!nombre.trim()} className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-slate-900 disabled:opacity-40 transition-colors">
               {editando ? "Guardar" : "Agregar"}
             </button>
           </div>

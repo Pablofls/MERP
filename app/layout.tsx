@@ -3,6 +3,7 @@ import "./globals.css";
 import BottomNav from "@/components/nav/BottomNav";
 import Sidebar from "@/components/nav/Sidebar";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import AuthGuard from "@/components/AuthGuard";
 
 export const metadata: Metadata = {
   title: "MERP",
@@ -39,13 +40,15 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 lg:ml-56 pb-safe">
-            {children}
-          </main>
-        </div>
-        <BottomNav />
+        <AuthGuard>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main className="flex-1 lg:ml-56 pb-safe">
+              {children}
+            </main>
+          </div>
+          <BottomNav />
+        </AuthGuard>
         <ServiceWorkerRegister />
       </body>
     </html>
