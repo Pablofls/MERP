@@ -17,6 +17,7 @@ export function useGoogleCalendar() {
   const { conectado } = useGoogleStatus();
   const [eventos, setEventos] = useState<GoogleEventoHoy[]>([]);
   const [cargando, setCargando] = useState(false);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!user || !conectado) return;
@@ -53,7 +54,7 @@ export function useGoogleCalendar() {
     }
 
     fetchEventos();
-  }, [user, conectado]);
+  }, [user, conectado, version]);
 
-  return { eventos, cargando };
+  return { eventos, cargando, refetch: () => setVersion((v) => v + 1) };
 }

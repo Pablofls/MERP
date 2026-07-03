@@ -37,7 +37,7 @@ export default function EscolarPage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { materias, agregar: agregarMat, editar: editarMat, eliminar: eliminarMat } = useMaterias();
   const { clases, agregar: agregarClase, eliminar: eliminarClase } = useClases();
-  const { eventos: googleEventos } = useGoogleCalendarSemana();
+  const { eventos: googleEventos, refetch: refetchCalendar } = useGoogleCalendarSemana();
   const [modalPendiente, setModalPendiente] = useState(false);
   const [configAbierto, setConfigAbierto] = useState(false);
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
@@ -84,7 +84,7 @@ export default function EscolarPage() {
       {/* Horario semanal */}
       <section>
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Horario semanal</h2>
-        <HorarioSemanal clases={clases} materias={materias} googleEventos={googleEventos} />
+        <HorarioSemanal clases={clases} materias={materias} googleEventos={googleEventos} onRefetch={refetchCalendar} />
       </section>
 
       {/* Pendientes escolares */}

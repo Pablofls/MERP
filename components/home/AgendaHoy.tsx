@@ -1,13 +1,16 @@
 "use client";
+import { useState } from "react";
 import type { ClaseHorario, Materia } from "@/lib/types";
 import type { GoogleEventoHoy } from "@/lib/hooks/useGoogleCalendar";
 import { getDiaSemanaActual, minutosDesdeMedianoche } from "@/lib/utils";
 import EmptyState from "@/components/ui/EmptyState";
+import EventoCalendarioModal, { type EventoCalendario } from "@/components/home/EventoCalendarioModal";
 
 interface Props {
   clases: ClaseHorario[];
   materias: Materia[];
   googleEventos?: GoogleEventoHoy[];
+  onRefetch?: () => void;
 }
 
 interface ItemAgenda {
@@ -21,6 +24,7 @@ interface ItemAgenda {
   origen: "app" | "google";
   salon?: string;
   todoElDia?: boolean;
+  eventoOriginal?: GoogleEventoHoy;
 }
 
 function formatHora(iso: string): string {
@@ -31,9 +35,10 @@ function formatHora(iso: string): string {
   });
 }
 
-export default function AgendaHoy({ clases, materias, googleEventos = [] }: Props) {
+export default function AgendaHoy({ clases, materias, googleEventos = [], onRefetch }: Props) {
   const diaHoy = getDiaSemanaActual();
   const horaActual = new Date().getHours() * 60 + new Date().getMinutes();
+  const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoCalendario | null>(null);
 
   function getEstado(inicioMin: number, finMin: number): ItemAgenda["estado"] {
     if (horaActual >= inicioMin && horaActual < finMin) return "activa";
@@ -78,6 +83,7 @@ export default function AgendaHoy({ clases, materias, googleEventos = [] }: Prop
         color: "#475569",
         estado: getEstado(ini, fin),
         origen: "google" as const,
+        eventoOriginal: e,
       };
     });
 
@@ -111,9 +117,10 @@ export default function AgendaHoy({ clases, materias, googleEventos = [] }: Prop
         <div className="space-y-1.5">
           {/* Eventos todo el día */}
           {todoDiaGoogle.map((e) => (
-            <div
+            <button
               key={e.id}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-100 bg-gray-50"
+              onClick={() => setEventoSeleccionado(e)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
             >
               <div className="w-0.5 self-stretch rounded-full flex-shrink-0 bg-slate-400" />
               <div className="flex-1 min-w-0">
@@ -121,44 +128,55 @@ export default function AgendaHoy({ clases, materias, googleEventos = [] }: Prop
                 <p className="text-xs text-gray-400">Todo el día</p>
               </div>
               <CalendarIcon />
-            </div>
+            </button>
           ))}
 
           {/* Eventos con hora */}
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
-                item.estado === "activa"
-                  ? "border-blue-200 bg-blue-50"
-                  : item.estado === "pasada"
-                  ? "border-gray-100 bg-gray-50 opacity-50"
-                  : "border-gray-100 bg-white"
-              }`}
-            >
-              <div
-                className="w-0.5 self-stretch rounded-full flex-shrink-0"
-                style={{ backgroundColor: item.color }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800 font-medium truncate">{item.titulo}</p>
-                <p className="text-xs text-gray-400">
-                  {item.horaInicio} – {item.horaFin}
-                  {item.salon ? ` · ${item.salon}` : ""}
-                </p>
-              </div>
-              {item.estado === "activa" && (
-                <span className="text-xs font-medium text-blue-900 bg-blue-100 px-2 py-0.5 rounded">
-                  Ahora
-                </span>
-              )}
-              {item.origen === "google" && item.estado !== "activa" && (
-                <CalendarIcon />
-              )}
-            </div>
-          ))}
+          {items.map((item) => {
+            const esGoogle = item.origen === "google";
+            const Wrapper = esGoogle ? "button" : "div";
+            return (
+              <Wrapper
+                key={item.id}
+                {...(esGoogle && {
+                  onClick: () => setEventoSeleccionado(item.eventoOriginal!),
+                })}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left ${
+                  item.estado === "activa"
+                    ? "border-blue-200 bg-blue-50"
+                    : item.estado === "pasada"
+                    ? "border-gray-100 bg-gray-50 opacity-50"
+                    : "border-gray-100 bg-white"
+                } ${esGoogle ? "hover:bg-gray-50 cursor-pointer" : ""}`}
+              >
+                <div
+                  className="w-0.5 self-stretch rounded-full flex-shrink-0"
+                  style={{ backgroundColor: item.color }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-800 font-medium truncate">{item.titulo}</p>
+                  <p className="text-xs text-gray-400">
+                    {item.horaInicio} – {item.horaFin}
+                    {item.salon ? ` · ${item.salon}` : ""}
+                  </p>
+                </div>
+                {item.estado === "activa" && (
+                  <span className="text-xs font-medium text-blue-900 bg-blue-100 px-2 py-0.5 rounded">
+                    Ahora
+                  </span>
+                )}
+                {esGoogle && item.estado !== "activa" && <CalendarIcon />}
+              </Wrapper>
+            );
+          })}
         </div>
       )}
+
+      <EventoCalendarioModal
+        evento={eventoSeleccionado}
+        onClose={() => setEventoSeleccionado(null)}
+        onRefetch={() => { onRefetch?.(); setEventoSeleccionado(null); }}
+      />
     </section>
   );
 }

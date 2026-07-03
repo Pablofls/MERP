@@ -12,6 +12,8 @@ export interface GoogleEventoSemana {
   dia: DiaSemana;
   horaInicio: string; // "HH:MM"
   horaFin: string;    // "HH:MM"
+  inicioISO: string;
+  finISO: string;
 }
 
 function getLunesDeSemana(): Date {
@@ -35,6 +37,7 @@ export function useGoogleCalendarSemana() {
   const user = useCurrentUser();
   const { conectado } = useGoogleStatus();
   const [eventos, setEventos] = useState<GoogleEventoSemana[]>([]);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!user || !conectado) return;
@@ -83,6 +86,8 @@ export function useGoogleCalendarSemana() {
             dia,
             horaInicio: formatHora(e.inicio),
             horaFin: formatHora(e.fin),
+            inicioISO: e.inicio,
+            finISO: e.fin,
           });
         }
         setEventos(mapped);
@@ -92,7 +97,7 @@ export function useGoogleCalendarSemana() {
     }
 
     fetchSemana();
-  }, [user, conectado]);
+  }, [user, conectado, version]);
 
-  return { eventos };
+  return { eventos, refetch: () => setVersion((v) => v + 1) };
 }

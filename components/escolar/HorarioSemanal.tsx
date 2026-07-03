@@ -1,12 +1,15 @@
 "use client";
+import { useState } from "react";
 import type { ClaseHorario, Materia } from "@/lib/types";
 import type { GoogleEventoSemana } from "@/lib/hooks/useGoogleCalendarSemana";
 import { DIAS_SEMANA, DIAS_SHORT, minutosDesdeMedianoche } from "@/lib/utils";
+import EventoCalendarioModal, { type EventoCalendario } from "@/components/home/EventoCalendarioModal";
 
 interface Props {
   clases: ClaseHorario[];
   materias: Materia[];
   googleEventos?: GoogleEventoSemana[];
+  onRefetch?: () => void;
 }
 
 const HORA_INICIO = 7 * 60;
@@ -14,8 +17,9 @@ const HORA_FIN    = 21 * 60;
 const TOTAL_MIN   = HORA_FIN - HORA_INICIO;
 const HORAS       = Array.from({ length: 15 }, (_, i) => i + 7); // 7h–21h
 
-export default function HorarioSemanal({ clases, materias, googleEventos = [] }: Props) {
+export default function HorarioSemanal({ clases, materias, googleEventos = [], onRefetch }: Props) {
   const getMat = (id: string) => materias.find((m) => m.id === id);
+  const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoCalendario | null>(null);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -96,9 +100,16 @@ export default function HorarioSemanal({ clases, materias, googleEventos = [] }:
                   const height = Math.max((dur / TOTAL_MIN) * 100, 2);
 
                   return (
-                    <div
+                    <button
                       key={evento.id}
-                      className="absolute left-0.5 right-0.5 rounded overflow-hidden"
+                      onClick={() => setEventoSeleccionado({
+                        id: evento.id,
+                        titulo: evento.titulo,
+                        inicio: evento.inicioISO,
+                        fin: evento.finISO,
+                        todoElDia: false,
+                      })}
+                      className="absolute left-0.5 right-0.5 rounded overflow-hidden text-left hover:brightness-95 transition-all"
                       style={{
                         top: `${top}%`,
                         height: `${height}%`,
@@ -114,7 +125,7 @@ export default function HorarioSemanal({ clases, materias, googleEventos = [] }:
                           <p className="text-[9px] text-slate-400 leading-tight">{evento.horaInicio}</p>
                         )}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -122,6 +133,12 @@ export default function HorarioSemanal({ clases, materias, googleEventos = [] }:
           })}
         </div>
       </div>
+
+      <EventoCalendarioModal
+        evento={eventoSeleccionado}
+        onClose={() => setEventoSeleccionado(null)}
+        onRefetch={() => { onRefetch?.(); setEventoSeleccionado(null); }}
+      />
     </div>
   );
 }

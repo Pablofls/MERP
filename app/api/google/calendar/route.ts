@@ -34,6 +34,60 @@ async function getGoogleAccessToken(supabaseToken: string): Promise<string | nul
   return token.access_token ?? null;
 }
 
+export async function PATCH(req: NextRequest) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabaseToken = authHeader.slice(7);
+  const { eventId, titulo, inicio, fin } = await req.json();
+
+  const accessToken = await getGoogleAccessToken(supabaseToken);
+  if (!accessToken) return NextResponse.json({ ok: false, motivo: "no_token" });
+
+  const patch: Record<string, unknown> = {};
+  if (titulo !== undefined) patch.summary = titulo;
+  if (inicio !== undefined) patch.start = { dateTime: inicio };
+  if (fin !== undefined) patch.end = { dateTime: fin };
+
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }
+  );
+
+  if (!res.ok) return NextResponse.json({ ok: false });
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(req: NextRequest) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabaseToken = authHeader.slice(7);
+  const { eventId } = await req.json();
+
+  const accessToken = await getGoogleAccessToken(supabaseToken);
+  if (!accessToken) return NextResponse.json({ ok: false, motivo: "no_token" });
+
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  if (!res.ok && res.status !== 204) return NextResponse.json({ ok: false });
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
