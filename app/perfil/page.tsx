@@ -5,8 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { useGoogleStatus } from "@/lib/hooks/useGoogleStatus";
 import type { User } from "@supabase/supabase-js";
 
-type DebugResult = Record<string, unknown> | null;
-
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.readonly",
@@ -19,23 +17,6 @@ export default function PerfilPage() {
   const [user, setUser] = useState<User | null>(null);
   const { conectado, desconectar } = useGoogleStatus();
   const recienConectado = searchParams.get("google") === "conectado";
-  const [debugResult, setDebugResult] = useState<DebugResult>(null);
-  const [debugLoading, setDebugLoading] = useState(false);
-
-  async function verificarTasks() {
-    setDebugLoading(true);
-    setDebugResult(null);
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch("/api/google/debug", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token ?? ""}`,
-      },
-    });
-    setDebugResult(await res.json());
-    setDebugLoading(false);
-  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -115,22 +96,6 @@ export default function PerfilPage() {
             </svg>
             Conectar con Google
           </button>
-        )}
-
-        {conectado && (
-          <button
-            onClick={verificarTasks}
-            disabled={debugLoading}
-            className="w-full py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            {debugLoading ? "Verificando..." : "Verificar conexión de Tasks"}
-          </button>
-        )}
-
-        {debugResult && (
-          <pre className="text-[10px] bg-gray-100 rounded-lg p-3 overflow-auto max-h-48 text-left whitespace-pre-wrap break-all">
-            {JSON.stringify(debugResult, null, 2)}
-          </pre>
         )}
 
         {conectado && (
