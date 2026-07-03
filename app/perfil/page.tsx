@@ -8,6 +8,7 @@ import type { User } from "@supabase/supabase-js";
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/tasks",
 ].join(" ");
 
 export default function PerfilPage() {

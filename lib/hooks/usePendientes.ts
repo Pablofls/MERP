@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useCurrentUser } from "./useCurrentUser";
+import { crearGoogleTask, actualizarGoogleTask, eliminarGoogleTask } from "../google-tasks";
 import type { Pendiente } from "../types";
 
 type PendienteDB = {
@@ -45,6 +46,8 @@ export function usePendientes() {
 
   async function agregar(datos: Omit<Pendiente, "id" | "completado">) {
     if (!user) return;
+
+    // Crear en Supabase primero
     const { data, error } = await supabase
       .from("pendientes")
       .insert({
@@ -54,30 +57,67 @@ export function usePendientes() {
         completado: false,
         tipo: datos.tipo,
         materia_id: datos.materiaId ?? null,
-        google_task_id: datos.googleTaskId ?? null,
+        google_task_id: null,
         user_id: user.id,
       })
       .select()
       .single();
-    if (!error && data) setPendientes((prev) => [fromDB(data as PendienteDB), ...prev]);
+
+    if (error || !data) return;
+
+    const pendiente = fromDB(data as PendienteDB);
+    setPendientes((prev) => [pendiente, ...prev]);
+
+    // Sincronizar con Google Tasks en segundo plano
+    const googleTaskId = await crearGoogleTask(
+      datos.titulo,
+      datos.descripcion,
+      datos.fechaLimite
+    );
+
+    if (googleTaskId) {
+      await supabase
+        .from("pendientes")
+        .update({ google_task_id: googleTaskId })
+        .eq("id", pendiente.id);
+      setPendientes((prev) =>
+        prev.map((p) => (p.id === pendiente.id ? { ...p, googleTaskId } : p))
+      );
+    }
   }
 
   async function toggleCompletado(id: string) {
     const actual = pendientes.find((p) => p.id === id);
     if (!actual) return;
+
     const { data, error } = await supabase
       .from("pendientes")
       .update({ completado: !actual.completado })
       .eq("id", id)
       .select()
       .single();
-    if (!error && data)
-      setPendientes((prev) => prev.map((p) => (p.id === id ? fromDB(data as PendienteDB) : p)));
+
+    if (!error && data) {
+      const actualizado = fromDB(data as PendienteDB);
+      setPendientes((prev) => prev.map((p) => (p.id === id ? actualizado : p)));
+
+      // Sincronizar estado con Google Tasks
+      if (actualizado.googleTaskId) {
+        actualizarGoogleTask(actualizado.googleTaskId, actualizado.completado);
+      }
+    }
   }
 
   async function eliminar(id: string) {
+    const pendiente = pendientes.find((p) => p.id === id);
     const { error } = await supabase.from("pendientes").delete().eq("id", id);
-    if (!error) setPendientes((prev) => prev.filter((p) => p.id !== id));
+    if (!error) {
+      setPendientes((prev) => prev.filter((p) => p.id !== id));
+      // Eliminar de Google Tasks
+      if (pendiente?.googleTaskId) {
+        eliminarGoogleTask(pendiente.googleTaskId);
+      }
+    }
   }
 
   async function editar(id: string, datos: Partial<Pendiente>) {
