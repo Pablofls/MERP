@@ -16,6 +16,9 @@ export default function Sidebar() {
   const pathname = usePathname();
   const user = useCurrentUser();
   const { conectado } = useGoogleStatus();
+
+  if (pathname === "/login") return null;
+
   const inicial = user?.email?.[0]?.toUpperCase() ?? "U";
   const perfilActive = pathname.startsWith("/perfil");
 
