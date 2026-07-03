@@ -47,17 +47,26 @@ export default function TarjetaHabito({ habito, registroHoy, racha, onRegistrar,
               </div>
 
               {/* Racha */}
-              <div className="flex items-center gap-1 mt-1">
+              <div className="flex items-center gap-2 mt-1">
                 {racha > 0 ? (
                   <>
-                    <span className="text-base leading-none">🔥</span>
-                    <span className="text-xs font-bold" style={{ color }}>
-                      {racha} {racha === 1 ? "día" : "días"}
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: `radial-gradient(circle at 35% 35%, ${color}cc, ${color})`,
+                        boxShadow: `0 1px 3px ${color}66`,
+                      }}
+                    >
+                      <span className="text-[10px] font-black text-white leading-none tracking-tight">
+                        {racha > 99 ? "99+" : racha}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      {racha === 1 ? "día" : "días"} seguidos
                     </span>
-                    <span className="text-xs text-gray-400">seguidos</span>
                   </>
                 ) : (
-                  <span className="text-xs text-gray-300">Sin racha activa</span>
+                  <span className="text-xs text-gray-300">Sin racha</span>
                 )}
               </div>
             </div>

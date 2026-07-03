@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useCurrentUser } from "./useCurrentUser";
-import { crearGoogleTask, actualizarGoogleTask, eliminarGoogleTask } from "../google-tasks";
+import { crearGoogleTask, actualizarGoogleTask, eliminarGoogleTask, editarContenidoGoogleTask } from "../google-tasks";
 import type { Pendiente } from "../types";
 
 type PendienteDB = {
@@ -134,8 +134,18 @@ export function usePendientes() {
       .eq("id", id)
       .select()
       .single();
-    if (!error && data)
-      setPendientes((prev) => prev.map((p) => (p.id === id ? fromDB(data as PendienteDB) : p)));
+    if (!error && data) {
+      const actualizado = fromDB(data as PendienteDB);
+      setPendientes((prev) => prev.map((p) => (p.id === id ? actualizado : p)));
+      if (actualizado.googleTaskId) {
+        editarContenidoGoogleTask(
+          actualizado.googleTaskId,
+          actualizado.titulo,
+          actualizado.descripcion,
+          actualizado.fechaLimite
+        );
+      }
+    }
   }
 
   return { pendientes, agregar, toggleCompletado, eliminar, editar };

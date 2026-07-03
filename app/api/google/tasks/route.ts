@@ -76,13 +76,19 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "actualizar" && taskId) {
+    const patch: Record<string, string> = {};
+    if (completado !== undefined) patch.status = completado ? "completed" : "needsAction";
+    if (titulo) patch.title = titulo;
+    if (descripcion !== undefined) patch.notes = descripcion ?? "";
+    if (fechaLimite !== undefined) patch.due = fechaLimite ? `${fechaLimite}T00:00:00.000Z` : "";
+
     await fetch(`${BASE}/${encodeURIComponent(taskId)}`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ status: completado ? "completed" : "needsAction" }),
+      body: JSON.stringify(patch),
     });
     return NextResponse.json({ ok: true });
   }

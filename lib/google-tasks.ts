@@ -30,6 +30,15 @@ export async function actualizarGoogleTask(taskId: string, completado: boolean):
   await callTasksAPI({ action: "actualizar", taskId, completado });
 }
 
+export async function editarContenidoGoogleTask(
+  taskId: string,
+  titulo: string,
+  descripcion?: string,
+  fechaLimite?: string
+): Promise<void> {
+  await callTasksAPI({ action: "actualizar", taskId, titulo, descripcion, fechaLimite });
+}
+
 export async function eliminarGoogleTask(taskId: string): Promise<void> {
   await callTasksAPI({ action: "eliminar", taskId });
 }
