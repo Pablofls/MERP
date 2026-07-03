@@ -9,11 +9,12 @@ interface Props {
   pendiente: Pendiente | null;
   materias: Materia[];
   onClose: () => void;
+  onToggle: (id: string) => void;
   onEditar: (id: string, datos: Partial<Pick<Pendiente, "titulo" | "descripcion" | "fechaLimite" | "materiaId">>) => void;
   onEliminar: (id: string) => void;
 }
 
-export default function DetallePendiente({ pendiente, materias, onClose, onEditar, onEliminar }: Props) {
+export default function DetallePendiente({ pendiente, materias, onClose, onToggle, onEditar, onEliminar }: Props) {
   const [editando, setEditando] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -100,9 +101,20 @@ export default function DetallePendiente({ pendiente, materias, onClose, onEdita
             <div className="flex-1" />
             <button
               onClick={abrirEdicion}
-              className="px-4 py-2 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-slate-900 transition-colors"
+              className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
             >
               Editar
+            </button>
+            <button
+              onClick={() => onToggle(pendiente.id)}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                pendiente.completado
+                  ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  : "bg-blue-900 text-white hover:bg-slate-900"
+              )}
+            >
+              {pendiente.completado ? "Reabrir" : "Completar"}
             </button>
           </div>
         </div>

@@ -8,6 +8,7 @@ import GestorMaterias from "@/components/escolar/GestorMaterias";
 import GestorClases from "@/components/escolar/GestorClases";
 import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn } from "@/lib/utils";
 import DetallePendiente from "@/components/home/DetallePendiente";
+import PendienteItem from "@/components/home/PendienteItem";
 import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import FormPendiente from "@/components/home/FormPendiente";
@@ -119,37 +120,24 @@ export default function EscolarPage() {
                     const mat = getMat(p.materiaId);
                     const vencido = !p.completado && p.fechaLimite && esFechaVencida(p.fechaLimite);
                     return (
-                      <li key={p.id} className="flex items-start gap-3 py-3">
-                        <button
-                          onClick={() => toggleCompletado(p.id)}
-                          className={cn(
-                            "mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
-                            p.completado ? "bg-blue-900 border-blue-900" : "border-gray-300 hover:border-blue-700"
+                      <PendienteItem
+                        key={p.id}
+                        pendiente={p}
+                        onToggle={toggleCompletado}
+                        onClick={() => setDetalle(p)}
+                      >
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
+                          {p.descripcion && (
+                            <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>
                           )}
-                        >
-                          {p.completado && (
-                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                            </svg>
+                          {p.fechaLimite && (
+                            <span className={cn("text-xs", vencido ? "text-red-600 font-medium" : "text-gray-400")}>
+                              {vencido ? "Vencido · " : ""}{formatFechaCorta(p.fechaLimite)}
+                            </span>
                           )}
-                        </button>
-                        <button onClick={() => setDetalle(p)} className="flex-1 min-w-0 text-left">
-                          <p className={cn("text-sm", p.completado ? "line-through text-gray-400" : "text-gray-800")}>
-                            {p.titulo}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
-                            {p.descripcion && (
-                              <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>
-                            )}
-                            {p.fechaLimite && (
-                              <span className={cn("text-xs", vencido ? "text-red-600 font-medium" : "text-gray-400")}>
-                                {vencido ? "Vencido · " : ""}{formatFechaCorta(p.fechaLimite)}
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      </li>
+                        </div>
+                      </PendienteItem>
                     );
                   })}
                 </ul>
@@ -172,6 +160,7 @@ export default function EscolarPage() {
         pendiente={detalle}
         materias={materias}
         onClose={() => setDetalle(null)}
+        onToggle={(id) => { toggleCompletado(id); setDetalle(null); }}
         onEditar={editar}
         onEliminar={eliminar}
       />
