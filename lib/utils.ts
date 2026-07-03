@@ -48,3 +48,16 @@ export function minutosDesdeMedianoche(hora: string): number {
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
 }
+
+const HABIT_PALETTE = [
+  "#6366f1", "#ec4899", "#10b981", "#f59e0b",
+  "#3b82f6", "#8b5cf6", "#ef4444", "#14b8a6",
+];
+
+export function getHabitColor(habitId: string): string {
+  let hash = 0;
+  for (let i = 0; i < habitId.length; i++) {
+    hash = habitId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return HABIT_PALETTE[Math.abs(hash) % HABIT_PALETTE.length];
+}

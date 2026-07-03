@@ -1,0 +1,9 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/escolar/page": "/escolar",
+  "/habitos/page": "/habitos",
+  "/login/page": "/login",
+  "/page": "/",
+  "/personal/page": "/personal"
+}

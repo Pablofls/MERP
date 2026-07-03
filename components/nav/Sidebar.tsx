@@ -28,8 +28,8 @@ export default function Sidebar() {
               className={cn(
                 "px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 active
-                  ? "text-white"
-                  : "text-slate-900 hover:text-slate-500"
+                  ? "bg-blue-900 text-white"
+                  : "text-slate-600 hover:bg-gray-100 hover:text-slate-900"
               )}
             >
               {tab.label}

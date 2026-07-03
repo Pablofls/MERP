@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/habitos/layout,_N_T_/habitos/page,_N_T_/habitos"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/habitos/__PAGE__",
+    "/habitos",
+    "/_index",
+    "/_head"
+  ]
+}
