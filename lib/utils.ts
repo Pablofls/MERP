@@ -40,6 +40,16 @@ export function fechaHoy(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+export function etiquetaFecha(iso: string): string {
+  const hoy = fechaHoy();
+  const manana = new Date();
+  manana.setDate(manana.getDate() + 1);
+  const mananaIso = manana.toISOString().split("T")[0];
+  if (iso === hoy) return "Hoy";
+  if (iso === mananaIso) return "Mañana";
+  return formatFechaCorta(iso);
+}
+
 export function minutosDesdeMedianoche(hora: string): number {
   const [h, m] = hora.split(":").map(Number);
   return h * 60 + m;

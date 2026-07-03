@@ -6,23 +6,44 @@ import { useClases } from "@/lib/hooks/useClases";
 import HorarioSemanal from "@/components/escolar/HorarioSemanal";
 import GestorMaterias from "@/components/escolar/GestorMaterias";
 import GestorClases from "@/components/escolar/GestorClases";
-import { formatFechaCorta, esFechaVencida, cn } from "@/lib/utils";
+import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn } from "@/lib/utils";
+import DetallePendiente from "@/components/home/DetallePendiente";
 import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import FormPendiente from "@/components/home/FormPendiente";
 import EmptyState from "@/components/ui/EmptyState";
+import type { Pendiente } from "@/lib/types";
+
+function agruparPorDia(items: Pendiente[]) {
+  const conFecha = [...items.filter((p) => p.fechaLimite)].sort((a, b) =>
+    a.fechaLimite! < b.fechaLimite! ? -1 : 1
+  );
+  const sinFecha = items.filter((p) => !p.fechaLimite);
+  const mapa = new Map<string, Pendiente[]>();
+  for (const p of conFecha) {
+    if (!mapa.has(p.fechaLimite!)) mapa.set(p.fechaLimite!, []);
+    mapa.get(p.fechaLimite!)!.push(p);
+  }
+  const grupos: { label: string; items: Pendiente[] }[] = Array.from(mapa.entries()).map(
+    ([fecha, grp]) => ({ label: etiquetaFecha(fecha), items: grp })
+  );
+  if (sinFecha.length > 0) grupos.push({ label: "Sin fecha", items: sinFecha });
+  return grupos;
+}
 
 export default function EscolarPage() {
-  const { pendientes, agregar, toggleCompletado, eliminar } = usePendientes();
+  const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { materias, agregar: agregarMat, editar: editarMat, eliminar: eliminarMat } = useMaterias();
   const { clases, agregar: agregarClase, eliminar: eliminarClase } = useClases();
   const [modalPendiente, setModalPendiente] = useState(false);
   const [configAbierto, setConfigAbierto] = useState(false);
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
+  const [detalle, setDetalle] = useState<Pendiente | null>(null);
 
   const pendientesEscolares = pendientes.filter(
     (p) => p.tipo === "escolar" && (mostrarCompletados || !p.completado)
   );
+  const grupos = agruparPorDia(pendientesEscolares);
   const getMat = (id?: string) => materias.find((m) => m.id === id);
 
   return (
@@ -89,47 +110,52 @@ export default function EscolarPage() {
         {pendientesEscolares.length === 0 ? (
           <EmptyState title="Sin pendientes escolares" />
         ) : (
-          <ul className="divide-y divide-gray-100">
-            {pendientesEscolares.map((p) => {
-              const mat = getMat(p.materiaId);
-              const vencido = !p.completado && p.fechaLimite && esFechaVencida(p.fechaLimite);
-              return (
-                <li key={p.id} className="flex items-start gap-3 py-3">
-                  <button
-                    onClick={() => toggleCompletado(p.id)}
-                    className={cn(
-                      "mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
-                      p.completado ? "bg-blue-900 border-blue-900" : "border-gray-300 hover:border-blue-700"
-                    )}
-                  >
-                    {p.completado && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                    )}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm", p.completado ? "line-through text-gray-400" : "text-gray-800")}>
-                      {p.titulo}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
-                      {p.fechaLimite && (
-                        <span className={cn("text-xs", vencido ? "text-red-600 font-medium" : "text-gray-400")}>
-                          {vencido ? "Vencido · " : ""}{formatFechaCorta(p.fechaLimite)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button onClick={() => eliminar(p.id)} className="p-1 text-gray-300 hover:text-red-400 transition-colors">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="space-y-4">
+            {grupos.map((grupo) => (
+              <div key={grupo.label}>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{grupo.label}</p>
+                <ul className="divide-y divide-gray-100">
+                  {grupo.items.map((p) => {
+                    const mat = getMat(p.materiaId);
+                    const vencido = !p.completado && p.fechaLimite && esFechaVencida(p.fechaLimite);
+                    return (
+                      <li key={p.id} className="flex items-start gap-3 py-3">
+                        <button
+                          onClick={() => toggleCompletado(p.id)}
+                          className={cn(
+                            "mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
+                            p.completado ? "bg-blue-900 border-blue-900" : "border-gray-300 hover:border-blue-700"
+                          )}
+                        >
+                          {p.completado && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          )}
+                        </button>
+                        <button onClick={() => setDetalle(p)} className="flex-1 min-w-0 text-left">
+                          <p className={cn("text-sm", p.completado ? "line-through text-gray-400" : "text-gray-800")}>
+                            {p.titulo}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
+                            {p.descripcion && (
+                              <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>
+                            )}
+                            {p.fechaLimite && (
+                              <span className={cn("text-xs", vencido ? "text-red-600 font-medium" : "text-gray-400")}>
+                                {vencido ? "Vencido · " : ""}{formatFechaCorta(p.fechaLimite)}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </section>
 
@@ -141,6 +167,14 @@ export default function EscolarPage() {
           onCancel={() => setModalPendiente(false)}
         />
       </Modal>
+
+      <DetallePendiente
+        pendiente={detalle}
+        materias={materias}
+        onClose={() => setDetalle(null)}
+        onEditar={editar}
+        onEliminar={eliminar}
+      />
     </div>
   );
 }

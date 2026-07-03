@@ -26,7 +26,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg px-4">
+    <div className="fixed inset-0 flex items-center justify-center bg-white px-4 z-50">
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-bold text-text text-center mb-8">MERP</h1>
 

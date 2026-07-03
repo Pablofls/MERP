@@ -6,7 +6,7 @@ import AgendaHoy from "@/components/home/AgendaHoy";
 import PendientesHoy from "@/components/home/PendientesHoy";
 
 export default function HomePage() {
-  const { pendientes, agregar, toggleCompletado } = usePendientes();
+  const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { materias } = useMaterias();
   const { clases } = useClases();
 
@@ -21,6 +21,8 @@ export default function HomePage() {
           materias={materias}
           onToggle={toggleCompletado}
           onAgregar={agregar}
+          onEditar={editar}
+          onEliminar={eliminar}
         />
       </div>
     </div>
