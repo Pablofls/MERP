@@ -10,3 +10,4 @@ dist-ssr
 .DS_Store
 .vercel
 *.log
+next-env.d.ts
