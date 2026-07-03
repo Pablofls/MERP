@@ -16,7 +16,9 @@ export default function Sidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-52 min-h-screen bg-gray-50 p-5 fixed top-0 left-0 z-40">
       <div className="mb-10 mt-1">
-        <span className="text-xl font-bold tracking-tight text-slate-900">MERP</span>
+        <Link href="/" className="text-2xl font-bold tracking-tight text-slate-900 hover:text-slate-700 transition-colors">
+          MERP
+        </Link>
       </div>
       <nav className="flex flex-col gap-0.5">
         {TABS.map((tab) => {
@@ -26,10 +28,10 @@ export default function Sidebar() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "px-3 py-2.5 rounded-lg text-base font-medium transition-colors",
                 active
-                  ? "bg-blue-900 text-white"
-                  : "text-slate-600 hover:bg-gray-100 hover:text-slate-900"
+                  ? "text-gray-50 cursor-default"
+                  : "text-gray-900 hover:text-gray-500"
               )}
             >
               {tab.label}
