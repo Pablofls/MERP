@@ -16,11 +16,11 @@ export interface GoogleEventoSemana {
   finISO: string;
 }
 
-function getLunesDeSemana(): Date {
+function getLunesDeSemana(semanaOffset: number = 0): Date {
   const hoy = new Date();
   const dow = (hoy.getDay() + 6) % 7; // lunes = 0
   const lunes = new Date(hoy);
-  lunes.setDate(hoy.getDate() - dow);
+  lunes.setDate(hoy.getDate() - dow + semanaOffset * 7);
   lunes.setHours(0, 0, 0, 0);
   return lunes;
 }
@@ -33,7 +33,7 @@ function formatHora(iso: string): string {
   });
 }
 
-export function useGoogleCalendarSemana() {
+export function useGoogleCalendarSemana(semanaOffset: number = 0) {
   const user = useCurrentUser();
   const { conectado } = useGoogleStatus();
   const [eventos, setEventos] = useState<GoogleEventoSemana[]>([]);
@@ -42,7 +42,7 @@ export function useGoogleCalendarSemana() {
   useEffect(() => {
     if (!user || !conectado) return;
 
-    const lunes = getLunesDeSemana();
+    const lunes = getLunesDeSemana(semanaOffset);
     const domingo = new Date(lunes);
     domingo.setDate(lunes.getDate() + 7);
 
@@ -97,7 +97,7 @@ export function useGoogleCalendarSemana() {
     }
 
     fetchSemana();
-  }, [user, conectado, version]);
+  }, [user, conectado, version, semanaOffset]);
 
   return { eventos, refetch: () => setVersion((v) => v + 1) };
 }

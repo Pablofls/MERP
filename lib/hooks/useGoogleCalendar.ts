@@ -12,7 +12,7 @@ export interface GoogleEventoHoy {
   todoElDia: boolean;
 }
 
-export function useGoogleCalendar() {
+export function useGoogleCalendar(diaOffset: number = 0) {
   const user = useCurrentUser();
   const { conectado } = useGoogleStatus();
   const [eventos, setEventos] = useState<GoogleEventoHoy[]>([]);
@@ -22,9 +22,10 @@ export function useGoogleCalendar() {
   useEffect(() => {
     if (!user || !conectado) return;
 
-    const hoy = new Date();
-    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-    const fin = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
+    const base = new Date();
+    base.setDate(base.getDate() + diaOffset);
+    const inicio = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+    const fin = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1);
 
     async function fetchEventos() {
       setCargando(true);
@@ -54,7 +55,7 @@ export function useGoogleCalendar() {
     }
 
     fetchEventos();
-  }, [user, conectado, version]);
+  }, [user, conectado, version, diaOffset]);
 
   return { eventos, cargando, refetch: () => setVersion((v) => v + 1) };
 }

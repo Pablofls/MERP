@@ -3,7 +3,6 @@ import { useState } from "react";
 import { usePendientes } from "@/lib/hooks/usePendientes";
 import { useMaterias } from "@/lib/hooks/useMaterias";
 import { useClases } from "@/lib/hooks/useClases";
-import { useGoogleCalendarSemana } from "@/lib/hooks/useGoogleCalendarSemana";
 import HorarioSemanal from "@/components/escolar/HorarioSemanal";
 import GestorMaterias from "@/components/escolar/GestorMaterias";
 import GestorClases from "@/components/escolar/GestorClases";
@@ -37,7 +36,6 @@ export default function EscolarPage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { materias, agregar: agregarMat, editar: editarMat, eliminar: eliminarMat } = useMaterias();
   const { clases, agregar: agregarClase, eliminar: eliminarClase } = useClases();
-  const { eventos: googleEventos, refetch: refetchCalendar } = useGoogleCalendarSemana();
   const [modalPendiente, setModalPendiente] = useState(false);
   const [configAbierto, setConfigAbierto] = useState(false);
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
@@ -84,7 +82,7 @@ export default function EscolarPage() {
       {/* Horario semanal */}
       <section>
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Horario semanal</h2>
-        <HorarioSemanal clases={clases} materias={materias} googleEventos={googleEventos} onRefetch={refetchCalendar} />
+        <HorarioSemanal clases={clases} materias={materias} />
       </section>
 
       {/* Pendientes escolares */}

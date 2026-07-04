@@ -95,11 +95,33 @@ export async function POST(req: NextRequest) {
   }
 
   const supabaseToken = authHeader.slice(7);
-  const { timeMin, timeMax } = await req.json();
+  const body = await req.json();
+  const { action, timeMin, timeMax } = body;
 
   const accessToken = await getGoogleAccessToken(supabaseToken);
-  if (!accessToken) {
-    return NextResponse.json({ ok: false, motivo: "no_token" });
+  if (!accessToken) return NextResponse.json({ ok: false, motivo: "no_token" });
+
+  // Crear evento
+  if (action === "crear") {
+    const { titulo, inicio, fin, todoElDia } = body;
+    const evento: Record<string, unknown> = { summary: titulo };
+    if (todoElDia) {
+      evento.start = { date: inicio };
+      evento.end = { date: fin };
+    } else {
+      evento.start = { dateTime: inicio };
+      evento.end = { dateTime: fin };
+    }
+    const res = await fetch(
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify(evento),
+      }
+    );
+    if (!res.ok) return NextResponse.json({ ok: false });
+    return NextResponse.json({ ok: true });
   }
 
   const params = new URLSearchParams({

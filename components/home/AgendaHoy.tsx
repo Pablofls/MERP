@@ -1,16 +1,15 @@
 "use client";
 import { useState } from "react";
 import type { ClaseHorario, Materia } from "@/lib/types";
-import type { GoogleEventoHoy } from "@/lib/hooks/useGoogleCalendar";
-import { getDiaSemanaActual, minutosDesdeMedianoche } from "@/lib/utils";
+import { useGoogleCalendar } from "@/lib/hooks/useGoogleCalendar";
+import { getDiaSemanaActual, minutosDesdeMedianoche, fechaHoy } from "@/lib/utils";
 import EmptyState from "@/components/ui/EmptyState";
 import EventoCalendarioModal, { type EventoCalendario } from "@/components/home/EventoCalendarioModal";
+import CrearEventoModal from "@/components/home/CrearEventoModal";
 
 interface Props {
   clases: ClaseHorario[];
   materias: Materia[];
-  googleEventos?: GoogleEventoHoy[];
-  onRefetch?: () => void;
 }
 
 interface ItemAgenda {
@@ -24,31 +23,59 @@ interface ItemAgenda {
   origen: "app" | "google";
   salon?: string;
   todoElDia?: boolean;
-  eventoOriginal?: GoogleEventoHoy;
+  eventoOriginal?: { id: string; titulo: string; inicio: string | null; fin: string | null; todoElDia: boolean };
 }
 
 function formatHora(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-MX", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
+    hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }
 
-export default function AgendaHoy({ clases, materias, googleEventos = [], onRefetch }: Props) {
-  const diaHoy = getDiaSemanaActual();
-  const horaActual = new Date().getHours() * 60 + new Date().getMinutes();
+function getFechaConOffset(offset: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d;
+}
+
+function getLabelDia(offset: number): string {
+  if (offset === 0) return "Hoy";
+  if (offset === -1) return "Ayer";
+  if (offset === 1) return "Mañana";
+  const d = getFechaConOffset(offset);
+  return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "short" });
+}
+
+function getIsoFecha(offset: number): string {
+  return getFechaConOffset(offset).toISOString().split("T")[0];
+}
+
+function getDiaSemanaConOffset(offset: number) {
+  const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
+  const d = getFechaConOffset(offset);
+  return dias[d.getDay()];
+}
+
+export default function AgendaHoy({ clases, materias }: Props) {
+  const [diaOffset, setDiaOffset] = useState(0);
+  const [modalCrear, setModalCrear] = useState(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoCalendario | null>(null);
 
+  const { eventos: googleEventos, refetch } = useGoogleCalendar(diaOffset);
+
+  const diaActual = getDiaSemanaConOffset(diaOffset);
+  const horaActual = new Date().getHours() * 60 + new Date().getMinutes();
+  const esMismaFecha = diaOffset === 0;
+
   function getEstado(inicioMin: number, finMin: number): ItemAgenda["estado"] {
+    if (!esMismaFecha) return finMin < horaActual ? "pasada" : "futura";
     if (horaActual >= inicioMin && horaActual < finMin) return "activa";
     if (horaActual >= finMin) return "pasada";
     return "futura";
   }
 
-  // Clases del app (horario semanal)
   const itemsApp: ItemAgenda[] = clases
-    .filter((c) => c.dia === diaHoy)
+    .filter((c) => c.dia === diaActual)
     .map((c) => {
       const mat = materias.find((m) => m.id === c.materiaId);
       const ini = minutosDesdeMedianoche(c.horaInicio);
@@ -66,7 +93,6 @@ export default function AgendaHoy({ clases, materias, googleEventos = [], onRefe
       };
     });
 
-  // Eventos de Google Calendar (solo los de hoy con hora)
   const itemsGoogle: ItemAgenda[] = googleEventos
     .filter((e) => !e.todoElDia && e.inicio && e.fin)
     .map((e) => {
@@ -87,32 +113,54 @@ export default function AgendaHoy({ clases, materias, googleEventos = [], onRefe
       };
     });
 
-  // Eventos de todo el día de Google Calendar
   const todoDiaGoogle = googleEventos.filter((e) => e.todoElDia);
-
-  // Merge y ordenar por hora
-  const items = [...itemsApp, ...itemsGoogle].sort(
-    (a, b) => a.minutosInicio - b.minutosInicio
-  );
-
+  const items = [...itemsApp, ...itemsGoogle].sort((a, b) => a.minutosInicio - b.minutosInicio);
   const sinEventos = items.length === 0 && todoDiaGoogle.length === 0;
 
-  const hoy = new Date();
-  const fechaStr = hoy.toLocaleDateString("es-MX", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
+  const labelDia = getLabelDia(diaOffset);
+  const fechaStr = getFechaConOffset(diaOffset).toLocaleDateString("es-MX", {
+    weekday: "long", day: "numeric", month: "long",
   });
 
   return (
     <section>
-      <div className="mb-3">
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Hoy</h2>
-        <p className="text-xs text-gray-400 capitalize mt-0.5">{fechaStr}</p>
+      {/* Header con navegación */}
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide capitalize">{labelDia}</h2>
+          <p className="text-xs text-gray-400 capitalize mt-0.5">{fechaStr}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setDiaOffset((o) => o - 1)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setDiaOffset((o) => o + 1)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setModalCrear(true)}
+            className="ml-1 flex items-center gap-1 bg-blue-900 text-white text-xs font-medium px-2.5 py-1.5 rounded-md hover:bg-slate-900 transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Evento
+          </button>
+        </div>
       </div>
 
       {sinEventos ? (
-        <EmptyState title="Sin eventos hoy" />
+        <EmptyState title="Sin eventos" />
       ) : (
         <div className="space-y-1.5">
           {/* Eventos todo el día */}
@@ -138,9 +186,7 @@ export default function AgendaHoy({ clases, materias, googleEventos = [], onRefe
             return (
               <Wrapper
                 key={item.id}
-                {...(esGoogle && {
-                  onClick: () => setEventoSeleccionado(item.eventoOriginal!),
-                })}
+                {...(esGoogle && { onClick: () => setEventoSeleccionado(item.eventoOriginal!) })}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left ${
                   item.estado === "activa"
                     ? "border-blue-200 bg-blue-50"
@@ -149,10 +195,7 @@ export default function AgendaHoy({ clases, materias, googleEventos = [], onRefe
                     : "border-gray-100 bg-white"
                 } ${esGoogle ? "hover:bg-gray-50 cursor-pointer" : ""}`}
               >
-                <div
-                  className="w-0.5 self-stretch rounded-full flex-shrink-0"
-                  style={{ backgroundColor: item.color }}
-                />
+                <div className="w-0.5 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-800 font-medium truncate">{item.titulo}</p>
                   <p className="text-xs text-gray-400">
@@ -161,9 +204,7 @@ export default function AgendaHoy({ clases, materias, googleEventos = [], onRefe
                   </p>
                 </div>
                 {item.estado === "activa" && (
-                  <span className="text-xs font-medium text-blue-900 bg-blue-100 px-2 py-0.5 rounded">
-                    Ahora
-                  </span>
+                  <span className="text-xs font-medium text-blue-900 bg-blue-100 px-2 py-0.5 rounded">Ahora</span>
                 )}
                 {esGoogle && item.estado !== "activa" && <CalendarIcon />}
               </Wrapper>
@@ -175,7 +216,14 @@ export default function AgendaHoy({ clases, materias, googleEventos = [], onRefe
       <EventoCalendarioModal
         evento={eventoSeleccionado}
         onClose={() => setEventoSeleccionado(null)}
-        onRefetch={() => { onRefetch?.(); setEventoSeleccionado(null); }}
+        onRefetch={() => { refetch(); setEventoSeleccionado(null); }}
+      />
+
+      <CrearEventoModal
+        open={modalCrear}
+        fechaDefault={getIsoFecha(diaOffset)}
+        onClose={() => setModalCrear(false)}
+        onCreado={() => { refetch(); }}
       />
     </section>
   );
