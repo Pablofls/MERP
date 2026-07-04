@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import { useCurrentUser } from "./useCurrentUser";
+import { useUser } from "../context/AuthContext";
 import { useGoogleStatus } from "./useGoogleStatus";
 
 export interface GoogleEventoHoy {
@@ -13,7 +13,7 @@ export interface GoogleEventoHoy {
 }
 
 export function useGoogleCalendar(diaOffset: number = 0) {
-  const user = useCurrentUser();
+  const user = useUser();
   const { conectado } = useGoogleStatus();
   const [eventos, setEventos] = useState<GoogleEventoHoy[]>([]);
   const [cargando, setCargando] = useState(false);

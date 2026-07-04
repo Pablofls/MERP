@@ -4,6 +4,7 @@ import BottomNav from "@/components/nav/BottomNav";
 import Sidebar from "@/components/nav/Sidebar";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import AuthGuard from "@/components/AuthGuard";
+import { AuthProvider } from "@/lib/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "MERP",
@@ -41,15 +42,17 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body>
-        <AuthGuard>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 lg:ml-56 pb-safe min-w-0">
-              {children}
-            </main>
-          </div>
-          <BottomNav />
-        </AuthGuard>
+        <AuthProvider>
+          <AuthGuard>
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <main className="flex-1 lg:ml-56 pb-safe min-w-0">
+                {children}
+              </main>
+            </div>
+            <BottomNav />
+          </AuthGuard>
+        </AuthProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

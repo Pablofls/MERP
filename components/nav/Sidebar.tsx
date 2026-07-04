@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useGoogleStatus } from "@/lib/hooks/useGoogleStatus";
-import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
+import { useUser } from "@/lib/context/AuthContext";
 
 const TABS = [
   { href: "/",        label: "Inicio"   },
@@ -14,7 +14,7 @@ const TABS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const user = useCurrentUser();
+  const user = useUser();
   const { conectado } = useGoogleStatus();
 
   if (pathname === "/login") return null;

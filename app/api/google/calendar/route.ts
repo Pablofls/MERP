@@ -1,38 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-async function getGoogleAccessToken(supabaseToken: string): Promise<string | null> {
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: `Bearer ${supabaseToken}` } },
-  });
-
-  const { data } = await supabase
-    .from("google_tokens")
-    .select("refresh_token")
-    .maybeSingle();
-
-  if (!data?.refresh_token) return null;
-
-  const params = new URLSearchParams({
-    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-    client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-    refresh_token: data.refresh_token,
-    grant_type: "refresh_token",
-  });
-
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString(),
-  });
-
-  if (!res.ok) return null;
-  const token = await res.json();
-  return token.access_token ?? null;
-}
+import { getGoogleAccessToken, requireAuth } from "@/lib/server/google-auth";
 
 // Google Calendar event IDs are base32hex (a-v, 0-9), 5–1024 chars
 function isValidEventId(id: unknown): id is string {
@@ -44,12 +11,8 @@ function isValidISOString(v: unknown): v is string {
 }
 
 export async function PATCH(req: NextRequest) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const supabaseToken = authHeader.slice(7);
+  const supabaseToken = requireAuth(req.headers.get("Authorization"));
+  if (!supabaseToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { eventId, titulo, inicio, fin } = await req.json();
 
   if (!isValidEventId(eventId)) {
@@ -87,12 +50,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const supabaseToken = authHeader.slice(7);
+  const supabaseToken = requireAuth(req.headers.get("Authorization"));
+  if (!supabaseToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { eventId } = await req.json();
 
   if (!isValidEventId(eventId)) {
@@ -115,12 +74,8 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const supabaseToken = authHeader.slice(7);
+  const supabaseToken = requireAuth(req.headers.get("Authorization"));
+  if (!supabaseToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const { action, timeMin, timeMax } = body;
 

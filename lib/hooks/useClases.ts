@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import { useCurrentUser } from "./useCurrentUser";
+import { useUser } from "../context/AuthContext";
 import type { ClaseHorario } from "../types";
 
 type ClaseDB = {
@@ -38,7 +38,7 @@ function toDB(datos: Omit<ClaseHorario, "id">) {
 }
 
 export function useClases() {
-  const user = useCurrentUser();
+  const user = useUser();
   const [clases, setClases] = useState<ClaseHorario[]>([]);
 
   useEffect(() => {

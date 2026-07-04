@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import { useCurrentUser } from "./useCurrentUser";
+import { useUser } from "../context/AuthContext";
 import { crearGoogleTask, actualizarGoogleTask, eliminarGoogleTask, editarContenidoGoogleTask } from "../google-tasks";
 import type { Pendiente } from "../types";
 
@@ -30,7 +30,7 @@ function fromDB(row: PendienteDB): Pendiente {
 }
 
 export function usePendientes() {
-  const user = useCurrentUser();
+  const user = useUser();
   const [pendientes, setPendientes] = useState<Pendiente[]>([]);
 
   useEffect(() => {

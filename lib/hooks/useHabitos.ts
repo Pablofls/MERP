@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import { useCurrentUser } from "./useCurrentUser";
+import { useUser } from "../context/AuthContext";
 import type { Habito, RegistroHabito } from "../types";
 
 type HabitoDB = {
@@ -34,7 +34,7 @@ function registroFromDB(row: RegistroDB): RegistroHabito {
 }
 
 export function useHabitos() {
-  const user = useCurrentUser();
+  const user = useUser();
   const [habitos, setHabitos] = useState<Habito[]>([]);
   const [registros, setRegistros] = useState<RegistroHabito[]>([]);
 
@@ -48,9 +48,12 @@ export function useHabitos() {
         if (data) setHabitos((data as HabitoDB[]).map(habitoFromDB));
       });
 
+    const hace90dias = new Date();
+    hace90dias.setDate(hace90dias.getDate() - 90);
     supabase
       .from("registros_habito")
       .select("*")
+      .gte("fecha", hace90dias.toISOString().split("T")[0])
       .order("fecha", { ascending: false })
       .then(({ data }) => {
         if (data) setRegistros((data as RegistroDB[]).map(registroFromDB));
@@ -128,21 +131,25 @@ export function useHabitos() {
   }
 
   function getRacha(habitoId: string): number {
+    const fechasConValor = new Set(
+      registros
+        .filter((r) => r.habitoId === habitoId && r.valor > 0)
+        .map((r) => r.fecha)
+    );
+
     const hoy = new Date();
     const hoyKey = hoy.toISOString().split("T")[0];
-    const hoyReg = registros.find((r) => r.habitoId === habitoId && r.fecha === hoyKey);
 
-    // Si hoy no está marcado, contar desde ayer (el día de hoy aún puede registrarse)
-    let fecha = new Date(hoy);
-    if (!hoyReg || hoyReg.valor === 0) {
+    // Si hoy no está marcado, contar desde ayer
+    const fecha = new Date(hoy);
+    if (!fechasConValor.has(hoyKey)) {
       fecha.setDate(fecha.getDate() - 1);
     }
 
     let racha = 0;
     while (true) {
       const key = fecha.toISOString().split("T")[0];
-      const reg = registros.find((r) => r.habitoId === habitoId && r.fecha === key);
-      if (!reg || reg.valor === 0) break;
+      if (!fechasConValor.has(key)) break;
       racha++;
       fecha.setDate(fecha.getDate() - 1);
     }

@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import { useCurrentUser } from "./useCurrentUser";
+import { useUser } from "../context/AuthContext";
 import type { Materia } from "../types";
 
 export function useMaterias() {
-  const user = useCurrentUser();
+  const user = useUser();
   const [materias, setMaterias] = useState<Materia[]>([]);
 
   useEffect(() => {

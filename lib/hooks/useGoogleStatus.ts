@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import { useCurrentUser } from "./useCurrentUser";
+import { useUser } from "../context/AuthContext";
 
 export function useGoogleStatus() {
   const [conectado, setConectado] = useState<boolean | null>(null);
-  const user = useCurrentUser();
+  const user = useUser();
 
   useEffect(() => {
     if (!user) return;

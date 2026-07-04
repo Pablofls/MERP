@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import { useCurrentUser } from "./useCurrentUser";
+import { useUser } from "../context/AuthContext";
 import { useGoogleStatus } from "./useGoogleStatus";
 import { DIAS_SEMANA } from "../utils";
 import type { DiaSemana } from "../types";
@@ -34,7 +34,7 @@ function formatHora(iso: string): string {
 }
 
 export function useGoogleCalendarSemana(semanaOffset: number = 0) {
-  const user = useCurrentUser();
+  const user = useUser();
   const { conectado } = useGoogleStatus();
   const [eventos, setEventos] = useState<GoogleEventoSemana[]>([]);
   const [version, setVersion] = useState(0);
