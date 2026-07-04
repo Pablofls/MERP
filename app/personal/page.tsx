@@ -46,7 +46,7 @@ function CalendarioSemana({ pendientes }: { pendientes: Pendiente[] }) {
   const pendientesDia = diaSeleccionado ? pendientesDelDia(diaSeleccionado) : [];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
       {/* Navegación de semana */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
         <button
@@ -81,13 +81,16 @@ function CalendarioSemana({ pendientes }: { pendientes: Pendiente[] }) {
               onClick={() => setDiaSeleccionado(activo ? null : iso)}
               className={cn(
                 "flex flex-col items-center py-3 transition-colors",
-                activo ? "bg-blue-900 text-white" : esHoy ? "bg-blue-50" : "hover:bg-gray-50"
+                activo ? "bg-blue-900 text-white" : "hover:bg-gray-50"
               )}
             >
               <span className={cn("text-[10px] font-semibold uppercase tracking-wider", activo ? "text-slate-400" : "text-gray-400")}>
                 {DIAS_CORTOS[i]}
               </span>
-              <span className={cn("text-sm font-semibold mt-1", activo ? "text-white" : esHoy ? "text-blue-900" : "text-gray-700")}>
+              <span className={cn(
+                "text-sm font-semibold mt-1 w-6 h-6 flex items-center justify-center rounded-full",
+                activo ? "text-white" : esHoy ? "bg-blue-900 text-white" : "text-gray-700"
+              )}>
                 {dia.getDate()}
               </span>
               {tiene && (
@@ -140,19 +143,19 @@ function FormPendientePersonal({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Titulo</label>
-        <input type="text" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Que tienes pendiente?" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800" autoFocus />
+        <input type="text" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Que tienes pendiente?" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" autoFocus />
       </div>
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Descripcion</label>
-        <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalles opcionales" rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800 resize-none" />
+        <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalles opcionales" rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 resize-none" />
       </div>
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Fecha limite</label>
-        <input type="date" value={fechaLimite} min={fechaHoy()} onChange={(e) => setFechaLimite(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800" />
+        <input type="date" value={fechaLimite} min={fechaHoy()} onChange={(e) => setFechaLimite(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" />
       </div>
       <div className="flex gap-2 pt-2">
-        <button type="button" onClick={onCancel} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600">Cancelar</button>
-        <button type="submit" disabled={!titulo.trim()} className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-slate-900 disabled:opacity-40 transition-colors">Agregar</button>
+        <button type="button" onClick={onCancel} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
+        <button type="submit" disabled={!titulo.trim()} className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-40 transition-colors">Agregar</button>
       </div>
     </form>
   );
@@ -212,7 +215,7 @@ export default function PersonalPage() {
             </button>
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-slate-900 transition-colors"
+              className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

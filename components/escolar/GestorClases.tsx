@@ -35,7 +35,10 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
     <div>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Clases</h3>
-        <button onClick={() => setOpen(true)} className="text-xs text-blue-900 font-medium hover:text-blue-950 transition-colors">
+        <button onClick={() => setOpen(true)} className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
           Agregar clase
         </button>
       </div>
@@ -84,7 +87,7 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Materia</label>
-            <select value={materiaId} onChange={(e) => setMateriaId(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800 bg-white">
+            <select value={materiaId} onChange={(e) => setMateriaId(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white">
               {materias.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </div>
@@ -93,7 +96,7 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
             <div className="flex gap-1.5 flex-wrap">
               {diasConClases.map((d) => (
                 <button key={d} type="button" onClick={() => setDia(d)}
-                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${dia === d ? "bg-blue-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${dia === d ? "bg-blue-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                   {DIAS_SHORT[d]}
                 </button>
               ))}
@@ -102,20 +105,20 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Inicio</label>
-              <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800" />
+              <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Fin</label>
-              <input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800" />
+              <input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" />
             </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Salon (opcional)</label>
-            <input type="text" value={salon} onChange={(e) => setSalon(e.target.value)} placeholder="ej. A-201" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800" />
+            <input type="text" value={salon} onChange={(e) => setSalon(e.target.value)} placeholder="ej. A-201" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" />
           </div>
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={() => setOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600">Cancelar</button>
-            <button type="submit" className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-slate-900 transition-colors">Agregar</button>
+            <button type="button" onClick={() => setOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
+            <button type="submit" className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition-colors">Agregar</button>
           </div>
         </form>
       </Modal>

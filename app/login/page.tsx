@@ -26,13 +26,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white px-4 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-gray-50 px-4 z-50">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-text text-center mb-8">MERP</h1>
+        <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">MERP</h1>
 
-        <form onSubmit={handleSubmit} className="bg-surface rounded-2xl p-6 space-y-4 shadow-sm">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 space-y-4 shadow-sm border border-gray-100">
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
               Correo
             </label>
             <input
@@ -41,12 +41,12 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
               Contraseña
             </label>
             <input
@@ -55,7 +55,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
             />
           </div>
 
@@ -66,7 +66,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            className="w-full py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-50 transition-colors"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>

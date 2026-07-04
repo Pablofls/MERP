@@ -39,7 +39,10 @@ export default function GestorMaterias({ materias, onAgregar, onEditar, onElimin
     <div>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Materias</h3>
-        <button onClick={abrirNueva} className="text-xs text-blue-900 font-medium hover:text-blue-950 transition-colors">
+        <button onClick={abrirNueva} className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
           Agregar
         </button>
       </div>
@@ -65,7 +68,7 @@ export default function GestorMaterias({ materias, onAgregar, onEditar, onElimin
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Nombre de la materia"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
               autoFocus
             />
           </div>
@@ -97,8 +100,8 @@ export default function GestorMaterias({ materias, onAgregar, onEditar, onElimin
                 Eliminar
               </button>
             )}
-            <button type="button" onClick={() => setOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600">Cancelar</button>
-            <button type="submit" disabled={!nombre.trim()} className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-slate-900 disabled:opacity-40 transition-colors">
+            <button type="button" onClick={() => setOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
+            <button type="submit" disabled={!nombre.trim()} className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-40 transition-colors">
               {editando ? "Guardar" : "Agregar"}
             </button>
           </div>

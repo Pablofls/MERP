@@ -111,7 +111,7 @@ export default function DetallePendiente({ pendiente, materias, onClose, onToggl
                 "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                 pendiente.completado
                   ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  : "bg-blue-900 text-white hover:bg-slate-900"
+                  : "bg-blue-900 text-white hover:bg-blue-800"
               )}
             >
               {pendiente.completado ? "Reabrir" : "Completar"}
@@ -129,7 +129,7 @@ export default function DetallePendiente({ pendiente, materias, onClose, onToggl
               <select
                 value={materiaId}
                 onChange={(e) => setMateriaId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800 bg-white"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white"
               >
                 {materias.map((m) => (
                   <option key={m.id} value={m.id}>{m.nombre}</option>
@@ -144,7 +144,7 @@ export default function DetallePendiente({ pendiente, materias, onClose, onToggl
               type="text"
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
               autoFocus
             />
           </div>
@@ -155,7 +155,7 @@ export default function DetallePendiente({ pendiente, materias, onClose, onToggl
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               rows={3}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800 resize-none"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 resize-none"
             />
           </div>
 
@@ -165,7 +165,7 @@ export default function DetallePendiente({ pendiente, materias, onClose, onToggl
               type="date"
               value={fechaLimite}
               onChange={(e) => setFechaLimite(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
             />
           </div>
 
@@ -180,7 +180,7 @@ export default function DetallePendiente({ pendiente, materias, onClose, onToggl
             <button
               type="submit"
               disabled={!titulo.trim()}
-              className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-slate-900 disabled:opacity-40 transition-colors"
+              className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-40 transition-colors"
             >
               Guardar
             </button>

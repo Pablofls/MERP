@@ -69,7 +69,7 @@ export default function EscolarPage() {
 
       {/* Panel de configuracion colapsable */}
       {configAbierto && (
-        <div className="border border-gray-200 rounded-lg bg-white divide-y divide-gray-100">
+        <div className="border border-gray-200 rounded-xl bg-white divide-y divide-gray-100">
           <div className="p-4">
             <GestorMaterias materias={materias} onAgregar={agregarMat} onEditar={editarMat} onEliminar={eliminarMat} />
           </div>
@@ -98,7 +98,7 @@ export default function EscolarPage() {
             </button>
             <button
               onClick={() => setModalPendiente(true)}
-              className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-slate-900 transition-colors"
+              className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

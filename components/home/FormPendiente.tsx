@@ -67,7 +67,7 @@ export default function FormPendiente({ materias, tipoPredeterminado, onSubmit, 
           <select
             value={materiaId}
             onChange={(e) => setMateriaId(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800 bg-white"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white"
           >
             {materias.map((m) => (
               <option key={m.id} value={m.id}>{m.nombre}</option>
@@ -83,7 +83,7 @@ export default function FormPendiente({ materias, tipoPredeterminado, onSubmit, 
           value={titulo}
           onChange={(e) => setTitulo(e.target.value)}
           placeholder="Que tienes pendiente?"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
           autoFocus
         />
       </div>
@@ -95,7 +95,7 @@ export default function FormPendiente({ materias, tipoPredeterminado, onSubmit, 
           onChange={(e) => setDescripcion(e.target.value)}
           placeholder="Detalles opcionales"
           rows={2}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800 resize-none"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 resize-none"
         />
       </div>
 
@@ -106,7 +106,7 @@ export default function FormPendiente({ materias, tipoPredeterminado, onSubmit, 
           value={fechaLimite}
           min={fechaHoy()}
           onChange={(e) => setFechaLimite(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
         />
       </div>
 
@@ -115,13 +115,14 @@ export default function FormPendiente({ materias, tipoPredeterminado, onSubmit, 
           type="button"
           onClick={onCancel}
           className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={!titulo.trim()}
-          className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Agregar
         </button>

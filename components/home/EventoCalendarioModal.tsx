@@ -203,7 +203,7 @@ export default function EventoCalendarioModal({ evento, onClose, onRefetch }: Pr
               <button
                 type="submit"
                 disabled={guardando}
-                className="flex-1 text-sm text-white bg-blue-900 rounded-md py-1.5 hover:bg-slate-900 transition-colors disabled:opacity-50"
+                className="flex-1 text-sm text-white bg-blue-900 rounded-md py-1.5 hover:bg-blue-800 transition-colors disabled:opacity-50"
               >
                 {guardando ? "Guardando…" : "Guardar"}
               </button>

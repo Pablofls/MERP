@@ -172,7 +172,7 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
             <button
               type="submit"
               disabled={!titulo.trim() || guardando}
-              className="flex-1 text-sm text-white bg-blue-900 rounded-lg py-2.5 hover:bg-slate-900 transition-colors disabled:opacity-40"
+              className="flex-1 text-sm text-white bg-blue-900 rounded-lg py-2.5 hover:bg-blue-800 transition-colors disabled:opacity-40"
             >
               {guardando ? "Creando…" : "Crear"}
             </button>

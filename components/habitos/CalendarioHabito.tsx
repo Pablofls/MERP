@@ -1,5 +1,6 @@
 "use client";
 import type { Habito, RegistroHabito } from "@/lib/types";
+import { getHabitColor } from "@/lib/utils";
 
 interface Props {
   habito: Habito;
@@ -8,6 +9,7 @@ interface Props {
 
 export default function CalendarioHabito({ habito, historial }: Props) {
   const hoy = new Date();
+  const habitColor = getHabitColor(habito.id);
   const dias = Array.from({ length: 35 }, (_, i) => {
     const d = new Date(hoy);
     d.setDate(d.getDate() - (34 - i));
@@ -16,12 +18,6 @@ export default function CalendarioHabito({ habito, historial }: Props) {
 
   function getValor(fecha: string) {
     return historial.find((r) => r.fecha === fecha)?.valor ?? 0;
-  }
-
-  function getColor(fecha: string) {
-    const val = getValor(fecha);
-    if (val === 0) return "bg-gray-100";
-    return "bg-blue-800";
   }
 
   const hoyStr = hoy.toISOString().split("T")[0];
@@ -41,11 +37,15 @@ export default function CalendarioHabito({ habito, historial }: Props) {
         {dias.map((fecha) => {
           const val = getValor(fecha);
           const futuro = fecha > hoyStr;
+          const completado = val > 0;
           return (
             <div
               key={fecha}
-              title={val > 0 ? `${fecha}: ${val}${habito.unidad ? " " + habito.unidad : ""}` : fecha}
-              className={`aspect-square rounded-sm transition-colors ${futuro ? "bg-gray-50" : getColor(fecha)}`}
+              title={completado ? `${fecha}: ${val}${habito.unidad ? " " + habito.unidad : ""}` : fecha}
+              className="aspect-square rounded-sm transition-colors"
+              style={{
+                backgroundColor: futuro ? "transparent" : completado ? habitColor : "#f3f4f6",
+              }}
             />
           );
         })}

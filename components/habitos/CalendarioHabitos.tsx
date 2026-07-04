@@ -62,7 +62,7 @@ export default function CalendarioHabitos({ habitos, registros }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <span className="text-sm font-semibold text-gray-700 capitalize">{nombreMes}</span>
+          <span className="text-xs font-semibold text-gray-700 capitalize">{nombreMes}</span>
           <button
             onClick={() => setReferencia(new Date(año, mes + 1, 1))}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
@@ -164,7 +164,7 @@ export default function CalendarioHabitos({ habitos, registros }: Props) {
                       <div className={`text-[10px] font-medium ${esHoy ? "text-blue-900" : "text-gray-400"}`}>
                         {DIAS_HEADER[(d.getDay() + 6) % 7]}
                       </div>
-                      <div className={`text-[11px] font-bold ${esHoy ? "text-blue-900" : "text-gray-600"}`}>
+                      <div className={`text-[11px] font-bold w-6 h-6 flex items-center justify-center rounded-full mx-auto ${esHoy ? "bg-blue-900 text-white" : "text-gray-600"}`}>
                         {d.getDate()}
                       </div>
                     </th>
