@@ -8,12 +8,12 @@ import EmptyState from "@/components/ui/EmptyState";
 import DetallePendiente from "@/components/home/DetallePendiente";
 import PendienteItem from "@/components/home/PendienteItem";
 
-// Semana actual: muestra 7 días desde lunes
-function getSemanaActual(): Date[] {
+function getSemanaConOffset(offset: number): Date[] {
   const hoy = new Date();
   const lunes = new Date(hoy);
-  const dow = (hoy.getDay() + 6) % 7; // lunes = 0
-  lunes.setDate(hoy.getDate() - dow);
+  const dow = (hoy.getDay() + 6) % 7;
+  lunes.setDate(hoy.getDate() - dow + offset * 7);
+  lunes.setHours(0, 0, 0, 0);
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(lunes);
     d.setDate(lunes.getDate() + i);
@@ -21,12 +21,19 @@ function getSemanaActual(): Date[] {
   });
 }
 
+function semanaLabel(semana: Date[]): string {
+  const ini = semana[0].toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+  const fin = semana[6].toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+  return `${ini} – ${fin}`;
+}
+
 const DIAS_CORTOS = ["L", "M", "X", "J", "V", "S", "D"];
 
 function CalendarioSemana({ pendientes }: { pendientes: Pendiente[] }) {
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
+  const [semanaOffset, setSemanaOffset] = useState(0);
   const hoy = fechaHoy();
-  const semana = getSemanaActual();
+  const semana = getSemanaConOffset(semanaOffset);
 
   function isoFecha(d: Date) {
     return d.toISOString().split("T")[0];
@@ -40,6 +47,27 @@ function CalendarioSemana({ pendientes }: { pendientes: Pendiente[] }) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      {/* Navegación de semana */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+        <button
+          onClick={() => { setSemanaOffset((o) => o - 1); setDiaSeleccionado(null); }}
+          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
+        </button>
+        <span className="text-xs font-semibold text-gray-700 capitalize">{semanaLabel(semana)}</span>
+        <button
+          onClick={() => { setSemanaOffset((o) => o + 1); setDiaSeleccionado(null); }}
+          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+        </button>
+      </div>
+
       {/* Tira de días */}
       <div className="grid grid-cols-7 divide-x divide-gray-100">
         {semana.map((dia, i) => {

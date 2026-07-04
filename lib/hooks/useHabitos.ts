@@ -129,8 +129,16 @@ export function useHabitos() {
 
   function getRacha(habitoId: string): number {
     const hoy = new Date();
-    let racha = 0;
+    const hoyKey = hoy.toISOString().split("T")[0];
+    const hoyReg = registros.find((r) => r.habitoId === habitoId && r.fecha === hoyKey);
+
+    // Si hoy no está marcado, contar desde ayer (el día de hoy aún puede registrarse)
     let fecha = new Date(hoy);
+    if (!hoyReg || hoyReg.valor === 0) {
+      fecha.setDate(fecha.getDate() - 1);
+    }
+
+    let racha = 0;
     while (true) {
       const key = fecha.toISOString().split("T")[0];
       const reg = registros.find((r) => r.habitoId === habitoId && r.fecha === key);
