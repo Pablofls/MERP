@@ -34,6 +34,15 @@ async function getGoogleAccessToken(supabaseToken: string): Promise<string | nul
   return token.access_token ?? null;
 }
 
+// Google Calendar event IDs are base32hex (a-v, 0-9), 5–1024 chars
+function isValidEventId(id: unknown): id is string {
+  return typeof id === "string" && /^[a-z0-9_-]{1,1024}$/i.test(id);
+}
+
+function isValidISOString(v: unknown): v is string {
+  return typeof v === "string" && !isNaN(Date.parse(v));
+}
+
 export async function PATCH(req: NextRequest) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -42,6 +51,19 @@ export async function PATCH(req: NextRequest) {
 
   const supabaseToken = authHeader.slice(7);
   const { eventId, titulo, inicio, fin } = await req.json();
+
+  if (!isValidEventId(eventId)) {
+    return NextResponse.json({ error: "Invalid eventId" }, { status: 400 });
+  }
+  if (titulo !== undefined && (typeof titulo !== "string" || titulo.length > 1000)) {
+    return NextResponse.json({ error: "Invalid titulo" }, { status: 400 });
+  }
+  if (inicio !== undefined && !isValidISOString(inicio)) {
+    return NextResponse.json({ error: "Invalid inicio" }, { status: 400 });
+  }
+  if (fin !== undefined && !isValidISOString(fin)) {
+    return NextResponse.json({ error: "Invalid fin" }, { status: 400 });
+  }
 
   const accessToken = await getGoogleAccessToken(supabaseToken);
   if (!accessToken) return NextResponse.json({ ok: false, motivo: "no_token" });
@@ -52,7 +74,7 @@ export async function PATCH(req: NextRequest) {
   if (fin !== undefined) patch.end = { dateTime: fin };
 
   const res = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`,
     {
       method: "PATCH",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -73,11 +95,15 @@ export async function DELETE(req: NextRequest) {
   const supabaseToken = authHeader.slice(7);
   const { eventId } = await req.json();
 
+  if (!isValidEventId(eventId)) {
+    return NextResponse.json({ error: "Invalid eventId" }, { status: 400 });
+  }
+
   const accessToken = await getGoogleAccessToken(supabaseToken);
   if (!accessToken) return NextResponse.json({ ok: false, motivo: "no_token" });
 
   const res = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`,
     {
       method: "DELETE",
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -98,12 +124,23 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { action, timeMin, timeMax } = body;
 
+  const VALID_ACTIONS = ["crear", "listar"];
+  if (action !== undefined && !VALID_ACTIONS.includes(action)) {
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  }
+
   const accessToken = await getGoogleAccessToken(supabaseToken);
   if (!accessToken) return NextResponse.json({ ok: false, motivo: "no_token" });
 
   // Crear evento
   if (action === "crear") {
     const { titulo, inicio, fin, todoElDia } = body;
+    if (!titulo || typeof titulo !== "string" || titulo.length > 1000) {
+      return NextResponse.json({ error: "Invalid titulo" }, { status: 400 });
+    }
+    if (!todoElDia && (!isValidISOString(inicio) || !isValidISOString(fin))) {
+      return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
+    }
     const evento: Record<string, unknown> = { summary: titulo };
     if (todoElDia) {
       evento.start = { date: inicio };
@@ -122,6 +159,10 @@ export async function POST(req: NextRequest) {
     );
     if (!res.ok) return NextResponse.json({ ok: false });
     return NextResponse.json({ ok: true });
+  }
+
+  if (!isValidISOString(timeMin) || !isValidISOString(timeMax)) {
+    return NextResponse.json({ error: "Invalid time range" }, { status: 400 });
   }
 
   const params = new URLSearchParams({
