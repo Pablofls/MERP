@@ -26,7 +26,7 @@ export default function Sidebar() {
     <aside className="hidden lg:flex flex-col w-52 min-h-screen bg-gray-50 p-5 fixed top-0 left-0 z-40">
       <div className="mb-10 mt-1">
         <Link href="/" className="text-2xl font-bold tracking-tight text-slate-900 hover:text-slate-700 transition-colors">
-          MERP
+          M
         </Link>
       </div>
 
