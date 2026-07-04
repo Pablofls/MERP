@@ -56,21 +56,10 @@ export default function GoogleCallbackPage() {
         return;
       }
 
-      const tokens = await exchangeRes.json();
-
-      // Guardar solo refresh_token — el access_token es efímero y no debe persistirse
-      const { error: dbError } = await supabase
-        .from("google_tokens")
-        .upsert({
-          user_id: session.user.id,
-          refresh_token: tokens.refresh_token,
-          scope: tokens.scope,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
-
-      if (dbError) {
+      const result = await exchangeRes.json();
+      if (!result.ok) {
         setEstado("error");
-        setError("Error al guardar la conexión.");
+        setError("Error al guardar la conexión con Google.");
         return;
       }
 

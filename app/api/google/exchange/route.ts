@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { checkRateLimit } from "@/lib/server/rate-limit";
+import { encrypt } from "@/lib/server/encrypt";
 
 const ALLOWED_REDIRECT_ORIGIN =
-  process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : null;
+  process.env.NEXT_PUBLIC_APP_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
 
 const REDIRECT_PATH = "/auth/callback/google";
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (!checkRateLimit(`exchange:${ip}`, 5, 60_000))
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   // Require a valid Supabase session — prevents unauthenticated relay abuse
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -60,10 +65,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: data.error_description ?? data.error }, { status: 400 });
   }
 
-  return NextResponse.json({
-    access_token: data.access_token,
-    refresh_token: data.refresh_token ?? null,
-    expiry_date: Date.now() + data.expires_in * 1000,
-    scope: data.scope,
-  });
+  if (!data.refresh_token) {
+    return NextResponse.json({ error: "No refresh_token received" }, { status: 400 });
+  }
+
+  // Encrypt and persist the refresh token server-side — it never leaves the server in plaintext
+  const { error: dbError } = await supabase
+    .from("google_tokens")
+    .upsert(
+      {
+        user_id: user.id,
+        refresh_token: encrypt(data.refresh_token),
+        scope: data.scope,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+
+  if (dbError) {
+    return NextResponse.json({ error: "Failed to save token" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

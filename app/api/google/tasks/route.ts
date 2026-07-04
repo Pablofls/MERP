@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGoogleAccessToken, requireAuth } from "@/lib/server/google-auth";
+import { checkRateLimit } from "@/lib/server/rate-limit";
+
+function getIp(req: NextRequest): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+}
+
+// Google Tasks IDs are base64url encoded strings
+function isValidTaskId(id: unknown): id is string {
+  return typeof id === "string" && /^[A-Za-z0-9_=-]{1,1024}$/.test(id);
+}
 
 export async function POST(req: NextRequest) {
-  const supabaseToken = requireAuth(req.headers.get("Authorization"));
+  if (!checkRateLimit(`tasks:${getIp(req)}`, 30, 60_000))
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  const supabaseToken = await requireAuth(req.headers.get("Authorization"));
   if (!supabaseToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const { action, taskId, titulo, descripcion, fechaLimite, completado } = body;
@@ -47,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.json();
-      console.error("Google Tasks crear error:", JSON.stringify(err));
+      console.error("Google Tasks API error:", err?.code ?? err?.status ?? "unknown");
       return NextResponse.json({ ok: false, motivo: "api_error" });
     }
 
@@ -55,8 +67,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, taskId: data.id });
   }
 
-  if ((action === "actualizar" || action === "eliminar") && !taskId) {
-    return NextResponse.json({ error: "taskId required" }, { status: 400 });
+  if ((action === "actualizar" || action === "eliminar") && !isValidTaskId(taskId)) {
+    return NextResponse.json({ error: "Invalid taskId" }, { status: 400 });
   }
 
   if (action === "actualizar") {

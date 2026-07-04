@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGoogleAccessToken, requireAuth } from "@/lib/server/google-auth";
+import { checkRateLimit } from "@/lib/server/rate-limit";
+
+function getIp(req: NextRequest): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+}
 
 // Google Calendar event IDs are base32hex (a-v, 0-9), 5–1024 chars
 function isValidEventId(id: unknown): id is string {
@@ -11,7 +16,9 @@ function isValidISOString(v: unknown): v is string {
 }
 
 export async function PATCH(req: NextRequest) {
-  const supabaseToken = requireAuth(req.headers.get("Authorization"));
+  if (!checkRateLimit(`cal:${getIp(req)}`, 30, 60_000))
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  const supabaseToken = await requireAuth(req.headers.get("Authorization"));
   if (!supabaseToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { eventId, titulo, inicio, fin } = await req.json();
 
@@ -50,7 +57,9 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const supabaseToken = requireAuth(req.headers.get("Authorization"));
+  if (!checkRateLimit(`cal:${getIp(req)}`, 30, 60_000))
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  const supabaseToken = await requireAuth(req.headers.get("Authorization"));
   if (!supabaseToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { eventId } = await req.json();
 
@@ -74,7 +83,9 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabaseToken = requireAuth(req.headers.get("Authorization"));
+  if (!checkRateLimit(`cal:${getIp(req)}`, 30, 60_000))
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  const supabaseToken = await requireAuth(req.headers.get("Authorization"));
   if (!supabaseToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const { action, timeMin, timeMax } = body;
@@ -93,7 +104,12 @@ export async function POST(req: NextRequest) {
     if (!titulo || typeof titulo !== "string" || titulo.length > 1000) {
       return NextResponse.json({ error: "Invalid titulo" }, { status: 400 });
     }
-    if (!todoElDia && (!isValidISOString(inicio) || !isValidISOString(fin))) {
+    if (todoElDia) {
+      const dateRE = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRE.test(inicio) || !dateRE.test(fin)) {
+        return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
+      }
+    } else if (!isValidISOString(inicio) || !isValidISOString(fin)) {
       return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
     }
     const evento: Record<string, unknown> = { summary: titulo };
@@ -136,7 +152,7 @@ export async function POST(req: NextRequest) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    console.error("Google Calendar error:", JSON.stringify(err));
+    console.error("Google Calendar API error:", err?.code ?? err?.status ?? "unknown");
     return NextResponse.json({ ok: false, motivo: "api_error" });
   }
 
