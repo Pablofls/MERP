@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { ClaseHorario, Materia } from "@/lib/types";
 import { useGoogleCalendarSemana } from "@/lib/hooks/useGoogleCalendarSemana";
-import { DIAS_SEMANA, DIAS_SHORT, minutosDesdeMedianoche, fechaHoy } from "@/lib/utils";
+import { DIAS_SEMANA, DIAS_SHORT, minutosDesdeMedianoche, fechaHoy, cn } from "@/lib/utils";
 import EventoCalendarioModal, { type EventoCalendario } from "@/components/home/EventoCalendarioModal";
 import CrearEventoModal from "@/components/home/CrearEventoModal";
 
@@ -36,6 +36,7 @@ function semanaLabel(lunes: Date): string {
 
 export default function HorarioSemanal({ clases, materias }: Props) {
   const [semanaOffset, setSemanaOffset] = useState(0);
+  const [diasVisibles, setDiasVisibles] = useState(3);
   const [modalCrear, setModalCrear] = useState(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoCalendario | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -60,6 +61,14 @@ export default function HorarioSemanal({ clases, materias }: Props) {
     return d;
   });
 
+  // For <7 days: on current week start from today, on other weeks start from Monday
+  const todayWeekIdx = (new Date().getDay() + 6) % 7;
+  const startIdx = diasVisibles < 7
+    ? (semanaOffset === 0 ? Math.min(todayWeekIdx, 7 - diasVisibles) : 0)
+    : 0;
+  const diasSlice = DIAS_SEMANA.slice(startIdx, startIdx + diasVisibles);
+  const fechasDiaSlice = fechasDia.slice(startIdx, startIdx + diasVisibles);
+
   // Default create date: today if in current week, else Monday
   const fechaDefault = semanaOffset === 0
     ? hoy
@@ -68,44 +77,57 @@ export default function HorarioSemanal({ clases, materias }: Props) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       {/* Barra de navegación */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 gap-2">
+        <div className="flex items-center gap-1 min-w-0">
           <button
             onClick={() => setSemanaOffset((o) => o - 1)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <span className="text-xs font-semibold text-gray-700 capitalize min-w-[130px] text-center">
+          <span className="text-xs font-semibold text-gray-700 capitalize text-center truncate">
             {semanaLabel(lunes)}
           </span>
           <button
             onClick={() => setSemanaOffset((o) => o + 1)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
           </button>
         </div>
-        <button
-          onClick={() => setModalCrear(true)}
-          className="flex items-center gap-1 bg-blue-900 text-white text-xs font-medium px-2.5 py-1.5 rounded-md hover:bg-slate-900 transition-colors"
-        >
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Evento
-        </button>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex rounded-md border border-gray-200 divide-x divide-gray-200 overflow-hidden">
+            {[3, 5, 7].map((n) => (
+              <button
+                key={n}
+                onClick={() => setDiasVisibles(n)}
+                className={cn("px-2 py-1 text-xs font-medium transition-colors", diasVisibles === n ? "bg-blue-900 text-white" : "text-gray-500 hover:bg-gray-50")}
+              >
+                {n}d
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setModalCrear(true)}
+            className="flex items-center gap-1 bg-blue-900 text-white text-xs font-medium px-2.5 py-1.5 rounded-md hover:bg-slate-900 transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Evento
+          </button>
+        </div>
       </div>
 
       {/* Encabezado días */}
-      <div className="grid border-b border-gray-100" style={{ gridTemplateColumns: "2.5rem repeat(7, 1fr)" }}>
+      <div className="grid border-b border-gray-100" style={{ gridTemplateColumns: `2.5rem repeat(${diasVisibles}, 1fr)` }}>
         <div />
-        {DIAS_SEMANA.map((dia, i) => {
-          const fechaDia = fechasDia[i];
+        {diasSlice.map((dia, i) => {
+          const fechaDia = fechasDiaSlice[i];
           const esHoy = fechaDia.toISOString().split("T")[0] === hoy;
           return (
             <div
@@ -140,8 +162,8 @@ export default function HorarioSemanal({ clases, materias }: Props) {
           ))}
 
           {/* Columnas */}
-          <div className="absolute left-10 right-0 top-0 bottom-0 grid" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-            {DIAS_SEMANA.map((dia) => {
+          <div className="absolute left-10 right-0 top-0 bottom-0 grid" style={{ gridTemplateColumns: `repeat(${diasVisibles}, 1fr)` }}>
+            {diasSlice.map((dia) => {
               const clasesDelDia = clases
                 .filter((c) => c.dia === dia)
                 .sort((a, b) => minutosDesdeMedianoche(a.horaInicio) - minutosDesdeMedianoche(b.horaInicio));

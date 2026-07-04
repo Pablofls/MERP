@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#6366f1",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -38,12 +38,13 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="MERP" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body>
         <AuthGuard>
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 lg:ml-56 pb-safe">
+            <main className="flex-1 lg:ml-56 pb-safe min-w-0">
               {children}
             </main>
           </div>
