@@ -17,7 +17,8 @@ export function useGoogleStatus() {
   }, [user]);
 
   async function desconectar() {
-    await supabase.from("google_tokens").delete().neq("user_id", "");
+    if (!user) return;
+    await supabase.from("google_tokens").delete().eq("user_id", user.id);
     setConectado(false);
   }
 

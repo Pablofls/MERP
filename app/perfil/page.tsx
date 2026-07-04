@@ -24,6 +24,8 @@ export default function PerfilPage() {
 
   function conectarGoogle() {
     const redirectUri = `${window.location.origin}/auth/callback/google`;
+    const state = crypto.randomUUID();
+    sessionStorage.setItem("google_oauth_state", state);
     const params = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       redirect_uri: redirectUri,
@@ -31,6 +33,7 @@ export default function PerfilPage() {
       scope: GOOGLE_SCOPES,
       access_type: "offline",
       prompt: "consent",
+      state,
     });
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   }

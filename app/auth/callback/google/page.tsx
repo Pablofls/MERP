@@ -11,19 +11,41 @@ export default function GoogleCallbackPage() {
 
   useEffect(() => {
     const code = searchParams.get("code");
+    const returnedState = searchParams.get("state");
+
     if (!code) {
       setEstado("error");
       setError("No se recibió código de autorización.");
       return;
     }
 
+    // Validate state to prevent CSRF
+    const savedState = sessionStorage.getItem("google_oauth_state");
+    sessionStorage.removeItem("google_oauth_state");
+    if (!returnedState || returnedState !== savedState) {
+      setEstado("error");
+      setError("Estado OAuth inválido. Intenta de nuevo.");
+      return;
+    }
+
     async function handleCallback() {
       const redirectUri = `${window.location.origin}/auth/callback/google`;
+
+      // Obtener sesión para autenticar la llamada al exchange endpoint
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setEstado("error");
+        setError("Sesión expirada. Vuelve a iniciar sesión.");
+        return;
+      }
 
       // Intercambiar code por tokens (server-side para proteger client_secret)
       const exchangeRes = await fetch("/api/google/exchange", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ code, redirectUri }),
       });
 
@@ -36,22 +58,12 @@ export default function GoogleCallbackPage() {
 
       const tokens = await exchangeRes.json();
 
-      // Obtener usuario actual
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setEstado("error");
-        setError("Sesión expirada. Vuelve a iniciar sesión.");
-        return;
-      }
-
-      // Guardar tokens en Supabase
+      // Guardar solo refresh_token — el access_token es efímero y no debe persistirse
       const { error: dbError } = await supabase
         .from("google_tokens")
         .upsert({
-          user_id: user.id,
-          access_token: tokens.access_token,
+          user_id: session.user.id,
           refresh_token: tokens.refresh_token,
-          expiry_date: tokens.expiry_date,
           scope: tokens.scope,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
