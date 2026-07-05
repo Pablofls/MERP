@@ -3,9 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { encrypt } from "@/lib/server/encrypt";
 
-const ALLOWED_REDIRECT_ORIGIN =
-  process.env.NEXT_PUBLIC_APP_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+// When NEXT_PUBLIC_APP_URL is not set, fall through to request-derived origin below.
+const ALLOWED_REDIRECT_ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? null;
 
 const REDIRECT_PATH = "/auth/callback/google";
 
