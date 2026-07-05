@@ -218,6 +218,7 @@ export default function HorarioSemanal({ clases, materias }: Props) {
                           inicio: evento.inicioISO,
                           fin: evento.finISO,
                           todoElDia: false,
+                          recurringEventId: evento.recurringEventId,
                         })}
                         className="absolute left-0.5 right-0.5 rounded overflow-hidden text-left hover:brightness-95 transition-all"
                         style={{

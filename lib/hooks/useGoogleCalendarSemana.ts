@@ -14,6 +14,7 @@ export interface GoogleEventoSemana {
   horaFin: string;    // "HH:MM"
   inicioISO: string;
   finISO: string;
+  recurringEventId: string | null;
 }
 
 function getLunesDeSemana(semanaOffset: number = 0): Date {
@@ -88,6 +89,7 @@ export function useGoogleCalendarSemana(semanaOffset: number = 0) {
             horaFin: formatHora(e.fin),
             inicioISO: e.inicio,
             finISO: e.fin,
+            recurringEventId: e.recurringEventId ?? null,
           });
         }
         setEventos(mapped);
