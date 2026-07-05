@@ -9,6 +9,7 @@ import type { DiaSemana } from "../types";
 export interface GoogleEventoSemana {
   id: string;
   titulo: string;
+  descripcion?: string | null;
   dia: DiaSemana;
   horaInicio: string; // "HH:MM"
   horaFin: string;    // "HH:MM"
@@ -84,6 +85,7 @@ export function useGoogleCalendarSemana(semanaOffset: number = 0) {
           mapped.push({
             id: e.id,
             titulo: e.titulo,
+            descripcion: e.descripcion ?? null,
             dia,
             horaInicio: formatHora(e.inicio),
             horaFin: formatHora(e.fin),

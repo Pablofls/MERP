@@ -52,6 +52,7 @@ function buildRrule(
 
 export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado }: Props) {
   const [titulo, setTitulo] = useState("");
+  const [descripcion, setDescripcion] = useState("");
   const [todoElDia, setTodoElDia] = useState(false);
   const [fecha, setFecha] = useState(fechaDefault);
   const [horaInicio, setHoraInicio] = useState("09:00");
@@ -77,6 +78,7 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
     if (open) {
       setError(null);
       setTitulo("");
+      setDescripcion("");
       setTodoElDia(false);
       setFecha(fechaDefault);
       setHoraInicio("09:00");
@@ -139,7 +141,7 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
       const res = await fetch("/api/google/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: "crear", titulo: titulo.trim(), inicio, fin, todoElDia, timeZone, recurrence }),
+        body: JSON.stringify({ action: "crear", titulo: titulo.trim(), descripcion: descripcion || undefined, inicio, fin, todoElDia, timeZone, recurrence }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -182,6 +184,16 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
               onChange={(e) => setTitulo(e.target.value)}
               placeholder="Título del evento"
               className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-900"
+            />
+          </div>
+
+          <div>
+            <textarea
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder="Descripción (opcional)"
+              rows={2}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-900 resize-none"
             />
           </div>
 

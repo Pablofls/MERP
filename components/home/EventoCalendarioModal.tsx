@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 export interface EventoCalendario {
   id: string;
   titulo: string;
+  descripcion?: string | null;
   inicio: string | null;
   fin: string | null;
   todoElDia: boolean;
@@ -48,6 +49,7 @@ export default function EventoCalendarioModal({ evento, onClose, onRefetch }: Pr
   const [step, setStep] = useState<Step>("vista");
   const [editScope, setEditScope] = useState<EditScope>("este");
   const [titulo, setTitulo] = useState("");
+  const [descripcion, setDescripcion] = useState("");
   const [inicio, setInicio] = useState("");
   const [fin, setFin] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -58,6 +60,7 @@ export default function EventoCalendarioModal({ evento, onClose, onRefetch }: Pr
   useEffect(() => {
     if (evento) {
       setTitulo(evento.titulo);
+      setDescripcion(evento.descripcion ?? "");
       setInicio(evento.inicio ? toLocal(evento.inicio) : "");
       setFin(evento.fin ? toLocal(evento.fin) : "");
       setStep("vista");
@@ -101,6 +104,7 @@ export default function EventoCalendarioModal({ evento, onClose, onRefetch }: Pr
         body: JSON.stringify({
           eventId: evento!.id,
           titulo,
+          descripcion,
           editarTodos: editScope === "todos",
           baseEventId: evento!.recurringEventId,
           // Only send times for "este" scope (for "todos" the API ignores them)
@@ -192,6 +196,9 @@ export default function EventoCalendarioModal({ evento, onClose, onRefetch }: Pr
               {esRecurrente && (
                 <p className="text-xs text-gray-400 mt-0.5">Evento recurrente</p>
               )}
+              {evento.descripcion && (
+                <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">{evento.descripcion}</p>
+              )}
             </div>
 
             {/* Scope picker — editar */}
@@ -275,6 +282,16 @@ export default function EventoCalendarioModal({ evento, onClose, onRefetch }: Pr
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-900"
                 />
               </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Descripción</label>
+                <textarea
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  rows={3}
+                  placeholder="Añade una descripción…"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-900 resize-none"
+                />
+              </div>
 
               {!evento.todoElDia && editScope === "este" && (
                 <>
@@ -301,7 +318,7 @@ export default function EventoCalendarioModal({ evento, onClose, onRefetch }: Pr
 
               {editScope === "todos" && (
                 <p className="text-xs text-gray-400">
-                  Solo se cambia el título en todos los eventos de la serie.
+                  Se cambia el título y la descripción en todos los eventos de la serie.
                 </p>
               )}
 

@@ -62,7 +62,7 @@ export async function PATCH(req: NextRequest) {
   const auth = await authAndRate(req);
   if (auth instanceof NextResponse) return auth;
 
-  const { eventId, titulo, inicio, fin, editarTodos, baseEventId } = await req.json();
+  const { eventId, titulo, descripcion, inicio, fin, editarTodos, baseEventId } = await req.json();
 
   if (!isValidEventId(eventId))
     return NextResponse.json({ error: "Invalid eventId" }, { status: 400 });
@@ -72,6 +72,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid baseEventId" }, { status: 400 });
   if (titulo !== undefined && (typeof titulo !== "string" || titulo.length > 1000))
     return NextResponse.json({ error: "Invalid titulo" }, { status: 400 });
+  if (descripcion !== undefined && (typeof descripcion !== "string" || descripcion.length > 8000))
+    return NextResponse.json({ error: "Invalid descripcion" }, { status: 400 });
   if (inicio !== undefined && !isValidISOString(inicio))
     return NextResponse.json({ error: "Invalid inicio" }, { status: 400 });
   if (fin !== undefined && !isValidISOString(fin))
@@ -82,6 +84,7 @@ export async function PATCH(req: NextRequest) {
 
   const patch: Record<string, unknown> = {};
   if (titulo !== undefined) patch.summary = titulo;
+  if (descripcion !== undefined) patch.description = descripcion;
   // Don't update times when editing the whole series (occurrence times ≠ base event times)
   if (!editarTodos) {
     if (inicio !== undefined) patch.start = { dateTime: inicio };
@@ -173,9 +176,11 @@ export async function POST(req: NextRequest) {
 
   // Crear evento
   if (action === "crear") {
-    const { titulo, inicio, fin, todoElDia, timeZone, recurrence } = body;
+    const { titulo, descripcion, inicio, fin, todoElDia, timeZone, recurrence } = body;
     if (!titulo || typeof titulo !== "string" || titulo.length > 1000)
       return NextResponse.json({ error: "Invalid titulo" }, { status: 400 });
+    if (descripcion !== undefined && (typeof descripcion !== "string" || descripcion.length > 8000))
+      return NextResponse.json({ error: "Invalid descripcion" }, { status: 400 });
     // IANA timezone — required by Google for recurring events; optional for single events
     const TIMEZONE_RE = /^[A-Za-z0-9_/+\-]{1,64}$/;
     if (timeZone !== undefined && (typeof timeZone !== "string" || !TIMEZONE_RE.test(timeZone)))
@@ -198,6 +203,7 @@ export async function POST(req: NextRequest) {
       }
     }
     const evento: Record<string, unknown> = { summary: titulo };
+    if (descripcion !== undefined) evento.description = descripcion;
     if (todoElDia) {
       evento.start = { date: inicio };
       evento.end = { date: fin };
@@ -229,7 +235,7 @@ export async function POST(req: NextRequest) {
     singleEvents: "true",
     orderBy: "startTime",
     maxResults: "50",
-    fields: "items(id,summary,start,end,status,colorId,recurringEventId)",
+    fields: "items(id,summary,description,start,end,status,colorId,recurringEventId)",
   });
 
   const res = await fetch(`${CAL_BASE}?${params}`, {
@@ -247,6 +253,7 @@ export async function POST(req: NextRequest) {
   type GCalItem = {
     id: string;
     summary?: string;
+    description?: string;
     status?: string;
     recurringEventId?: string;
     start?: { dateTime?: string; date?: string };
@@ -258,6 +265,7 @@ export async function POST(req: NextRequest) {
     .map((e) => ({
       id: e.id,
       titulo: e.summary ?? "(Sin título)",
+      descripcion: e.description ?? null,
       inicio: e.start?.dateTime ?? null,
       fin: e.end?.dateTime ?? null,
       todoElDia: !!e.start?.date,
