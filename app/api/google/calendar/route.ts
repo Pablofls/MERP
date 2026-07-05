@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 
   // Crear evento
   if (action === "crear") {
-    const { titulo, inicio, fin, todoElDia } = body;
+    const { titulo, inicio, fin, todoElDia, recurrence } = body;
     if (!titulo || typeof titulo !== "string" || titulo.length > 1000) {
       return NextResponse.json({ error: "Invalid titulo" }, { status: 400 });
     }
@@ -112,6 +112,16 @@ export async function POST(req: NextRequest) {
     } else if (!isValidISOString(inicio) || !isValidISOString(fin)) {
       return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
     }
+    if (recurrence !== undefined) {
+      const RRULE_RE = /^RRULE:FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)(;[A-Z0-9=,+\-:]+)*$/;
+      if (
+        !Array.isArray(recurrence) ||
+        recurrence.length > 5 ||
+        recurrence.some((r: unknown) => typeof r !== "string" || !RRULE_RE.test(r))
+      ) {
+        return NextResponse.json({ error: "Invalid recurrence" }, { status: 400 });
+      }
+    }
     const evento: Record<string, unknown> = { summary: titulo };
     if (todoElDia) {
       evento.start = { date: inicio };
@@ -120,6 +130,7 @@ export async function POST(req: NextRequest) {
       evento.start = { dateTime: inicio };
       evento.end = { dateTime: fin };
     }
+    if (recurrence) evento.recurrence = recurrence;
     const res = await fetch(
       "https://www.googleapis.com/calendar/v3/calendars/primary/events",
       {
