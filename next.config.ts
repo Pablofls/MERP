@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
 const CSP = [
   "default-src 'self'",
-  // Next.js App Router requires 'unsafe-inline' for inline scripts during hydration
-  "script-src 'self' 'unsafe-inline'",
+  // Next.js App Router requires 'unsafe-inline' for inline scripts during hydration.
+  // React dev mode also requires 'unsafe-eval' for source maps / error reconstruction.
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   // Tailwind generates inline styles
   "style-src 'self' 'unsafe-inline'",
   // API calls: own origin, Supabase, Google OAuth + APIs

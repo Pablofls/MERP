@@ -99,7 +99,8 @@ export async function POST(req: NextRequest) {
     );
 
   if (dbError) {
-    return NextResponse.json({ error: "Failed to save token" }, { status: 500 });
+    const detail = process.env.NODE_ENV === "development" ? dbError.message : undefined;
+    return NextResponse.json({ error: "Failed to save token", detail }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
