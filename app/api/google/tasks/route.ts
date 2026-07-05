@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     if (descripcion !== undefined) patch.notes = descripcion ?? "";
     if (fechaLimite !== undefined) patch.due = fechaLimite ? `${fechaLimite}T00:00:00.000Z` : "";
 
-    await fetch(`${BASE}/${encodeURIComponent(taskId)}`, {
+    const patchRes = await fetch(`${BASE}/${encodeURIComponent(taskId)}`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -86,6 +86,11 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify(patch),
     });
+    if (!patchRes.ok) {
+      const err = await patchRes.json().catch(() => ({}));
+      console.error("Google Tasks PATCH error:", err?.error?.code ?? patchRes.status);
+      return NextResponse.json({ ok: false, motivo: "api_error" });
+    }
     return NextResponse.json({ ok: true });
   }
 

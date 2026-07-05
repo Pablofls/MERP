@@ -63,6 +63,7 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
   const [finFecha, setFinFecha] = useState("");
   const [finCont, setFinCont] = useState(10);
   const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Pre-select the event's weekday when switching to weekly
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
 
   useEffect(() => {
     if (open) {
+      setError(null);
       setTitulo("");
       setTodoElDia(false);
       setFecha(fechaDefault);
@@ -129,11 +131,17 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
         ? [buildRrule(frecuencia, diasSemana, finTipo, finFecha, finCont)]
         : undefined;
 
-      await fetch("/api/google/calendar", {
+      const res = await fetch("/api/google/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: "crear", titulo: titulo.trim(), inicio, fin, todoElDia, recurrence }),
       });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        setError(data.motivo === "no_token" ? "Google no conectado" : "Error al crear el evento");
+        return;
+      }
 
       onCreado();
       onClose();
@@ -348,6 +356,10 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
                 </div>
               </div>
             </div>
+          )}
+
+          {error && (
+            <p className="text-xs text-red-500 text-center">{error}</p>
           )}
 
           <div className="flex gap-2 pt-1">

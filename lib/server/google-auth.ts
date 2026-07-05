@@ -48,10 +48,10 @@ export async function requireAuth(authHeader: string | null): Promise<string | n
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7);
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  const { data: { user } } = await supabase.auth.getUser();
+  // Pass the token directly — getUser() without args uses internal session storage
+  // which is always empty in server-side (stateless) contexts.
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const { data: { user } } = await supabase.auth.getUser(token);
 
   return user ? token : null;
 }
