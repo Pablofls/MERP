@@ -117,14 +117,19 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
       let inicio: string;
       let fin: string;
 
+      // IANA timezone of the user's browser — required by Google Calendar API for
+      // recurring events so it can correctly expand occurrences in local time.
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       if (todoElDia) {
         inicio = fecha;
         const finDate = new Date(fecha);
         finDate.setDate(finDate.getDate() + 1);
         fin = finDate.toISOString().split("T")[0];
       } else {
-        inicio = new Date(`${fecha}T${horaInicio}`).toISOString();
-        fin = new Date(`${fecha}T${horaFin}`).toISOString();
+        // Send local datetime (no Z) so Google respects the timeZone field above.
+        inicio = `${fecha}T${horaInicio}:00`;
+        fin = `${fecha}T${horaFin}:00`;
       }
 
       const recurrence = seRepite
@@ -134,7 +139,7 @@ export default function CrearEventoModal({ open, fechaDefault, onClose, onCreado
       const res = await fetch("/api/google/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: "crear", titulo: titulo.trim(), inicio, fin, todoElDia, recurrence }),
+        body: JSON.stringify({ action: "crear", titulo: titulo.trim(), inicio, fin, todoElDia, timeZone, recurrence }),
       });
 
       const data = await res.json().catch(() => ({}));

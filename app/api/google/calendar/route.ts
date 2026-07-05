@@ -13,7 +13,8 @@ function isValidEventId(id: unknown): id is string {
 }
 
 function isValidISOString(v: unknown): v is string {
-  return typeof v === "string" && !isNaN(Date.parse(v));
+  // Accepts both UTC ("...Z") and local datetime strings ("YYYY-MM-DDTHH:mm:ss")
+  return typeof v === "string" && !isNaN(Date.parse(v)) && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v);
 }
 
 // Insert/replace UNTIL in a RRULE string (removes COUNT and existing UNTIL)
@@ -172,9 +173,13 @@ export async function POST(req: NextRequest) {
 
   // Crear evento
   if (action === "crear") {
-    const { titulo, inicio, fin, todoElDia, recurrence } = body;
+    const { titulo, inicio, fin, todoElDia, timeZone, recurrence } = body;
     if (!titulo || typeof titulo !== "string" || titulo.length > 1000)
       return NextResponse.json({ error: "Invalid titulo" }, { status: 400 });
+    // IANA timezone — required by Google for recurring events; optional for single events
+    const TIMEZONE_RE = /^[A-Za-z0-9_/+\-]{1,64}$/;
+    if (timeZone !== undefined && (typeof timeZone !== "string" || !TIMEZONE_RE.test(timeZone)))
+      return NextResponse.json({ error: "Invalid timeZone" }, { status: 400 });
     if (todoElDia) {
       const dateRE = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRE.test(inicio) || !dateRE.test(fin))
@@ -197,8 +202,8 @@ export async function POST(req: NextRequest) {
       evento.start = { date: inicio };
       evento.end = { date: fin };
     } else {
-      evento.start = { dateTime: inicio };
-      evento.end = { dateTime: fin };
+      evento.start = { dateTime: inicio, ...(timeZone ? { timeZone } : {}) };
+      evento.end = { dateTime: fin, ...(timeZone ? { timeZone } : {}) };
     }
     if (recurrence) evento.recurrence = recurrence;
     const res = await fetch(CAL_BASE, {
@@ -206,7 +211,11 @@ export async function POST(req: NextRequest) {
       headers: { Authorization: `Bearer ${auth.accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify(evento),
     });
-    if (!res.ok) return NextResponse.json({ ok: false });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error("Google Calendar create error:", err?.error?.message ?? err?.error?.status ?? res.status);
+      return NextResponse.json({ ok: false });
+    }
     return NextResponse.json({ ok: true });
   }
 
