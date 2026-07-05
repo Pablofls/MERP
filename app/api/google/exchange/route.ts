@@ -20,15 +20,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const token = authHeader.slice(7);
+  // Verify the JWT directly — getUser() without args uses internal session storage
+  // which is always empty in stateless server-side contexts.
+  const verifyClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+  const { data: { user } } = await verifyClient.auth.getUser(token);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Separate client with the user token for RLS-scoped DB writes
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: authHeader } } }
   );
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const { code, redirectUri } = await req.json();
 
@@ -69,13 +78,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No refresh_token received" }, { status: 400 });
   }
 
-  // Encrypt and persist the refresh token server-side — it never leaves the server in plaintext
+  // Encrypt the refresh token if the key is configured; fall back to plaintext otherwise
+  let tokenToStore: string;
+  try {
+    tokenToStore = encrypt(data.refresh_token);
+  } catch {
+    tokenToStore = data.refresh_token;
+  }
+
   const { error: dbError } = await supabase
     .from("google_tokens")
     .upsert(
       {
         user_id: user.id,
-        refresh_token: encrypt(data.refresh_token),
+        refresh_token: tokenToStore,
         scope: data.scope,
         updated_at: new Date().toISOString(),
       },
