@@ -18,6 +18,8 @@ function FormHabito({
   const [topico, setTopico] = useState("");
   const [tipoMedida, setTipoMedida] = useState<"numerica" | "booleana">("booleana");
   const [unidad, setUnidad] = useState("");
+  const [frecuencia, setFrecuencia] = useState<"diaria" | "semanal">("diaria");
+  const [metaSemanal, setMetaSemanal] = useState(3);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,6 +28,8 @@ function FormHabito({
       topico: topico.trim(),
       tipoMedida,
       unidad: tipoMedida === "numerica" ? (unidad.trim() || undefined) : undefined,
+      frecuencia,
+      metaSemanal: frecuencia === "semanal" ? metaSemanal : undefined,
     });
   }
 
@@ -42,6 +46,40 @@ function FormHabito({
           autoFocus
         />
       </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Frecuencia</label>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setFrecuencia("diaria")}
+            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${frecuencia === "diaria" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+            Diaria
+          </button>
+          <button type="button" onClick={() => setFrecuencia("semanal")}
+            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${frecuencia === "semanal" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+            Semanal
+          </button>
+        </div>
+      </div>
+      {frecuencia === "semanal" && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Veces por semana
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={1}
+              max={7}
+              value={metaSemanal}
+              onChange={(e) => setMetaSemanal(Number(e.target.value))}
+              className="flex-1 accent-blue-900"
+            />
+            <span className="text-sm font-semibold text-blue-900 w-6 text-center">{metaSemanal}</span>
+          </div>
+          <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5">
+            <span>1</span><span>7</span>
+          </div>
+        </div>
+      )}
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tipo de registro</label>
         <div className="grid grid-cols-2 gap-2">
@@ -72,7 +110,7 @@ function FormHabito({
 }
 
 export default function HabitosPage() {
-  const { habitos, registros, agregarHabito, eliminarHabito, registrar, getRegistro, getRacha } = useHabitos();
+  const { habitos, registros, agregarHabito, eliminarHabito, registrar, getRegistro, getRacha, getConteoSemana, getRachaSemanal } = useHabitos();
   const [modalOpen, setModalOpen] = useState(false);
   const hoy = fechaHoy();
   const completadosHoy = registros.filter((r) => r.fecha === hoy && r.valor > 0).length;
@@ -123,7 +161,10 @@ export default function HabitosPage() {
                 key={h.id}
                 habito={h}
                 registroHoy={getRegistro(h.id, hoy)}
-                racha={getRacha(h.id)}
+                racha={h.frecuencia === "semanal"
+                  ? getRachaSemanal(h.id, h.metaSemanal ?? 1)
+                  : getRacha(h.id)}
+                conteoSemana={h.frecuencia === "semanal" ? getConteoSemana(h.id) : undefined}
                 onRegistrar={registrar}
                 onEliminar={eliminarHabito}
               />

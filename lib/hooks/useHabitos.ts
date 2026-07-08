@@ -9,6 +9,8 @@ type HabitoDB = {
   topico: string;
   tipo_medida: Habito["tipoMedida"];
   unidad?: string | null;
+  frecuencia: Habito["frecuencia"];
+  meta_semanal?: number | null;
   activo: boolean;
 };
 
@@ -25,8 +27,19 @@ function habitoFromDB(row: HabitoDB): Habito {
     topico: row.topico,
     tipoMedida: row.tipo_medida,
     unidad: row.unidad ?? undefined,
+    frecuencia: row.frecuencia ?? "diaria",
+    metaSemanal: row.meta_semanal ?? undefined,
     activo: row.activo,
   };
+}
+
+function inicioSemanaISO(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().split("T")[0];
 }
 
 function registroFromDB(row: RegistroDB): RegistroHabito {
@@ -68,6 +81,8 @@ export function useHabitos() {
         topico: datos.topico,
         tipo_medida: datos.tipoMedida,
         unidad: datos.unidad ?? null,
+        frecuencia: datos.frecuencia,
+        meta_semanal: datos.metaSemanal ?? null,
         activo: true,
         user_id: user.id,
       })
@@ -81,6 +96,8 @@ export function useHabitos() {
     if (datos.topico !== undefined) patch.topico = datos.topico;
     if (datos.tipoMedida !== undefined) patch.tipo_medida = datos.tipoMedida;
     if (datos.unidad !== undefined) patch.unidad = datos.unidad ?? null;
+    if (datos.frecuencia !== undefined) patch.frecuencia = datos.frecuencia;
+    if (datos.metaSemanal !== undefined) patch.meta_semanal = datos.metaSemanal ?? null;
     if (datos.activo !== undefined) patch.activo = datos.activo;
 
     const { data, error } = await supabase
@@ -130,6 +147,48 @@ export function useHabitos() {
       .sort((a, b) => b.fecha.localeCompare(a.fecha));
   }
 
+  function getConteoSemana(habitoId: string): number {
+    const lunes = inicioSemanaISO(new Date());
+    const domingo = new Date(lunes + "T00:00:00");
+    domingo.setDate(domingo.getDate() + 6);
+    const domISO = domingo.toISOString().split("T")[0];
+    return registros.filter(
+      (r) => r.habitoId === habitoId && r.valor > 0 && r.fecha >= lunes && r.fecha <= domISO
+    ).length;
+  }
+
+  function getRachaSemanal(habitoId: string, metaSemanal: number): number {
+    const registrosHabito = registros.filter((r) => r.habitoId === habitoId && r.valor > 0);
+
+    function contarEnSemana(lunesISO: string): number {
+      const dom = new Date(lunesISO + "T00:00:00");
+      dom.setDate(dom.getDate() + 6);
+      const domISO = dom.toISOString().split("T")[0];
+      return registrosHabito.filter((r) => r.fecha >= lunesISO && r.fecha <= domISO).length;
+    }
+
+    let lunes = inicioSemanaISO(new Date());
+    // Si la semana actual no está completada, empezar desde la anterior
+    if (contarEnSemana(lunes) < metaSemanal) {
+      const d = new Date(lunes + "T00:00:00");
+      d.setDate(d.getDate() - 7);
+      lunes = d.toISOString().split("T")[0];
+    }
+
+    let racha = 0;
+    while (true) {
+      if (contarEnSemana(lunes) >= metaSemanal) {
+        racha++;
+        const d = new Date(lunes + "T00:00:00");
+        d.setDate(d.getDate() - 7);
+        lunes = d.toISOString().split("T")[0];
+      } else {
+        break;
+      }
+    }
+    return racha;
+  }
+
   function getRacha(habitoId: string): number {
     const fechasConValor = new Set(
       registros
@@ -166,5 +225,7 @@ export function useHabitos() {
     getRegistro,
     getHistorial,
     getRacha,
+    getConteoSemana,
+    getRachaSemanal,
   };
 }

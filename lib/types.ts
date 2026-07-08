@@ -45,6 +45,8 @@ export interface Habito {
   topico: string;
   tipoMedida: "numerica" | "booleana";
   unidad?: string; // ej: "km", "páginas", "minutos"
+  frecuencia: "diaria" | "semanal";
+  metaSemanal?: number; // veces por semana requeridas (solo si frecuencia === "semanal")
   activo: boolean;
 }
 

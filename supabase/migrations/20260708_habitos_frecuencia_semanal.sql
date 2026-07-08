@@ -1,0 +1,3 @@
+ALTER TABLE habitos
+  ADD COLUMN IF NOT EXISTS frecuencia TEXT NOT NULL DEFAULT 'diaria',
+  ADD COLUMN IF NOT EXISTS meta_semanal INTEGER;

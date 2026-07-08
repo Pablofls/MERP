@@ -7,11 +7,12 @@ interface Props {
   habito: Habito;
   registroHoy?: RegistroHabito;
   racha: number;
+  conteoSemana?: number;
   onRegistrar: (habitoId: string, fecha: string, valor: number) => void;
   onEliminar: (id: string) => void;
 }
 
-export default function TarjetaHabito({ habito, registroHoy, racha, onRegistrar, onEliminar }: Props) {
+export default function TarjetaHabito({ habito, registroHoy, racha, conteoSemana, onRegistrar, onEliminar }: Props) {
   const [inputValor, setInputValor] = useState(registroHoy?.valor?.toString() ?? "");
   const [editandoValor, setEditandoValor] = useState(false);
   const hoy = fechaHoy();
@@ -62,13 +63,33 @@ export default function TarjetaHabito({ habito, registroHoy, racha, onRegistrar,
                       </span>
                     </div>
                     <span className="text-xs text-gray-400">
-                      {racha === 1 ? "día" : "días"} seguidos
+                      {habito.frecuencia === "semanal"
+                        ? (racha === 1 ? "semana" : "semanas")
+                        : (racha === 1 ? "día" : "días")} seguidos
                     </span>
                   </>
                 ) : (
                   <span className="text-xs text-gray-300">Sin racha</span>
                 )}
               </div>
+
+              {/* Progreso semanal */}
+              {habito.frecuencia === "semanal" && habito.metaSemanal && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex gap-1">
+                    {Array.from({ length: habito.metaSemanal }, (_, i) => (
+                      <span
+                        key={i}
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: i < (conteoSemana ?? 0) ? color : "#e5e7eb" }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-gray-400">
+                    {conteoSemana ?? 0}/{habito.metaSemanal} esta semana
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Control de registro */}
