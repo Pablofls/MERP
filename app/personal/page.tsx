@@ -163,7 +163,7 @@ function FormPendientePersonal({
 
 function agruparPorDia(items: Pendiente[]) {
   const conFecha = [...items.filter((p) => p.fechaLimite)].sort((a, b) =>
-    a.fechaLimite! < b.fechaLimite! ? -1 : 1
+    a.fechaLimite! > b.fechaLimite! ? -1 : 1
   );
   const sinFecha = items.filter((p) => !p.fechaLimite);
   const mapa = new Map<string, Pendiente[]>();
