@@ -20,16 +20,22 @@ function FormHabito({
   const [unidad, setUnidad] = useState("");
   const [frecuencia, setFrecuencia] = useState<"diaria" | "semanal">("diaria");
   const [metaSemanal, setMetaSemanal] = useState(3);
+  const [modoMeta, setModoMeta] = useState<"frecuencia" | "acumulado">("frecuencia");
+  const [metaCantidadSemanal, setMetaCantidadSemanal] = useState("");
+
+  const esSemanalAcumulado = frecuencia === "semanal" && tipoMedida === "numerica" && modoMeta === "acumulado";
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!topico.trim()) return;
+    if (esSemanalAcumulado && !metaCantidadSemanal) return;
     onSubmit({
       topico: topico.trim(),
       tipoMedida,
       unidad: tipoMedida === "numerica" ? (unidad.trim() || undefined) : undefined,
       frecuencia,
-      metaSemanal: frecuencia === "semanal" ? metaSemanal : undefined,
+      metaSemanal: frecuencia === "semanal" && !esSemanalAcumulado ? metaSemanal : undefined,
+      metaCantidadSemanal: esSemanalAcumulado ? Number(metaCantidadSemanal) : undefined,
     });
   }
 
@@ -46,40 +52,6 @@ function FormHabito({
           autoFocus
         />
       </div>
-      <div>
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Frecuencia</label>
-        <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => setFrecuencia("diaria")}
-            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${frecuencia === "diaria" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
-            Diaria
-          </button>
-          <button type="button" onClick={() => setFrecuencia("semanal")}
-            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${frecuencia === "semanal" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
-            Semanal
-          </button>
-        </div>
-      </div>
-      {frecuencia === "semanal" && (
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-            Veces por semana
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              type="range"
-              min={1}
-              max={7}
-              value={metaSemanal}
-              onChange={(e) => setMetaSemanal(Number(e.target.value))}
-              className="flex-1 accent-blue-900"
-            />
-            <span className="text-sm font-semibold text-blue-900 w-6 text-center">{metaSemanal}</span>
-          </div>
-          <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5">
-            <span>1</span><span>7</span>
-          </div>
-        </div>
-      )}
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tipo de registro</label>
         <div className="grid grid-cols-2 gap-2">
@@ -101,16 +73,80 @@ function FormHabito({
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" />
         </div>
       )}
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Frecuencia</label>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setFrecuencia("diaria")}
+            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${frecuencia === "diaria" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+            Diaria
+          </button>
+          <button type="button" onClick={() => setFrecuencia("semanal")}
+            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${frecuencia === "semanal" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+            Semanal
+          </button>
+        </div>
+      </div>
+      {frecuencia === "semanal" && tipoMedida === "numerica" && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Meta semanal</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setModoMeta("frecuencia")}
+              className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${modoMeta === "frecuencia" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+              X veces
+            </button>
+            <button type="button" onClick={() => setModoMeta("acumulado")}
+              className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${modoMeta === "acumulado" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+              Total acumulado
+            </button>
+          </div>
+        </div>
+      )}
+      {frecuencia === "semanal" && (tipoMedida === "booleana" || modoMeta === "frecuencia") && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Veces por semana
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={1}
+              max={7}
+              value={metaSemanal}
+              onChange={(e) => setMetaSemanal(Number(e.target.value))}
+              className="flex-1 accent-blue-900"
+            />
+            <span className="text-sm font-semibold text-blue-900 w-6 text-center">{metaSemanal}</span>
+          </div>
+          <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5">
+            <span>1</span><span>7</span>
+          </div>
+        </div>
+      )}
+      {esSemanalAcumulado && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Meta semanal {unidad ? `(${unidad})` : ""}
+          </label>
+          <input
+            type="number"
+            min={1}
+            value={metaCantidadSemanal}
+            onChange={(e) => setMetaCantidadSemanal(e.target.value)}
+            placeholder={`ej. 70${unidad ? " " + unidad : ""}`}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
+          />
+        </div>
+      )}
       <div className="flex gap-2 pt-2">
         <button type="button" onClick={onCancel} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
-        <button type="submit" disabled={!topico.trim()} className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium disabled:opacity-40 transition-colors">Agregar</button>
+        <button type="submit" disabled={!topico.trim() || (esSemanalAcumulado && !metaCantidadSemanal)} className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium disabled:opacity-40 transition-colors">Agregar</button>
       </div>
     </form>
   );
 }
 
 export default function HabitosPage() {
-  const { habitos, registros, agregarHabito, eliminarHabito, registrar, getRegistro, getRacha, getConteoSemana, getRachaSemanal } = useHabitos();
+  const { habitos, registros, agregarHabito, eliminarHabito, registrar, getRegistro, getRacha, getConteoSemana, getRachaSemanal, getSumaSemana, getRachaSemanalCantidad } = useHabitos();
   const [modalOpen, setModalOpen] = useState(false);
   const hoy = fechaHoy();
   const completadosHoy = registros.filter((r) => r.fecha === hoy && r.valor > 0).length;
@@ -161,10 +197,15 @@ export default function HabitosPage() {
                 key={h.id}
                 habito={h}
                 registroHoy={getRegistro(h.id, hoy)}
-                racha={h.frecuencia === "semanal"
-                  ? getRachaSemanal(h.id, h.metaSemanal ?? 1)
-                  : getRacha(h.id)}
-                conteoSemana={h.frecuencia === "semanal" ? getConteoSemana(h.id) : undefined}
+                racha={
+                  h.frecuencia === "semanal" && h.metaCantidadSemanal
+                    ? getRachaSemanalCantidad(h.id, h.metaCantidadSemanal)
+                    : h.frecuencia === "semanal"
+                    ? getRachaSemanal(h.id, h.metaSemanal ?? 1)
+                    : getRacha(h.id)
+                }
+                conteoSemana={h.frecuencia === "semanal" && !h.metaCantidadSemanal ? getConteoSemana(h.id) : undefined}
+                sumaSemana={h.frecuencia === "semanal" && h.metaCantidadSemanal ? getSumaSemana(h.id) : undefined}
                 onRegistrar={registrar}
                 onEliminar={eliminarHabito}
               />

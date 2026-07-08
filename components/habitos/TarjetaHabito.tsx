@@ -8,11 +8,12 @@ interface Props {
   registroHoy?: RegistroHabito;
   racha: number;
   conteoSemana?: number;
+  sumaSemana?: number;
   onRegistrar: (habitoId: string, fecha: string, valor: number) => void;
   onEliminar: (id: string) => void;
 }
 
-export default function TarjetaHabito({ habito, registroHoy, racha, conteoSemana, onRegistrar, onEliminar }: Props) {
+export default function TarjetaHabito({ habito, registroHoy, racha, conteoSemana, sumaSemana, onRegistrar, onEliminar }: Props) {
   const [inputValor, setInputValor] = useState(registroHoy?.valor?.toString() ?? "");
   const [editandoValor, setEditandoValor] = useState(false);
   const hoy = fechaHoy();
@@ -73,21 +74,44 @@ export default function TarjetaHabito({ habito, registroHoy, racha, conteoSemana
                 )}
               </div>
 
-              {/* Progreso semanal */}
-              {habito.frecuencia === "semanal" && habito.metaSemanal && (
+              {/* Progreso semanal — modo frecuencia (dots) */}
+              {habito.frecuencia === "semanal" && habito.metaSemanal && conteoSemana !== undefined && (
                 <div className="flex items-center gap-2 mt-1.5">
                   <div className="flex gap-1">
                     {Array.from({ length: habito.metaSemanal }, (_, i) => (
                       <span
                         key={i}
                         className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: i < (conteoSemana ?? 0) ? color : "#e5e7eb" }}
+                        style={{ backgroundColor: i < conteoSemana ? color : "#e5e7eb" }}
                       />
                     ))}
                   </div>
                   <span className="text-[10px] text-gray-400">
-                    {conteoSemana ?? 0}/{habito.metaSemanal} esta semana
+                    {conteoSemana}/{habito.metaSemanal} esta semana
                   </span>
+                </div>
+              )}
+
+              {/* Progreso semanal — modo acumulado (barra) */}
+              {habito.frecuencia === "semanal" && habito.metaCantidadSemanal && sumaSemana !== undefined && (
+                <div className="mt-1.5 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400">
+                      {sumaSemana}{habito.unidad ? ` ${habito.unidad}` : ""} / {habito.metaCantidadSemanal}{habito.unidad ? ` ${habito.unidad}` : ""} esta semana
+                    </span>
+                    <span className="text-[10px] font-semibold" style={{ color }}>
+                      {Math.min(100, Math.round((sumaSemana / habito.metaCantidadSemanal) * 100))}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, (sumaSemana / habito.metaCantidadSemanal) * 100)}%`,
+                        backgroundColor: color,
+                      }}
+                    />
+                  </div>
                 </div>
               )}
             </div>

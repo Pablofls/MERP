@@ -46,7 +46,8 @@ export interface Habito {
   tipoMedida: "numerica" | "booleana";
   unidad?: string; // ej: "km", "páginas", "minutos"
   frecuencia: "diaria" | "semanal";
-  metaSemanal?: number; // veces por semana requeridas (solo si frecuencia === "semanal")
+  metaSemanal?: number; // veces por semana (frecuencia === "semanal", modo conteo)
+  metaCantidadSemanal?: number; // total acumulado por semana (frecuencia === "semanal", modo acumulado)
   activo: boolean;
 }
 

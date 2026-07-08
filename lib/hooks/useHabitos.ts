@@ -11,6 +11,7 @@ type HabitoDB = {
   unidad?: string | null;
   frecuencia: Habito["frecuencia"];
   meta_semanal?: number | null;
+  meta_cantidad_semanal?: number | null;
   activo: boolean;
 };
 
@@ -29,6 +30,7 @@ function habitoFromDB(row: HabitoDB): Habito {
     unidad: row.unidad ?? undefined,
     frecuencia: row.frecuencia ?? "diaria",
     metaSemanal: row.meta_semanal ?? undefined,
+    metaCantidadSemanal: row.meta_cantidad_semanal ?? undefined,
     activo: row.activo,
   };
 }
@@ -83,6 +85,7 @@ export function useHabitos() {
         unidad: datos.unidad ?? null,
         frecuencia: datos.frecuencia,
         meta_semanal: datos.metaSemanal ?? null,
+        meta_cantidad_semanal: datos.metaCantidadSemanal ?? null,
         activo: true,
         user_id: user.id,
       })
@@ -98,6 +101,7 @@ export function useHabitos() {
     if (datos.unidad !== undefined) patch.unidad = datos.unidad ?? null;
     if (datos.frecuencia !== undefined) patch.frecuencia = datos.frecuencia;
     if (datos.metaSemanal !== undefined) patch.meta_semanal = datos.metaSemanal ?? null;
+    if (datos.metaCantidadSemanal !== undefined) patch.meta_cantidad_semanal = datos.metaCantidadSemanal ?? null;
     if (datos.activo !== undefined) patch.activo = datos.activo;
 
     const { data, error } = await supabase
@@ -145,6 +149,49 @@ export function useHabitos() {
     return registros
       .filter((r) => r.habitoId === habitoId)
       .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  }
+
+  function getSumaSemana(habitoId: string): number {
+    const lunes = inicioSemanaISO(new Date());
+    const domingo = new Date(lunes + "T00:00:00");
+    domingo.setDate(domingo.getDate() + 6);
+    const domISO = domingo.toISOString().split("T")[0];
+    return registros
+      .filter((r) => r.habitoId === habitoId && r.valor > 0 && r.fecha >= lunes && r.fecha <= domISO)
+      .reduce((sum, r) => sum + r.valor, 0);
+  }
+
+  function getRachaSemanalCantidad(habitoId: string, metaCantidad: number): number {
+    const registrosHabito = registros.filter((r) => r.habitoId === habitoId && r.valor > 0);
+
+    function sumaEnSemana(lunesISO: string): number {
+      const dom = new Date(lunesISO + "T00:00:00");
+      dom.setDate(dom.getDate() + 6);
+      const domISO = dom.toISOString().split("T")[0];
+      return registrosHabito
+        .filter((r) => r.fecha >= lunesISO && r.fecha <= domISO)
+        .reduce((sum, r) => sum + r.valor, 0);
+    }
+
+    let lunes = inicioSemanaISO(new Date());
+    if (sumaEnSemana(lunes) < metaCantidad) {
+      const d = new Date(lunes + "T00:00:00");
+      d.setDate(d.getDate() - 7);
+      lunes = d.toISOString().split("T")[0];
+    }
+
+    let racha = 0;
+    while (true) {
+      if (sumaEnSemana(lunes) >= metaCantidad) {
+        racha++;
+        const d = new Date(lunes + "T00:00:00");
+        d.setDate(d.getDate() - 7);
+        lunes = d.toISOString().split("T")[0];
+      } else {
+        break;
+      }
+    }
+    return racha;
   }
 
   function getConteoSemana(habitoId: string): number {
@@ -227,5 +274,7 @@ export function useHabitos() {
     getRacha,
     getConteoSemana,
     getRachaSemanal,
+    getSumaSemana,
+    getRachaSemanalCantidad,
   };
 }
