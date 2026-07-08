@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { usePendientes } from "@/lib/hooks/usePendientes";
 import type { Pendiente } from "@/lib/types";
+import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
 import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn, fechaHoy } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
@@ -161,9 +162,11 @@ function FormPendientePersonal({
   );
 }
 
-function agruparPorDia(items: Pendiente[]) {
+function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
   const conFecha = [...items.filter((p) => p.fechaLimite)].sort((a, b) =>
-    a.fechaLimite! > b.fechaLimite! ? -1 : 1
+    orden === "desc"
+      ? (a.fechaLimite! > b.fechaLimite! ? -1 : 1)
+      : (a.fechaLimite! < b.fechaLimite! ? -1 : 1)
   );
   const sinFecha = items.filter((p) => !p.fechaLimite);
   const mapa = new Map<string, Pendiente[]>();
@@ -183,10 +186,11 @@ export default function PersonalPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
+  const [orden, toggleOrden] = useOrdenFecha("personal");
 
   const pendientesPersonales = pendientes.filter((p) => p.tipo === "personal");
   const pendientesFiltrados = pendientesPersonales.filter((p) => mostrarCompletados || !p.completado);
-  const grupos = agruparPorDia(pendientesFiltrados);
+  const grupos = agruparPorDia(pendientesFiltrados, orden);
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-6 pb-6 space-y-6">
@@ -210,6 +214,21 @@ export default function PersonalPage() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pendientes</h2>
           <div className="flex items-center gap-3">
+            <button
+              onClick={toggleOrden}
+              title={orden === "desc" ? "Mayor a menor" : "Menor a mayor"}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              {orden === "desc" ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 15m0 0l3.75-3.75M17.25 15V5.25" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21l3.75-3.75" />
+                </svg>
+              )}
+            </button>
             <button onClick={() => setMostrarCompletados(!mostrarCompletados)} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
               {mostrarCompletados ? "Ocultar completados" : "Ver todos"}
             </button>

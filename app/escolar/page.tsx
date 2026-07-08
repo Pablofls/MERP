@@ -14,10 +14,13 @@ import Modal from "@/components/ui/Modal";
 import FormPendiente from "@/components/home/FormPendiente";
 import EmptyState from "@/components/ui/EmptyState";
 import type { Pendiente } from "@/lib/types";
+import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
 
-function agruparPorDia(items: Pendiente[]) {
+function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
   const conFecha = [...items.filter((p) => p.fechaLimite)].sort((a, b) =>
-    a.fechaLimite! > b.fechaLimite! ? -1 : 1
+    orden === "desc"
+      ? (a.fechaLimite! > b.fechaLimite! ? -1 : 1)
+      : (a.fechaLimite! < b.fechaLimite! ? -1 : 1)
   );
   const sinFecha = items.filter((p) => !p.fechaLimite);
   const mapa = new Map<string, Pendiente[]>();
@@ -40,11 +43,12 @@ export default function EscolarPage() {
   const [configAbierto, setConfigAbierto] = useState(false);
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
+  const [orden, toggleOrden] = useOrdenFecha("escolar");
 
   const pendientesEscolares = pendientes.filter(
     (p) => p.tipo === "escolar" && (mostrarCompletados || !p.completado)
   );
-  const grupos = agruparPorDia(pendientesEscolares);
+  const grupos = agruparPorDia(pendientesEscolares, orden);
   const getMat = (id?: string) => materias.find((m) => m.id === id);
 
   return (
@@ -90,6 +94,21 @@ export default function EscolarPage() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pendientes</h2>
           <div className="flex items-center gap-3">
+            <button
+              onClick={toggleOrden}
+              title={orden === "desc" ? "Mayor a menor" : "Menor a mayor"}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              {orden === "desc" ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 15m0 0l3.75-3.75M17.25 15V5.25" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21l3.75-3.75" />
+                </svg>
+              )}
+            </button>
             <button
               onClick={() => setMostrarCompletados(!mostrarCompletados)}
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
