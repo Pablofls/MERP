@@ -37,7 +37,7 @@ export function esFechaVencida(iso: string): boolean {
 }
 
 export function fechaHoy(): string {
-  return new Date().toISOString().split("T")[0];
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey" }).format(new Date());
 }
 
 export function etiquetaFecha(iso: string): string {
@@ -64,6 +64,11 @@ const HABIT_PALETTE = [
   "#3b82f6", "#8b5cf6", "#ef4444", "#14b8a6",
 ];
 
+export function getHabitColorByIndex(index: number): string {
+  return HABIT_PALETTE[index % HABIT_PALETTE.length];
+}
+
+// kept for components that don't have index access
 export function getHabitColor(habitId: string): string {
   let hash = 0;
   for (let i = 0; i < habitId.length; i++) {

@@ -243,21 +243,21 @@ export function useHabitos() {
         .map((r) => r.fecha)
     );
 
-    const hoy = new Date();
-    const hoyKey = hoy.toISOString().split("T")[0];
+    const hoyKey = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey" }).format(new Date());
 
-    // Si hoy no está marcado, contar desde ayer
-    const fecha = new Date(hoy);
-    if (!fechasConValor.has(hoyKey)) {
-      fecha.setDate(fecha.getDate() - 1);
+    // Trabajar en UTC-6: desplazar la fecha desde hoyKey sin depender de toISOString
+    function addDays(isoDate: string, days: number): string {
+      const d = new Date(isoDate + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().split("T")[0];
     }
 
+    let cursor = fechasConValor.has(hoyKey) ? hoyKey : addDays(hoyKey, -1);
+
     let racha = 0;
-    while (true) {
-      const key = fecha.toISOString().split("T")[0];
-      if (!fechasConValor.has(key)) break;
+    while (fechasConValor.has(cursor)) {
       racha++;
-      fecha.setDate(fecha.getDate() - 1);
+      cursor = addDays(cursor, -1);
     }
     return racha;
   }

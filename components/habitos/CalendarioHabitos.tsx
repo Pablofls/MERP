@@ -1,17 +1,24 @@
 "use client";
 import { useState } from "react";
 import type { Habito, RegistroHabito } from "@/lib/types";
-import { getHabitColor } from "@/lib/utils";
+import { getHabitColorByIndex } from "@/lib/utils";
 
 interface Props {
   habitos: Habito[];
   registros: RegistroHabito[];
+  selectedDate: string;
+  onDayClick: (fecha: string) => void;
 }
 
 const DIAS_HEADER = ["L", "M", "X", "J", "V", "S", "D"];
 
 function isoFecha(date: Date): string {
+  // Use noon UTC to avoid any DST/offset ambiguity when creating calendar dates
   return date.toISOString().split("T")[0];
+}
+
+function hoyMonterrey(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey" }).format(new Date());
 }
 
 function inicioSemana(date: Date): Date {
@@ -23,13 +30,18 @@ function inicioSemana(date: Date): Date {
   return d;
 }
 
-export default function CalendarioHabitos({ habitos, registros }: Props) {
-  const [vista, setVista] = useState<"mensual" | "semanal">("mensual");
+export default function CalendarioHabitos({ habitos, registros, selectedDate, onDayClick }: Props) {
+  const [vista, setVista] = useState<"mensual" | "semanal">("semanal");
   const [referencia, setReferencia] = useState(new Date());
-  const hoyStr = isoFecha(new Date());
+  const hoyStr = hoyMonterrey();
 
   function registradoEn(habitoId: string, fecha: string): boolean {
     return registros.some((r) => r.habitoId === habitoId && r.fecha === fecha && r.valor > 0);
+  }
+
+  function handleDayClick(fecha: string) {
+    if (fecha > hoyStr) return; // no permitir días futuros
+    onDayClick(fecha);
   }
 
   // ── VISTA MENSUAL ──────────────────────────────────────────────
@@ -38,11 +50,9 @@ export default function CalendarioHabitos({ habitos, registros }: Props) {
     const mes = referencia.getMonth();
     const primerDia = new Date(año, mes, 1);
     const ultimoDia = new Date(año, mes + 1, 0);
-    const offsetInicio = (primerDia.getDay() + 6) % 7; // Lunes = 0
+    const offsetInicio = (primerDia.getDay() + 6) % 7;
 
-    const celdas: (string | null)[] = [
-      ...Array(offsetInicio).fill(null),
-    ];
+    const celdas: (string | null)[] = [...Array(offsetInicio).fill(null)];
     for (let d = 1; d <= ultimoDia.getDate(); d++) {
       celdas.push(isoFecha(new Date(año, mes, d)));
     }
@@ -52,7 +62,6 @@ export default function CalendarioHabitos({ habitos, registros }: Props) {
 
     return (
       <div>
-        {/* Navegación */}
         <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => setReferencia(new Date(año, mes - 1, 1))}
@@ -74,37 +83,46 @@ export default function CalendarioHabitos({ habitos, registros }: Props) {
           </button>
         </div>
 
-        {/* Headers días */}
         <div className="grid grid-cols-7 mb-1">
           {DIAS_HEADER.map((d) => (
             <div key={d} className="text-center text-[10px] text-gray-400 font-medium py-1">{d}</div>
           ))}
         </div>
 
-        {/* Celdas */}
         <div className="grid grid-cols-7 gap-y-1">
           {celdas.map((fecha, i) => {
             if (!fecha) return <div key={`e-${i}`} />;
             const esHoy = fecha === hoyStr;
+            const esSeleccionado = fecha === selectedDate && fecha !== hoyStr;
             const esFuturo = fecha > hoyStr;
             const completados = habitos.filter((h) => registradoEn(h.id, fecha));
 
             return (
-              <div key={fecha} className="flex flex-col items-center gap-0.5 py-1">
+              <button
+                key={fecha}
+                onClick={() => handleDayClick(fecha)}
+                disabled={esFuturo}
+                className={`flex flex-col items-center gap-0.5 py-1 rounded-lg transition-colors ${
+                  esFuturo ? "cursor-default" : "hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
                 <span className={`text-[11px] font-medium w-6 h-6 flex items-center justify-center rounded-full
-                  ${esHoy ? "bg-blue-900 text-white" : "text-gray-500"}`}>
+                  ${esHoy ? "bg-blue-900 text-white" : esSeleccionado ? "bg-blue-100 text-blue-900 ring-1 ring-blue-300" : "text-gray-500"}`}>
                   {parseInt(fecha.split("-")[2])}
                 </span>
                 <div className="flex flex-wrap justify-center gap-[2px] min-h-[8px]">
-                  {!esFuturo && completados.map((h) => (
-                    <span
-                      key={h.id}
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: getHabitColor(h.id) }}
-                    />
-                  ))}
+                  {!esFuturo && completados.map((h) => {
+                    const idx = habitos.findIndex((hab) => hab.id === h.id);
+                    return (
+                      <span
+                        key={h.id}
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: getHabitColorByIndex(idx) }}
+                      />
+                    );
+                  })}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -136,7 +154,6 @@ export default function CalendarioHabitos({ habitos, registros }: Props) {
 
     return (
       <div>
-        {/* Navegación */}
         <div className="flex items-center justify-between mb-3">
           <button onClick={prevSemana} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -151,30 +168,40 @@ export default function CalendarioHabitos({ habitos, registros }: Props) {
           </button>
         </div>
 
-        {/* Tabla días × hábitos */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr>
                 <th className="text-left text-gray-400 font-medium pb-2 pr-2 w-20">Hábito</th>
                 {dias.map((d) => {
-                  const esHoy = isoFecha(d) === hoyStr;
+                  const fecha = isoFecha(d);
+                  const esHoy = fecha === hoyStr;
+                  const esSeleccionado = fecha === selectedDate && fecha !== hoyStr;
                   return (
-                    <th key={isoFecha(d)} className="text-center pb-2 px-0.5">
-                      <div className={`text-[10px] font-medium ${esHoy ? "text-blue-900" : "text-gray-400"}`}>
-                        {DIAS_HEADER[(d.getDay() + 6) % 7]}
-                      </div>
-                      <div className={`text-[11px] font-bold w-6 h-6 flex items-center justify-center rounded-full mx-auto ${esHoy ? "bg-blue-900 text-white" : "text-gray-600"}`}>
-                        {d.getDate()}
-                      </div>
+                    <th key={fecha} className="text-center pb-2 px-0.5">
+                      <button
+                        onClick={() => handleDayClick(fecha)}
+                        disabled={fecha > hoyStr}
+                        className={`w-full flex flex-col items-center gap-0.5 rounded-lg py-0.5 transition-colors ${
+                          fecha > hoyStr ? "cursor-default" : "hover:bg-gray-50 cursor-pointer"
+                        }`}
+                      >
+                        <div className={`text-[10px] font-medium ${esHoy ? "text-blue-900" : esSeleccionado ? "text-blue-700" : "text-gray-400"}`}>
+                          {DIAS_HEADER[(d.getDay() + 6) % 7]}
+                        </div>
+                        <div className={`text-[11px] font-bold w-6 h-6 flex items-center justify-center rounded-full
+                          ${esHoy ? "bg-blue-900 text-white" : esSeleccionado ? "bg-blue-100 text-blue-900 ring-1 ring-blue-300" : "text-gray-600"}`}>
+                          {d.getDate()}
+                        </div>
+                      </button>
                     </th>
                   );
                 })}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {habitos.map((h) => {
-                const color = getHabitColor(h.id);
+              {habitos.map((h, idx) => {
+                const color = getHabitColorByIndex(idx);
                 return (
                   <tr key={h.id}>
                     <td className="py-2 pr-2">
@@ -187,8 +214,9 @@ export default function CalendarioHabitos({ habitos, registros }: Props) {
                       const fecha = isoFecha(d);
                       const hecho = registradoEn(h.id, fecha);
                       const futuro = fecha > hoyStr;
+                      const esSeleccionadoCol = fecha === selectedDate;
                       return (
-                        <td key={fecha} className="text-center py-2 px-0.5">
+                        <td key={fecha} className={`text-center py-2 px-0.5 ${esSeleccionadoCol && !futuro ? "bg-blue-50/50" : ""}`}>
                           <span
                             className="w-6 h-6 rounded-md mx-auto flex items-center justify-center"
                             style={{
@@ -216,7 +244,6 @@ export default function CalendarioHabitos({ habitos, registros }: Props) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
-      {/* Toggle */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-4 w-fit">
         {(["mensual", "semanal"] as const).map((v) => (
           <button

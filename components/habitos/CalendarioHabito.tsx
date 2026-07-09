@@ -1,26 +1,25 @@
 "use client";
 import type { Habito, RegistroHabito } from "@/lib/types";
-import { getHabitColor } from "@/lib/utils";
+import { fechaHoy, getHabitColorByIndex } from "@/lib/utils";
 
 interface Props {
   habito: Habito;
+  colorIndex: number;
   historial: RegistroHabito[];
 }
 
-export default function CalendarioHabito({ habito, historial }: Props) {
-  const hoy = new Date();
-  const habitColor = getHabitColor(habito.id);
+export default function CalendarioHabito({ habito, colorIndex, historial }: Props) {
+  const hoyStr = fechaHoy();
+  const habitColor = getHabitColorByIndex(colorIndex);
   const dias = Array.from({ length: 35 }, (_, i) => {
-    const d = new Date(hoy);
-    d.setDate(d.getDate() - (34 - i));
+    const d = new Date(hoyStr + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() - (34 - i));
     return d.toISOString().split("T")[0];
   });
 
   function getValor(fecha: string) {
     return historial.find((r) => r.fecha === fecha)?.valor ?? 0;
   }
-
-  const hoyStr = hoy.toISOString().split("T")[0];
 
   return (
     <div>

@@ -1,11 +1,13 @@
 "use client";
 import { useState } from "react";
 import type { Habito, RegistroHabito } from "@/lib/types";
-import { fechaHoy, getHabitColor } from "@/lib/utils";
+import { fechaHoy, getHabitColorByIndex } from "@/lib/utils";
 
 interface Props {
   habito: Habito;
-  registroHoy?: RegistroHabito;
+  colorIndex: number;
+  fecha: string;
+  registroDia?: RegistroHabito;
   racha: number;
   conteoSemana?: number;
   sumaSemana?: number;
@@ -13,28 +15,30 @@ interface Props {
   onEliminar: (id: string) => void;
 }
 
-export default function TarjetaHabito({ habito, registroHoy, racha, conteoSemana, sumaSemana, onRegistrar, onEliminar }: Props) {
-  const [inputValor, setInputValor] = useState(registroHoy?.valor?.toString() ?? "");
+export default function TarjetaHabito({ habito, colorIndex, fecha, registroDia, racha, conteoSemana, sumaSemana, onRegistrar, onEliminar }: Props) {
+  const [inputValor, setInputValor] = useState(registroDia?.valor?.toString() ?? "");
   const [editandoValor, setEditandoValor] = useState(false);
   const hoy = fechaHoy();
-  const completadoHoy = registroHoy && registroHoy.valor > 0;
-  const color = getHabitColor(habito.id);
+  const esFuturo = fecha > hoy;
+  const completadoDia = registroDia && registroDia.valor > 0;
+  const color = getHabitColorByIndex(colorIndex);
 
   function toggleBooleano() {
-    onRegistrar(habito.id, hoy, completadoHoy ? 0 : 1);
+    if (esFuturo) return;
+    onRegistrar(habito.id, fecha, completadoDia ? 0 : 1);
   }
 
   function guardarNumerico(e: React.FormEvent) {
     e.preventDefault();
+    if (esFuturo) return;
     const val = parseFloat(inputValor);
     if (isNaN(val) || val < 0) return;
-    onRegistrar(habito.id, hoy, val);
+    onRegistrar(habito.id, fecha, val);
     setEditandoValor(false);
   }
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      {/* Barra de color en el borde izquierdo */}
       <div className="flex">
         <div className="w-1 flex-shrink-0 rounded-l-xl" style={{ backgroundColor: color }} />
 
@@ -117,16 +121,16 @@ export default function TarjetaHabito({ habito, registroHoy, racha, conteoSemana
             </div>
 
             {/* Control de registro */}
-            {habito.tipoMedida === "booleana" ? (
+            {esFuturo ? null : habito.tipoMedida === "booleana" ? (
               <button
                 onClick={toggleBooleano}
                 className="w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0"
                 style={{
-                  backgroundColor: completadoHoy ? color : "transparent",
-                  borderColor: completadoHoy ? color : "#d1d5db",
+                  backgroundColor: completadoDia ? color : "transparent",
+                  borderColor: completadoDia ? color : "#d1d5db",
                 }}
               >
-                {completadoHoy && (
+                {completadoDia && (
                   <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
@@ -154,15 +158,15 @@ export default function TarjetaHabito({ habito, registroHoy, racha, conteoSemana
               </form>
             ) : (
               <button
-                onClick={() => { setInputValor(registroHoy?.valor?.toString() ?? ""); setEditandoValor(true); }}
+                onClick={() => { setInputValor(registroDia?.valor?.toString() ?? ""); setEditandoValor(true); }}
                 className="text-xs font-semibold px-3 py-1.5 rounded-full border-2 transition-colors flex-shrink-0"
                 style={{
-                  color: completadoHoy ? color : "#9ca3af",
-                  borderColor: completadoHoy ? color : "#e5e7eb",
-                  backgroundColor: completadoHoy ? `${color}15` : "transparent",
+                  color: completadoDia ? color : "#9ca3af",
+                  borderColor: completadoDia ? color : "#e5e7eb",
+                  backgroundColor: completadoDia ? `${color}15` : "transparent",
                 }}
               >
-                {completadoHoy ? `${registroHoy?.valor} ${habito.unidad ?? ""}` : "Registrar"}
+                {completadoDia ? `${registroDia?.valor} ${habito.unidad ?? ""}` : "Registrar"}
               </button>
             )}
           </div>

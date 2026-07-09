@@ -5,7 +5,7 @@ import TarjetaHabito from "@/components/habitos/TarjetaHabito";
 import CalendarioHabitos from "@/components/habitos/CalendarioHabitos";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
-import { fechaHoy, getHabitColor } from "@/lib/utils";
+import { fechaHoy, getHabitColorByIndex } from "@/lib/utils";
 import type { Habito } from "@/lib/types";
 
 function FormHabito({
@@ -145,11 +145,24 @@ function FormHabito({
   );
 }
 
+function etiquetaFechaSeleccionada(fecha: string, hoy: string): string {
+  if (fecha === hoy) return "hoy";
+  const ayer = new Date(hoy + "T12:00:00Z");
+  ayer.setUTCDate(ayer.getUTCDate() - 1);
+  const ayerISO = ayer.toISOString().split("T")[0];
+  if (fecha === ayerISO) return "ayer";
+  const [y, m, d] = fecha.split("-");
+  return `el ${parseInt(d)}/${parseInt(m)}/${y}`;
+}
+
 export default function HabitosPage() {
   const { habitos, registros, agregarHabito, eliminarHabito, registrar, getRegistro, getRacha, getConteoSemana, getRachaSemanal, getSumaSemana, getRachaSemanalCantidad } = useHabitos();
   const [modalOpen, setModalOpen] = useState(false);
   const hoy = fechaHoy();
-  const completadosHoy = registros.filter((r) => r.fecha === hoy && r.valor > 0).length;
+  const [selectedDate, setSelectedDate] = useState(hoy);
+
+  const completadosDia = registros.filter((r) => r.fecha === selectedDate && r.valor > 0).length;
+  const etiqueta = etiquetaFechaSeleccionada(selectedDate, hoy);
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-6 pb-6 space-y-4">
@@ -159,7 +172,7 @@ export default function HabitosPage() {
         <div>
           <h1 className="text-xl font-bold text-gray-900">Hábitos</h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            {completadosHoy} / {habitos.length} completados hoy
+            {completadosDia} / {habitos.length} completados {etiqueta}
           </p>
         </div>
         <button
@@ -178,13 +191,33 @@ export default function HabitosPage() {
       ) : (
         <>
           {/* Calendario principal */}
-          <CalendarioHabitos habitos={habitos} registros={registros} />
+          <CalendarioHabitos
+            habitos={habitos}
+            registros={registros}
+            selectedDate={selectedDate}
+            onDayClick={setSelectedDate}
+          />
+
+          {/* Indicador de día seleccionado (si no es hoy) */}
+          {selectedDate !== hoy && (
+            <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+              <span className="text-xs text-blue-700 font-medium">
+                Viendo: {etiqueta.replace("el ", "")}
+              </span>
+              <button
+                onClick={() => setSelectedDate(hoy)}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              >
+                Volver a hoy
+              </button>
+            </div>
+          )}
 
           {/* Leyenda de colores */}
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-1">
-            {habitos.map((h) => (
+            {habitos.map((h, idx) => (
               <div key={h.id} className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getHabitColor(h.id) }} />
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getHabitColorByIndex(idx) }} />
                 <span className="text-xs text-gray-500">{h.topico}</span>
               </div>
             ))}
@@ -192,11 +225,13 @@ export default function HabitosPage() {
 
           {/* Tarjetas de hábitos */}
           <div className="space-y-2">
-            {habitos.map((h) => (
+            {habitos.map((h, idx) => (
               <TarjetaHabito
                 key={h.id}
                 habito={h}
-                registroHoy={getRegistro(h.id, hoy)}
+                colorIndex={idx}
+                fecha={selectedDate}
+                registroDia={getRegistro(h.id, selectedDate)}
                 racha={
                   h.frecuencia === "semanal" && h.metaCantidadSemanal
                     ? getRachaSemanalCantidad(h.id, h.metaCantidadSemanal)
