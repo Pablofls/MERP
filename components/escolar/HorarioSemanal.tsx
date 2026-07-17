@@ -34,14 +34,36 @@ function semanaLabel(lunes: Date): string {
   return `${lunes.toLocaleDateString("es-MX", opciones)} – ${domingo.toLocaleDateString("es-MX", { ...opciones, year: "numeric" })}`;
 }
 
+function getMinutosAhora() {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
 export default function HorarioSemanal({ clases, materias }: Props) {
   const [semanaOffset, setSemanaOffset] = useState(0);
-  const [diasVisibles, setDiasVisibles] = useState(3);
+  const [diasVisibles, setDiasVisibles] = useState<number>(() => {
+    if (typeof window === "undefined") return 3;
+    const saved = localStorage.getItem("escolar_diasVisibles");
+    const n = saved ? parseInt(saved, 10) : 3;
+    return [3, 5, 7].includes(n) ? n : 3;
+  });
   const [modalCrear, setModalCrear] = useState(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoCalendario | null>(null);
+  const [minutosAhora, setMinutosAhora] = useState(getMinutosAhora);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { eventos: googleEventos, refetch } = useGoogleCalendarSemana(semanaOffset);
+
+  // Persist view preference
+  useEffect(() => {
+    localStorage.setItem("escolar_diasVisibles", String(diasVisibles));
+  }, [diasVisibles]);
+
+  // Update current time line every minute
+  useEffect(() => {
+    const id = setInterval(() => setMinutosAhora(getMinutosAhora()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Auto-scroll to 7am on mount
   useEffect(() => {
@@ -160,6 +182,20 @@ export default function HorarioSemanal({ clases, materias }: Props) {
               </span>
             </div>
           ))}
+
+          {/* Línea de hora actual */}
+          {semanaOffset === 0 && diasSlice.some((dia) => {
+            const idx = DIAS_SEMANA.indexOf(dia);
+            return fechasDia[idx]?.toISOString().split("T")[0] === hoy;
+          }) && (
+            <div
+              className="absolute left-10 right-0 pointer-events-none z-10 flex items-center"
+              style={{ top: `${(minutosAhora / TOTAL_MIN) * 100}%` }}
+            >
+              <div className="w-2 h-2 rounded-full bg-red-500 -ml-1 flex-shrink-0" />
+              <div className="flex-1 border-t border-red-500" />
+            </div>
+          )}
 
           {/* Columnas */}
           <div className="absolute left-10 right-0 top-0 bottom-0 grid" style={{ gridTemplateColumns: `repeat(${diasVisibles}, 1fr)` }}>
