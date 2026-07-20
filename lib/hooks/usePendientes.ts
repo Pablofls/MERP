@@ -90,9 +90,17 @@ export function usePendientes() {
     const actual = pendientes.find((p) => p.id === id);
     if (!actual) return;
 
+    const nuevoCompletado = !actual.completado;
+
+    // Optimistic update: actualizar estado local antes del await para que el
+    // filtro elimine el item en el mismo ciclo de render que termina la animación.
+    setPendientes((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, completado: nuevoCompletado } : p))
+    );
+
     const { data, error } = await supabase
       .from("pendientes")
-      .update({ completado: !actual.completado })
+      .update({ completado: nuevoCompletado })
       .eq("id", id)
       .select()
       .single();
@@ -105,6 +113,9 @@ export function usePendientes() {
       if (actualizado.googleTaskId) {
         actualizarGoogleTask(actualizado.googleTaskId, actualizado.completado);
       }
+    } else {
+      // Rollback si falla la llamada a Supabase
+      setPendientes((prev) => prev.map((p) => (p.id === id ? actual : p)));
     }
   }
 
