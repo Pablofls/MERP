@@ -13,6 +13,8 @@ export interface ClaseHorario {
   horaInicio: string; // "HH:MM"
   horaFin: string;    // "HH:MM"
   salon?: string;
+  fechaInicio?: string | null; // "YYYY-MM-DD"
+  fechaFin?: string | null;    // "YYYY-MM-DD"
   // Para Fase 3
   googleEventId?: string | null;
 }

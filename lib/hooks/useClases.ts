@@ -11,6 +11,8 @@ type ClaseDB = {
   hora_inicio: string;
   hora_fin: string;
   salon?: string | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
   google_event_id?: string | null;
 };
 
@@ -22,6 +24,8 @@ function fromDB(row: ClaseDB): ClaseHorario {
     horaInicio: row.hora_inicio.slice(0, 5),
     horaFin: row.hora_fin.slice(0, 5),
     salon: row.salon ?? undefined,
+    fechaInicio: row.fecha_inicio ?? null,
+    fechaFin: row.fecha_fin ?? null,
     googleEventId: row.google_event_id ?? null,
   };
 }
@@ -33,6 +37,8 @@ function toDB(datos: Omit<ClaseHorario, "id">) {
     hora_inicio: datos.horaInicio,
     hora_fin: datos.horaFin,
     salon: datos.salon ?? null,
+    fecha_inicio: datos.fechaInicio ?? null,
+    fecha_fin: datos.fechaFin ?? null,
     google_event_id: datos.googleEventId ?? null,
   };
 }
