@@ -199,12 +199,21 @@ export default function HorarioSemanal({ clases, materias }: Props) {
 
           {/* Columnas */}
           <div className="absolute left-10 right-0 top-0 bottom-0 grid" style={{ gridTemplateColumns: `repeat(${diasVisibles}, 1fr)` }}>
-            {diasSlice.map((dia) => {
-              const clasesDelDia = clases
-                .filter((c) => c.dia === dia)
-                .sort((a, b) => minutosDesdeMedianoche(a.horaInicio) - minutosDesdeMedianoche(b.horaInicio));
-
+            {diasSlice.map((dia, i) => {
+              const fechaDiaStr = fechasDiaSlice[i].toISOString().split("T")[0];
               const eventosDelDia = googleEventos.filter((e) => e.dia === dia);
+
+              // Filtrar clases por rango de fechas; omitir si GCal ya muestra el mismo evento
+              const clasesDelDia = clases
+                .filter((c) => {
+                  if (c.dia !== dia) return false;
+                  if (c.fechaInicio && fechaDiaStr < c.fechaInicio) return false;
+                  if (c.fechaFin && fechaDiaStr > c.fechaFin) return false;
+                  const mat = getMat(c.materiaId);
+                  if (mat && eventosDelDia.some((e) => e.titulo === mat.nombre)) return false;
+                  return true;
+                })
+                .sort((a, b) => minutosDesdeMedianoche(a.horaInicio) - minutosDesdeMedianoche(b.horaInicio));
 
               return (
                 <div key={dia} className="relative border-l border-gray-100">
@@ -245,6 +254,9 @@ export default function HorarioSemanal({ clases, materias }: Props) {
                     const top    = (ini / TOTAL_MIN) * 100;
                     const height = Math.max((dur / TOTAL_MIN) * 100, 1.5);
 
+                    // Si el título coincide con una materia, usar su color (igual que clases locales)
+                    const mat = materias.find((m) => m.nombre === evento.titulo);
+
                     return (
                       <button
                         key={evento.id}
@@ -257,19 +269,26 @@ export default function HorarioSemanal({ clases, materias }: Props) {
                           recurringEventId: evento.recurringEventId,
                         })}
                         className="absolute left-0.5 right-0.5 rounded overflow-hidden text-left hover:brightness-95 transition-all"
-                        style={{
+                        style={mat ? {
+                          top: `${top}%`,
+                          height: `${height}%`,
+                          backgroundColor: mat.color,
+                        } : {
                           top: `${top}%`,
                           height: `${height}%`,
                           backgroundColor: "#e2e8f0",
                           borderLeft: "2px solid #94a3b8",
                         }}
                       >
-                        <div className="px-1 pt-0.5 h-full flex flex-col">
-                          <p className="text-[10px] font-medium leading-tight truncate text-slate-600">
+                        <div className="p-1.5 h-full flex flex-col">
+                          <p className={cn("text-[10px] font-semibold leading-tight truncate", mat ? "text-white opacity-90" : "text-slate-600")}>
                             {evento.titulo}
                           </p>
                           {dur >= 45 && (
-                            <p className="text-[9px] text-slate-400 leading-tight">{evento.horaInicio}</p>
+                            <p className={cn("text-[9px] leading-tight mt-0.5", mat ? "text-white opacity-60" : "text-slate-400")}>{evento.horaInicio}</p>
+                          )}
+                          {evento.descripcion && dur >= 75 && (
+                            <p className={cn("text-[9px] leading-tight truncate", mat ? "text-white opacity-50" : "text-slate-400")}>{evento.descripcion}</p>
                           )}
                         </div>
                       </button>
