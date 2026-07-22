@@ -122,7 +122,7 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
         await fetch("/api/google/calendar", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "crear", titulo, inicio, fin, todoElDia: false, timeZone, recurrence }),
+          body: JSON.stringify({ action: "crear", titulo, descripcion: salon.trim() || undefined, inicio, fin, todoElDia: false, timeZone, recurrence }),
         });
       }
 
