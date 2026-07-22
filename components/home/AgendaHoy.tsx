@@ -74,8 +74,15 @@ export default function AgendaHoy({ clases, materias }: Props) {
     return "futura";
   }
 
+  const fechaStr = getIsoFecha(diaOffset);
+
   const itemsApp: ItemAgenda[] = clases
-    .filter((c) => c.dia === diaActual)
+    .filter((c) => {
+      if (c.dia !== diaActual) return false;
+      if (c.fechaInicio && fechaStr < c.fechaInicio) return false;
+      if (c.fechaFin && fechaStr > c.fechaFin) return false;
+      return true;
+    })
     .map((c) => {
       const mat = materias.find((m) => m.id === c.materiaId);
       const ini = minutosDesdeMedianoche(c.horaInicio);

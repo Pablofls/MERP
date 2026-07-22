@@ -53,6 +53,13 @@ export interface Habito {
   activo: boolean;
 }
 
+export interface Subtarea {
+  id: string;
+  pendienteId: string;
+  titulo: string;
+  completado: boolean;
+}
+
 export interface RegistroHabito {
   id: string;
   habitoId: string;
