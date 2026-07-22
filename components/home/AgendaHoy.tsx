@@ -74,13 +74,13 @@ export default function AgendaHoy({ clases, materias }: Props) {
     return "futura";
   }
 
-  const fechaStr = getIsoFecha(diaOffset);
+  const fechaISO = getIsoFecha(diaOffset);
 
   const itemsApp: ItemAgenda[] = clases
     .filter((c) => {
       if (c.dia !== diaActual) return false;
-      if (c.fechaInicio && fechaStr < c.fechaInicio) return false;
-      if (c.fechaFin && fechaStr > c.fechaFin) return false;
+      if (c.fechaInicio && fechaISO < c.fechaInicio) return false;
+      if (c.fechaFin && fechaISO > c.fechaFin) return false;
       return true;
     })
     .map((c) => {
