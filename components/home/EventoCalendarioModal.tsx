@@ -7,6 +7,7 @@ export interface EventoCalendario {
   id: string;
   titulo: string;
   descripcion?: string | null;
+  hangoutLink?: string | null;
   inicio: string | null;
   fin: string | null;
   todoElDia: boolean;
@@ -195,6 +196,19 @@ export default function EventoCalendarioModal({ evento, onClose, onRefetch }: Pr
               </p>
               {esRecurrente && (
                 <p className="text-xs text-gray-400 mt-0.5">Evento recurrente</p>
+              )}
+              {evento.hangoutLink && (
+                <a
+                  href={evento.hangoutLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-2 text-sm text-blue-700 hover:text-blue-800 hover:underline"
+                >
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 3.5H4C2.6 3.5 1.5 4.6 1.5 6v12c0 1.4 1.1 2.5 2.5 2.5h16c1.4 0 2.5-1.1 2.5-2.5V6C22.5 4.6 21.4 3.5 20 3.5zm-1 13.5l-4-2.8V15H5V9h10v.8L19 7v10z"/>
+                  </svg>
+                  Unirse a Google Meet
+                </a>
               )}
               {evento.descripcion && (
                 <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">{evento.descripcion}</p>

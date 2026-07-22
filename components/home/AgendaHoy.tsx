@@ -23,7 +23,7 @@ interface ItemAgenda {
   origen: "app" | "google";
   salon?: string;
   todoElDia?: boolean;
-  eventoOriginal?: { id: string; titulo: string; inicio: string | null; fin: string | null; todoElDia: boolean };
+  eventoOriginal?: { id: string; titulo: string; descripcion?: string | null; hangoutLink?: string | null; inicio: string | null; fin: string | null; todoElDia: boolean; recurringEventId?: string | null };
 }
 
 function formatHora(iso: string): string {

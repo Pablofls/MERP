@@ -8,6 +8,7 @@ export interface GoogleEventoHoy {
   id: string;
   titulo: string;
   descripcion?: string | null;
+  hangoutLink?: string | null;
   inicio: string | null;  // ISO dateTime string
   fin: string | null;
   todoElDia: boolean;

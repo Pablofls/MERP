@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
     singleEvents: "true",
     orderBy: "startTime",
     maxResults: "50",
-    fields: "items(id,summary,description,start,end,status,colorId,recurringEventId)",
+    fields: "items(id,summary,description,hangoutLink,start,end,status,colorId,recurringEventId)",
   });
 
   const res = await fetch(`${CAL_BASE}?${params}`, {
@@ -254,6 +254,7 @@ export async function POST(req: NextRequest) {
     id: string;
     summary?: string;
     description?: string;
+    hangoutLink?: string;
     status?: string;
     recurringEventId?: string;
     start?: { dateTime?: string; date?: string };
@@ -266,6 +267,7 @@ export async function POST(req: NextRequest) {
       id: e.id,
       titulo: e.summary ?? "(Sin título)",
       descripcion: e.description ?? null,
+      hangoutLink: e.hangoutLink ?? null,
       inicio: e.start?.dateTime ?? null,
       fin: e.end?.dateTime ?? null,
       todoElDia: !!e.start?.date,
