@@ -11,12 +11,9 @@ interface Props {
   materias: Materia[];
 }
 
-const HORA_INICIO = 0;
-const HORA_FIN    = 24 * 60;
-const TOTAL_MIN   = HORA_FIN - HORA_INICIO;
-const PX_POR_MIN  = 1.5;
-const ALTURA_TOTAL = TOTAL_MIN * PX_POR_MIN; // 2160px
-const HORAS = Array.from({ length: 24 }, (_, i) => i); // 0h–23h
+const PX_POR_MIN  = 1.0;
+const HORA_INICIO_DEFAULT = 7 * 60;
+const HORA_FIN_DEFAULT    = 20 * 60;
 
 function getLunesConOffset(semanaOffset: number): Date {
   const hoy = new Date();
@@ -65,12 +62,7 @@ export default function HorarioSemanal({ clases, materias }: Props) {
     return () => clearInterval(id);
   }, []);
 
-  // Auto-scroll to 7am on mount
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 7 * 60 * PX_POR_MIN;
-    }
-  }, []);
+  // No auto-scroll needed: view starts at HORA_INICIO_DEFAULT (7am) by default
 
   const getMat = (id: string) => materias.find((m) => m.id === id);
   const hoy = fechaHoy();
@@ -90,6 +82,35 @@ export default function HorarioSemanal({ clases, materias }: Props) {
     : 0;
   const diasSlice = DIAS_SEMANA.slice(startIdx, startIdx + diasVisibles);
   const fechasDiaSlice = fechasDia.slice(startIdx, startIdx + diasVisibles);
+
+  // Compute dynamic visible hour range from events in this view
+  const eventStartMins: number[] = [];
+  const eventEndMins: number[] = [];
+  diasSlice.forEach((dia, i) => {
+    const fechaDiaStr = fechasDiaSlice[i].toISOString().split("T")[0];
+    clases.forEach((c) => {
+      if (c.dia !== dia) return;
+      if (c.fechaInicio && fechaDiaStr < c.fechaInicio) return;
+      if (c.fechaFin && fechaDiaStr > c.fechaFin) return;
+      eventStartMins.push(minutosDesdeMedianoche(c.horaInicio));
+      eventEndMins.push(minutosDesdeMedianoche(c.horaFin));
+    });
+    googleEventos.forEach((e) => {
+      if (e.dia !== dia) return;
+      eventStartMins.push(minutosDesdeMedianoche(e.horaInicio));
+      eventEndMins.push(minutosDesdeMedianoche(e.horaFin));
+    });
+  });
+
+  const minEventStart = eventStartMins.length > 0 ? Math.min(...eventStartMins) : HORA_INICIO_DEFAULT;
+  const maxEventEnd   = eventEndMins.length > 0   ? Math.max(...eventEndMins)   : HORA_FIN_DEFAULT;
+  const HORA_INICIO = Math.floor(Math.min(HORA_INICIO_DEFAULT, minEventStart) / 60) * 60;
+  const HORA_FIN    = Math.ceil(Math.max(HORA_FIN_DEFAULT, maxEventEnd) / 60) * 60;
+  const TOTAL_MIN   = HORA_FIN - HORA_INICIO;
+  const ALTURA_TOTAL = TOTAL_MIN * PX_POR_MIN;
+  const HORA_INICIO_H = HORA_INICIO / 60;
+  const HORA_FIN_H    = HORA_FIN / 60;
+  const HORAS = Array.from({ length: HORA_FIN_H - HORA_INICIO_H + 1 }, (_, i) => HORA_INICIO_H + i);
 
   // Default create date: today if in current week, else Monday
   const fechaDefault = semanaOffset === 0
@@ -190,7 +211,7 @@ export default function HorarioSemanal({ clases, materias }: Props) {
           }) && (
             <div
               className="absolute left-10 right-0 pointer-events-none z-10 flex items-center"
-              style={{ top: `${(minutosAhora / TOTAL_MIN) * 100}%` }}
+              style={{ top: `${((minutosAhora - HORA_INICIO) / TOTAL_MIN) * 100}%` }}
             >
               <div className="w-2 h-2 rounded-full bg-red-500 -ml-1 flex-shrink-0" />
               <div className="flex-1 border-t border-red-500" />
