@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 import type { ClaseHorario, Materia, DiaSemana } from "@/lib/types";
 import { DIAS_SHORT } from "@/lib/utils";
 import EmptyState from "@/components/ui/EmptyState";
@@ -12,13 +13,18 @@ interface Props {
   onEliminar: (id: string) => void;
 }
 
-const DIAS_SEMANA_PICKER: { abbr: string; label: string; dia: DiaSemana }[] = [
-  { abbr: "L", label: "Lun", dia: "lunes" },
-  { abbr: "M", label: "Mar", dia: "martes" },
-  { abbr: "X", label: "Mié", dia: "miércoles" },
-  { abbr: "J", label: "Jue", dia: "jueves" },
-  { abbr: "V", label: "Vie", dia: "viernes" },
+const DIAS_SEMANA_PICKER: { abbr: string; dia: DiaSemana }[] = [
+  { abbr: "L", dia: "lunes" },
+  { abbr: "M", dia: "martes" },
+  { abbr: "X", dia: "miércoles" },
+  { abbr: "J", dia: "jueves" },
+  { abbr: "V", dia: "viernes" },
 ];
+
+const DIA_TO_RRULE: Record<DiaSemana, string> = {
+  lunes: "MO", martes: "TU", "miércoles": "WE",
+  jueves: "TH", viernes: "FR", sábado: "SA", domingo: "SU",
+};
 
 const JS_TO_DIA: Record<number, DiaSemana> = {
   1: "lunes", 2: "martes", 3: "miércoles", 4: "jueves", 5: "viernes",
@@ -33,8 +39,14 @@ function hoy(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+async function getToken(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 export default function GestorClases({ clases, materias, onAgregar, onEliminar }: Props) {
   const [open, setOpen] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   // Form state
   const [materiaId, setMateriaId] = useState(materias[0]?.id ?? "");
@@ -76,32 +88,62 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
   function handleToggleRepite() {
     const next = !seRepite;
     setSeRepite(next);
-    if (next) {
-      setDiasSel([diaDesdeISO(fechaInicio)]);
-    }
+    if (next) setDiasSel([diaDesdeISO(fechaInicio)]);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!materiaId) return;
 
+    const mat = materias.find((m) => m.id === materiaId);
+    const titulo = mat?.nombre ?? "Clase";
     const dias = seRepite ? diasSel : [diaDesdeISO(fechaInicio)];
     if (dias.length === 0) return;
 
-    for (const dia of dias) {
-      onAgregar({
-        materiaId,
-        dia,
-        horaInicio,
-        horaFin,
-        salon: salon.trim() || undefined,
-        fechaInicio: fechaInicio || null,
-        fechaFin: (seRepite && fechaFin) ? fechaFin : (fechaInicio || null),
-      });
-    }
+    setGuardando(true);
+    try {
+      // Crear evento en Google Calendar (misma lógica que CrearEventoModal)
+      const token = await getToken();
+      if (token) {
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const inicio = `${fechaInicio}T${horaInicio}:00`;
+        const fin = `${fechaInicio}T${horaFin}:00`;
 
-    setOpen(false);
-    setSalon("");
+        let recurrence: string[] | undefined;
+        if (seRepite && dias.length > 0) {
+          const byDay = dias.map((d) => DIA_TO_RRULE[d]).join(",");
+          let rrule = `RRULE:FREQ=WEEKLY;BYDAY=${byDay}`;
+          if (fechaFin) {
+            rrule += `;UNTIL=${fechaFin.replace(/-/g, "")}T235959Z`;
+          }
+          recurrence = [rrule];
+        }
+
+        await fetch("/api/google/calendar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "crear", titulo, inicio, fin, todoElDia: false, timeZone, recurrence }),
+        });
+      }
+
+      // Guardar en Supabase (un registro por día seleccionado)
+      for (const dia of dias) {
+        onAgregar({
+          materiaId,
+          dia,
+          horaInicio,
+          horaFin,
+          salon: salon.trim() || undefined,
+          fechaInicio: fechaInicio || null,
+          fechaFin: (seRepite && fechaFin) ? fechaFin : (fechaInicio || null),
+        });
+      }
+
+      setOpen(false);
+      setSalon("");
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
@@ -249,7 +291,6 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
               {/* Opciones de repetición */}
               {seRepite && (
                 <div className="space-y-3 border border-gray-100 rounded-lg p-3 bg-gray-50">
-                  {/* Días */}
                   <div>
                     <label className="text-xs text-gray-500 block mb-1.5">Días</label>
                     <div className="flex gap-1.5">
@@ -271,7 +312,6 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
                     </div>
                   </div>
 
-                  {/* Fecha fin */}
                   <div>
                     <label className="text-xs text-gray-500 block mb-1">Fecha de fin (opcional)</label>
                     <input
@@ -308,10 +348,10 @@ export default function GestorClases({ clases, materias, onAgregar, onEliminar }
                 </button>
                 <button
                   type="submit"
-                  disabled={!materiaId || (seRepite && diasSel.length === 0)}
+                  disabled={!materiaId || (seRepite && diasSel.length === 0) || guardando}
                   className="flex-1 text-sm text-white bg-blue-900 rounded-lg py-2.5 hover:bg-blue-800 transition-colors disabled:opacity-40"
                 >
-                  Agregar
+                  {guardando ? "Creando…" : "Agregar"}
                 </button>
               </div>
             </form>
