@@ -9,6 +9,7 @@ create table if not exists subtareas (
 
 alter table subtareas enable row level security;
 
+drop policy if exists "subtareas: own rows" on subtareas;
 create policy "subtareas: own rows"
   on subtareas for all
   using (auth.uid() = user_id)
