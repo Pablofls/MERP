@@ -8,6 +8,7 @@ import FormPendiente from "./FormPendiente";
 import DetallePendiente from "./DetallePendiente";
 import PendienteItem from "./PendienteItem";
 import EmptyState from "@/components/ui/EmptyState";
+import FiltroChips, { type OpcionFiltro } from "@/components/ui/FiltroChips";
 import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
 
 interface Props {
@@ -47,12 +48,38 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
   const [orden, toggleOrden] = useOrdenFecha("inicio");
+  const [filtroTipo, setFiltroTipo] = useState<string | null>(null);
+  const [filtroSub, setFiltroSub] = useState<string | null>(null);
 
-  const pendientesFiltrados = pendientes.filter((p) =>
-    mostrarCompletados ? true : !p.completado
-  );
+  function handleFiltroTipo(id: string | null) {
+    setFiltroTipo(id);
+    setFiltroSub(null);
+  }
+
+  const opcionesTipo: OpcionFiltro[] = [
+    { id: null, label: "Todo" },
+    { id: "escolar", label: "Escolar" },
+    { id: "personal", label: "Personal" },
+  ];
+
+  const opcionesSub: OpcionFiltro[] =
+    filtroTipo === "escolar"
+      ? materias.map((m) => ({ id: m.id, label: m.nombre, color: m.color }))
+      : filtroTipo === "personal"
+      ? categorias.map((c) => ({ id: c.id, label: c.nombre, color: c.color }))
+      : [];
+
+  const pendientesFiltrados = pendientes.filter((p) => {
+    if (mostrarCompletados ? false : p.completado) return false;
+    if (filtroTipo && p.tipo !== filtroTipo) return false;
+    if (filtroSub) {
+      if (p.tipo === "escolar" && p.materiaId !== filtroSub) return false;
+      if (p.tipo === "personal" && p.categoriaPersonalId !== filtroSub) return false;
+    }
+    return true;
+  });
+
   const grupos = agruparPorDia(pendientesFiltrados, orden);
-
   const getMat = (id?: string) => materias.find((m) => m.id === id);
   const getCat = (id?: string) => categorias.find((c) => c.id === id);
 
@@ -94,6 +121,14 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
         </div>
       </div>
 
+      {/* Filtros */}
+      <div className="space-y-1.5 mb-3">
+        <FiltroChips opciones={opcionesTipo} valor={filtroTipo} onChange={handleFiltroTipo} />
+        {opcionesSub.length > 0 && (
+          <FiltroChips opciones={[{ id: null, label: "Todo" }, ...opcionesSub]} valor={filtroSub} onChange={setFiltroSub} />
+        )}
+      </div>
+
       {pendientesFiltrados.length === 0 ? (
         <EmptyState title="Sin pendientes" description="Todo al dia" />
       ) : (
@@ -117,7 +152,7 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
                         {p.tipo === "escolar" ? (
                           <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-500 border border-gray-200">{cat?.nombre ?? "Personal"}</Badge>
+                          <Badge color={cat?.color ?? "#4a3a6b"}>{cat?.nombre ?? "Personal"}</Badge>
                         )}
                         {p.descripcion && (
                           <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>

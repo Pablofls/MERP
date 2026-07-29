@@ -13,6 +13,7 @@ import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import FormPendiente from "@/components/home/FormPendiente";
 import EmptyState from "@/components/ui/EmptyState";
+import FiltroChips from "@/components/ui/FiltroChips";
 import type { Pendiente } from "@/lib/types";
 import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
 
@@ -44,9 +45,12 @@ export default function EscolarPage() {
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
   const [orden, toggleOrden] = useOrdenFecha("escolar");
+  const [filtroMateria, setFiltroMateria] = useState<string | null>(null);
 
   const pendientesEscolares = pendientes.filter(
-    (p) => p.tipo === "escolar" && (mostrarCompletados || !p.completado)
+    (p) => p.tipo === "escolar"
+      && (mostrarCompletados || !p.completado)
+      && (!filtroMateria || p.materiaId === filtroMateria)
   );
   const grupos = agruparPorDia(pendientesEscolares, orden);
   const getMat = (id?: string) => materias.find((m) => m.id === id);
@@ -126,6 +130,17 @@ export default function EscolarPage() {
             </button>
           </div>
         </div>
+
+        {/* Filtro por materia */}
+        {materias.length > 1 && (
+          <div className="mb-3">
+            <FiltroChips
+              opciones={[{ id: null, label: "Todo" }, ...materias.map((m) => ({ id: m.id, label: m.nombre, color: m.color }))]}
+              valor={filtroMateria}
+              onChange={setFiltroMateria}
+            />
+          </div>
+        )}
 
         {pendientesEscolares.length === 0 ? (
           <EmptyState title="Sin pendientes escolares" />

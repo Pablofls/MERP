@@ -33,6 +33,7 @@ export interface Evento {
 export interface CategoriaPersonal {
   id: string;
   nombre: string;
+  color: string;
 }
 
 export interface Pendiente {

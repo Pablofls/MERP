@@ -7,6 +7,8 @@ import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
 import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn, fechaHoy } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
+import Badge from "@/components/ui/Badge";
+import FiltroChips from "@/components/ui/FiltroChips";
 import DetallePendiente from "@/components/home/DetallePendiente";
 import PendienteItem from "@/components/home/PendienteItem";
 import FormPendiente from "@/components/home/FormPendiente";
@@ -154,10 +156,14 @@ export default function PersonalPage() {
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
   const [orden, toggleOrden] = useOrdenFecha("personal");
+  const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null);
 
   const pendientesPersonales = pendientes.filter((p) => p.tipo === "personal");
-  const pendientesFiltrados = pendientesPersonales.filter((p) => mostrarCompletados || !p.completado);
+  const pendientesFiltrados = pendientesPersonales.filter(
+    (p) => (mostrarCompletados || !p.completado) && (!filtroCategoria || p.categoriaPersonalId === filtroCategoria)
+  );
   const grupos = agruparPorDia(pendientesFiltrados, orden);
+  const getCat = (id?: string) => categorias.find((c) => c.id === id);
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-6 pb-6 space-y-6">
@@ -227,6 +233,17 @@ export default function PersonalPage() {
           </div>
         </div>
 
+        {/* Filtro por categoría */}
+        {categorias.length > 1 && (
+          <div className="mb-3">
+            <FiltroChips
+              opciones={[{ id: null, label: "Todo" }, ...categorias.map((c) => ({ id: c.id, label: c.nombre, color: c.color }))]}
+              valor={filtroCategoria}
+              onChange={setFiltroCategoria}
+            />
+          </div>
+        )}
+
         {pendientesFiltrados.length === 0 ? (
           <EmptyState title="Sin pendientes personales" />
         ) : (
@@ -236,6 +253,7 @@ export default function PersonalPage() {
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{grupo.label}</p>
                 <ul className="divide-y divide-gray-100">
                   {grupo.items.map((p) => {
+                    const cat = getCat(p.categoriaPersonalId);
                     const vencido = !p.completado && p.fechaLimite && esFechaVencida(p.fechaLimite);
                     return (
                       <PendienteItem
@@ -244,12 +262,15 @@ export default function PersonalPage() {
                         onToggle={toggleCompletado}
                         onClick={() => setDetalle(p)}
                       >
-                        {p.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate">{p.descripcion}</p>}
-                        {p.fechaLimite && (
-                          <span className={cn("text-xs mt-0.5 inline-block", vencido ? "text-red-600 font-medium" : "text-gray-400")}>
-                            {vencido ? "Vencido · " : ""}{formatFechaCorta(p.fechaLimite)}
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <Badge color={cat?.color ?? "#4a3a6b"}>{cat?.nombre ?? "Personal"}</Badge>
+                          {p.descripcion && <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>}
+                          {p.fechaLimite && (
+                            <span className={cn("text-xs", vencido ? "text-red-600 font-medium" : "text-gray-400")}>
+                              {vencido ? "Vencido · " : ""}{formatFechaCorta(p.fechaLimite)}
+                            </span>
+                          )}
+                        </div>
                       </PendienteItem>
                     );
                   })}

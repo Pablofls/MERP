@@ -105,7 +105,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
             {pendiente.tipo === "escolar" ? (
               <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
             ) : (
-              <Badge className="bg-gray-100 text-gray-500 border border-gray-200">{cat?.nombre ?? "Personal"}</Badge>
+              <Badge color={cat?.color ?? "#4a3a6b"}>{cat?.nombre ?? "Personal"}</Badge>
             )}
             {pendiente.fechaLimite && (
               <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", vencido ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500")}>

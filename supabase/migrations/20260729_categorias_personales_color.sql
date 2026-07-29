@@ -1,0 +1,1 @@
+ALTER TABLE categorias_personales ADD COLUMN IF NOT EXISTS color TEXT NOT NULL DEFAULT '#4a3a6b';
