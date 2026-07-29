@@ -2,6 +2,7 @@
 import { usePendientes } from "@/lib/hooks/usePendientes";
 import { useMaterias } from "@/lib/hooks/useMaterias";
 import { useClases } from "@/lib/hooks/useClases";
+import { useCategorias } from "@/lib/hooks/useCategorias";
 import AgendaHoy from "@/components/home/AgendaHoy";
 import PendientesHoy from "@/components/home/PendientesHoy";
 
@@ -9,6 +10,7 @@ export default function HomePage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { materias } = useMaterias();
   const { clases } = useClases();
+  const { categorias } = useCategorias();
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-6 pb-6">
@@ -19,6 +21,7 @@ export default function HomePage() {
         <PendientesHoy
           pendientes={pendientes}
           materias={materias}
+          categorias={categorias}
           onToggle={toggleCompletado}
           onAgregar={agregar}
           onEditar={editar}

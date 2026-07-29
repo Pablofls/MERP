@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import type { Pendiente, Materia } from "@/lib/types";
+import type { Pendiente, Materia, CategoriaPersonal } from "@/lib/types";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import { formatFechaCorta, esFechaVencida, cn } from "@/lib/utils";
@@ -9,13 +9,14 @@ import { useSubtareas } from "@/lib/hooks/useSubtareas";
 interface Props {
   pendiente: Pendiente | null;
   materias: Materia[];
+  categorias: CategoriaPersonal[];
   onClose: () => void;
   onToggle: (id: string) => void;
   onEditar: (id: string, datos: Partial<Pick<Pendiente, "titulo" | "descripcion" | "fechaLimite" | "materiaId">>) => void;
   onEliminar: (id: string) => void;
 }
 
-export default function DetallePendiente({ pendiente, materias, onClose, onToggle, onEditar, onEliminar }: Props) {
+export default function DetallePendiente({ pendiente, materias, categorias, onClose, onToggle, onEditar, onEliminar }: Props) {
   const [editando, setEditando] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -74,6 +75,7 @@ export default function DetallePendiente({ pendiente, materias, onClose, onToggl
   if (!pendiente) return null;
 
   const mat = materias.find((m) => m.id === pendiente.materiaId);
+  const cat = categorias.find((c) => c.id === pendiente.categoriaPersonalId);
   const vencido = !pendiente.completado && pendiente.fechaLimite && esFechaVencida(pendiente.fechaLimite);
   const totalSub = subtareas.length;
   const completadasSub = subtareas.filter((s) => s.completado).length;
@@ -103,7 +105,7 @@ export default function DetallePendiente({ pendiente, materias, onClose, onToggl
             {pendiente.tipo === "escolar" ? (
               <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
             ) : (
-              <Badge className="bg-gray-100 text-gray-500 border border-gray-200">Personal</Badge>
+              <Badge className="bg-gray-100 text-gray-500 border border-gray-200">{cat?.nombre ?? "Personal"}</Badge>
             )}
             {pendiente.fechaLimite && (
               <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", vencido ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500")}>

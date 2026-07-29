@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { usePendientes } from "@/lib/hooks/usePendientes";
+import { useCategorias } from "@/lib/hooks/useCategorias";
 import type { Pendiente } from "@/lib/types";
 import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
 import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn, fechaHoy } from "@/lib/utils";
@@ -8,6 +9,8 @@ import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import DetallePendiente from "@/components/home/DetallePendiente";
 import PendienteItem from "@/components/home/PendienteItem";
+import FormPendiente from "@/components/home/FormPendiente";
+import GestorCategorias from "@/components/personal/GestorCategorias";
 
 function getSemanaConOffset(offset: number): Date[] {
   const hoy = new Date();
@@ -123,44 +126,6 @@ function CalendarioSemana({ pendientes }: { pendientes: Pendiente[] }) {
   );
 }
 
-function FormPendientePersonal({
-  onSubmit,
-  onCancel,
-}: {
-  onSubmit: (datos: Omit<Pendiente, "id" | "completado">) => void;
-  onCancel: () => void;
-}) {
-  const [titulo, setTitulo] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [fechaLimite, setFechaLimite] = useState("");
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!titulo.trim()) return;
-    onSubmit({ titulo: titulo.trim(), descripcion: descripcion.trim() || undefined, fechaLimite: fechaLimite || undefined, tipo: "personal" });
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Titulo</label>
-        <input type="text" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Que tienes pendiente?" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" autoFocus />
-      </div>
-      <div>
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Descripcion</label>
-        <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalles opcionales" rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 resize-none" />
-      </div>
-      <div>
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Fecha limite</label>
-        <input type="date" value={fechaLimite} min={fechaHoy()} onChange={(e) => setFechaLimite(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" />
-      </div>
-      <div className="flex gap-2 pt-2">
-        <button type="button" onClick={onCancel} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
-        <button type="submit" disabled={!titulo.trim()} className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-40 transition-colors">Agregar</button>
-      </div>
-    </form>
-  );
-}
 
 function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
   const conFecha = [...items.filter((p) => p.fechaLimite)].sort((a, b) =>
@@ -183,7 +148,9 @@ function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
 
 export default function PersonalPage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
+  const { categorias, agregar: agregarCat, eliminar: eliminarCat } = useCategorias();
   const [modalOpen, setModalOpen] = useState(false);
+  const [configAbierto, setConfigAbierto] = useState(false);
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
   const [orden, toggleOrden] = useOrdenFecha("personal");
@@ -198,10 +165,26 @@ export default function PersonalPage() {
         <div>
           <h1 className="text-xl font-bold text-gray-900">Personal</h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            {pendientesPersonales.filter((p) => !p.completado).length} pendientes
+            {pendientesPersonales.filter((p) => !p.completado).length} pendientes · {categorias.length} categorías
           </p>
         </div>
+        <button
+          onClick={() => setConfigAbierto(!configAbierto)}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+          Configurar
+        </button>
       </div>
+
+      {configAbierto && (
+        <div className="border border-gray-200 rounded-xl bg-white p-4">
+          <GestorCategorias categorias={categorias} onAgregar={agregarCat} onEliminar={eliminarCat} />
+        </div>
+      )}
 
       {/* Calendario semanal */}
       <section>
@@ -278,7 +261,10 @@ export default function PersonalPage() {
       </section>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nuevo pendiente personal">
-        <FormPendientePersonal
+        <FormPendiente
+          materias={[]}
+          categorias={categorias}
+          tipoPredeterminado="personal"
           onSubmit={(datos) => { agregar(datos); setModalOpen(false); }}
           onCancel={() => setModalOpen(false)}
         />
@@ -287,6 +273,7 @@ export default function PersonalPage() {
       <DetallePendiente
         pendiente={detalle}
         materias={[]}
+        categorias={categorias}
         onClose={() => setDetalle(null)}
         onToggle={(id) => { toggleCompletado(id); setDetalle(null); }}
         onEditar={editar}

@@ -169,6 +169,7 @@ export default function EscolarPage() {
       <Modal open={modalPendiente} onClose={() => setModalPendiente(false)} title="Nuevo pendiente escolar">
         <FormPendiente
           materias={materias}
+          categorias={[]}
           tipoPredeterminado="escolar"
           onSubmit={(datos) => { agregar({ ...datos, tipo: "escolar" }); setModalPendiente(false); }}
           onCancel={() => setModalPendiente(false)}
@@ -178,6 +179,7 @@ export default function EscolarPage() {
       <DetallePendiente
         pendiente={detalle}
         materias={materias}
+        categorias={[]}
         onClose={() => setDetalle(null)}
         onToggle={(id) => { toggleCompletado(id); setDetalle(null); }}
         onEditar={editar}

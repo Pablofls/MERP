@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { Pendiente, Materia } from "@/lib/types";
+import type { Pendiente, Materia, CategoriaPersonal } from "@/lib/types";
 import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
@@ -13,6 +13,7 @@ import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
 interface Props {
   pendientes: Pendiente[];
   materias: Materia[];
+  categorias: CategoriaPersonal[];
   onToggle: (id: string) => void;
   onAgregar: (datos: Omit<Pendiente, "id" | "completado">) => void;
   onEditar: (id: string, datos: Partial<Pick<Pendiente, "titulo" | "descripcion" | "fechaLimite" | "materiaId">>) => void;
@@ -41,7 +42,7 @@ function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
   return grupos;
 }
 
-export default function PendientesHoy({ pendientes, materias, onToggle, onAgregar, onEditar, onEliminar }: Props) {
+export default function PendientesHoy({ pendientes, materias, categorias, onToggle, onAgregar, onEditar, onEliminar }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
@@ -53,6 +54,7 @@ export default function PendientesHoy({ pendientes, materias, onToggle, onAgrega
   const grupos = agruparPorDia(pendientesFiltrados, orden);
 
   const getMat = (id?: string) => materias.find((m) => m.id === id);
+  const getCat = (id?: string) => categorias.find((c) => c.id === id);
 
   return (
     <section>
@@ -102,6 +104,7 @@ export default function PendientesHoy({ pendientes, materias, onToggle, onAgrega
               <ul className="divide-y divide-gray-100">
                 {grupo.items.map((p) => {
                   const mat = getMat(p.materiaId);
+                  const cat = getCat(p.categoriaPersonalId);
                   const vencido = !p.completado && p.fechaLimite && esFechaVencida(p.fechaLimite);
                   return (
                     <PendienteItem
@@ -114,7 +117,7 @@ export default function PendientesHoy({ pendientes, materias, onToggle, onAgrega
                         {p.tipo === "escolar" ? (
                           <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-500 border border-gray-200">Personal</Badge>
+                          <Badge className="bg-gray-100 text-gray-500 border border-gray-200">{cat?.nombre ?? "Personal"}</Badge>
                         )}
                         {p.descripcion && (
                           <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>
@@ -137,6 +140,7 @@ export default function PendientesHoy({ pendientes, materias, onToggle, onAgrega
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nuevo pendiente">
         <FormPendiente
           materias={materias}
+          categorias={categorias}
           onSubmit={(datos) => {
             onAgregar(datos);
             setModalOpen(false);
@@ -148,6 +152,7 @@ export default function PendientesHoy({ pendientes, materias, onToggle, onAgrega
       <DetallePendiente
         pendiente={detalle}
         materias={materias}
+        categorias={categorias}
         onClose={() => setDetalle(null)}
         onToggle={(id) => { onToggle(id); setDetalle(null); }}
         onEditar={onEditar}

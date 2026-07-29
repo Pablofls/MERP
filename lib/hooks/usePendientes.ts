@@ -13,6 +13,7 @@ type PendienteDB = {
   completado: boolean;
   tipo: Pendiente["tipo"];
   materia_id?: string | null;
+  categoria_personal_id?: string | null;
   google_task_id?: string | null;
 };
 
@@ -25,6 +26,7 @@ function fromDB(row: PendienteDB): Pendiente {
     completado: row.completado,
     tipo: row.tipo,
     materiaId: row.materia_id ?? undefined,
+    categoriaPersonalId: row.categoria_personal_id ?? undefined,
     googleTaskId: row.google_task_id ?? null,
   };
 }
@@ -57,6 +59,7 @@ export function usePendientes() {
         completado: false,
         tipo: datos.tipo,
         materia_id: datos.materiaId ?? null,
+        categoria_personal_id: datos.categoriaPersonalId ?? null,
         google_task_id: null,
         user_id: user.id,
       })
@@ -138,6 +141,7 @@ export function usePendientes() {
     if (datos.fechaLimite !== undefined) patch.fecha_limite = datos.fechaLimite ?? null;
     if (datos.tipo !== undefined) patch.tipo = datos.tipo;
     if (datos.materiaId !== undefined) patch.materia_id = datos.materiaId ?? null;
+    if (datos.categoriaPersonalId !== undefined) patch.categoria_personal_id = datos.categoriaPersonalId ?? null;
 
     const { data, error } = await supabase
       .from("pendientes")

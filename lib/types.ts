@@ -30,6 +30,11 @@ export interface Evento {
   googleEventId?: string | null;
 }
 
+export interface CategoriaPersonal {
+  id: string;
+  nombre: string;
+}
+
 export interface Pendiente {
   id: string;
   titulo: string;
@@ -38,6 +43,7 @@ export interface Pendiente {
   completado: boolean;
   tipo: "escolar" | "personal";
   materiaId?: string; // solo si tipo === "escolar"
+  categoriaPersonalId?: string; // solo si tipo === "personal"
   // Para Fase 3
   googleTaskId?: string | null;
 }
