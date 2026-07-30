@@ -145,6 +145,167 @@ function FormHabito({
   );
 }
 
+function FormEditarHabito({
+  habito,
+  onGuardar,
+  onEliminar,
+  onCancel,
+}: {
+  habito: Habito;
+  onGuardar: (datos: Partial<Omit<Habito, "id" | "activo">>) => void;
+  onEliminar: () => void;
+  onCancel: () => void;
+}) {
+  const [topico, setTopico] = useState(habito.topico);
+  const [tipoMedida, setTipoMedida] = useState<"numerica" | "booleana">(habito.tipoMedida);
+  const [unidad, setUnidad] = useState(habito.unidad ?? "");
+  const [frecuencia, setFrecuencia] = useState<"diaria" | "semanal">(habito.frecuencia);
+  const [metaSemanal, setMetaSemanal] = useState(habito.metaSemanal ?? 3);
+  const [modoMeta, setModoMeta] = useState<"frecuencia" | "acumulado">(
+    habito.metaCantidadSemanal ? "acumulado" : "frecuencia"
+  );
+  const [metaCantidadSemanal, setMetaCantidadSemanal] = useState(
+    habito.metaCantidadSemanal?.toString() ?? ""
+  );
+  const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+
+  const esSemanalAcumulado = frecuencia === "semanal" && tipoMedida === "numerica" && modoMeta === "acumulado";
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!topico.trim()) return;
+    if (esSemanalAcumulado && !metaCantidadSemanal) return;
+    onGuardar({
+      topico: topico.trim(),
+      tipoMedida,
+      unidad: tipoMedida === "numerica" ? (unidad.trim() || undefined) : undefined,
+      frecuencia,
+      metaSemanal: frecuencia === "semanal" && !esSemanalAcumulado ? metaSemanal : undefined,
+      metaCantidadSemanal: esSemanalAcumulado ? Number(metaCantidadSemanal) : undefined,
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Hábito</label>
+        <input
+          type="text"
+          value={topico}
+          onChange={(e) => setTopico(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
+          autoFocus
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tipo de registro</label>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setTipoMedida("booleana")}
+            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${tipoMedida === "booleana" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+            Sí / No
+          </button>
+          <button type="button" onClick={() => setTipoMedida("numerica")}
+            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${tipoMedida === "numerica" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+            Cantidad
+          </button>
+        </div>
+      </div>
+      {tipoMedida === "numerica" && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Unidad (opcional)</label>
+          <input type="text" value={unidad} onChange={(e) => setUnidad(e.target.value)}
+            placeholder="ej. km, páginas, minutos"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" />
+        </div>
+      )}
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Frecuencia</label>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setFrecuencia("diaria")}
+            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${frecuencia === "diaria" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+            Diaria
+          </button>
+          <button type="button" onClick={() => setFrecuencia("semanal")}
+            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${frecuencia === "semanal" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+            Semanal
+          </button>
+        </div>
+      </div>
+      {frecuencia === "semanal" && tipoMedida === "numerica" && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Meta semanal</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setModoMeta("frecuencia")}
+              className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${modoMeta === "frecuencia" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+              X veces
+            </button>
+            <button type="button" onClick={() => setModoMeta("acumulado")}
+              className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${modoMeta === "acumulado" ? "bg-blue-900 text-white border-blue-900" : "bg-white text-gray-600 border-gray-200"}`}>
+              Total acumulado
+            </button>
+          </div>
+        </div>
+      )}
+      {frecuencia === "semanal" && (tipoMedida === "booleana" || modoMeta === "frecuencia") && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Veces por semana</label>
+          <div className="flex items-center gap-3">
+            <input type="range" min={1} max={7} value={metaSemanal}
+              onChange={(e) => setMetaSemanal(Number(e.target.value))}
+              className="flex-1 accent-blue-900" />
+            <span className="text-sm font-semibold text-blue-900 w-6 text-center">{metaSemanal}</span>
+          </div>
+          <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5">
+            <span>1</span><span>7</span>
+          </div>
+        </div>
+      )}
+      {esSemanalAcumulado && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Meta semanal {unidad ? `(${unidad})` : ""}
+          </label>
+          <input type="number" min={1} value={metaCantidadSemanal}
+            onChange={(e) => setMetaCantidadSemanal(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900" />
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-2">
+        <button type="button" onClick={onCancel}
+          className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+          Cancelar
+        </button>
+        <button type="submit" disabled={!topico.trim() || (esSemanalAcumulado && !metaCantidadSemanal)}
+          className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium disabled:opacity-40 transition-colors">
+          Guardar
+        </button>
+      </div>
+
+      <div className="border-t border-gray-100 pt-3">
+        {confirmarEliminar ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 flex-1">¿Eliminar este hábito?</span>
+            <button type="button" onClick={() => setConfirmarEliminar(false)}
+              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 transition-colors">
+              No
+            </button>
+            <button type="button" onClick={onEliminar}
+              className="text-xs text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded-md transition-colors">
+              Sí, eliminar
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setConfirmarEliminar(true)}
+            className="w-full text-xs text-red-400 hover:text-red-600 py-1 transition-colors text-center">
+            Eliminar hábito
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
 function etiquetaFechaSeleccionada(fecha: string, hoy: string): string {
   if (fecha === hoy) return "hoy";
   const ayer = new Date(hoy + "T12:00:00Z");
@@ -156,8 +317,9 @@ function etiquetaFechaSeleccionada(fecha: string, hoy: string): string {
 }
 
 export default function HabitosPage() {
-  const { habitos, registros, agregarHabito, eliminarHabito, registrar, getRegistro, getRacha, getConteoSemana, getRachaSemanal, getSumaSemana, getRachaSemanalCantidad } = useHabitos();
+  const { habitos, registros, agregarHabito, editarHabito, eliminarHabito, registrar, getRegistro, getRacha, getConteoSemana, getRachaSemanal, getSumaSemana, getRachaSemanalCantidad } = useHabitos();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editandoHabito, setEditandoHabito] = useState<Habito | null>(null);
   const hoy = fechaHoy();
   const [selectedDate, setSelectedDate] = useState(hoy);
 
@@ -242,7 +404,7 @@ export default function HabitosPage() {
                 conteoSemana={h.frecuencia === "semanal" && !h.metaCantidadSemanal ? getConteoSemana(h.id) : undefined}
                 sumaSemana={h.frecuencia === "semanal" && h.metaCantidadSemanal ? getSumaSemana(h.id) : undefined}
                 onRegistrar={registrar}
-                onEliminar={eliminarHabito}
+                onEditar={setEditandoHabito}
               />
             ))}
           </div>
@@ -254,6 +416,17 @@ export default function HabitosPage() {
           onSubmit={(datos) => { agregarHabito(datos); setModalOpen(false); }}
           onCancel={() => setModalOpen(false)}
         />
+      </Modal>
+
+      <Modal open={!!editandoHabito} onClose={() => setEditandoHabito(null)} title="Editar hábito">
+        {editandoHabito && (
+          <FormEditarHabito
+            habito={editandoHabito}
+            onGuardar={(datos) => { editarHabito(editandoHabito.id, datos); setEditandoHabito(null); }}
+            onEliminar={() => { eliminarHabito(editandoHabito.id); setEditandoHabito(null); }}
+            onCancel={() => setEditandoHabito(null)}
+          />
+        )}
       </Modal>
     </div>
   );

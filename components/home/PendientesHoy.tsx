@@ -56,17 +56,40 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
     setFiltroSub(null);
   }
 
-  const opcionesTipo: OpcionFiltro[] = [
-    { id: null, label: "Todo" },
-    { id: "escolar", label: "Escolar" },
-    { id: "personal", label: "Personal" },
-  ];
+  const incompletos = pendientes.filter((p) => !p.completado);
+  const countEscolar = incompletos.filter((p) => p.tipo === "escolar").length;
+  const countPersonal = incompletos.filter((p) => p.tipo === "personal").length;
+
+  const tiposSinTodo: OpcionFiltro[] = [
+    { id: "escolar", label: "Escolar", count: countEscolar },
+    { id: "personal", label: "Personal", count: countPersonal },
+  ].sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+
+  const opcionesTipo: OpcionFiltro[] = [{ id: null, label: "Todo" }, ...tiposSinTodo];
 
   const opcionesSub: OpcionFiltro[] =
     filtroTipo === "escolar"
-      ? materias.map((m) => ({ id: m.id, label: m.nombre, color: m.color }))
+      ? (() => {
+          const opts = materias.map((m) => ({
+            id: m.id,
+            label: m.nombre,
+            color: m.color,
+            count: incompletos.filter((p) => p.tipo === "escolar" && p.materiaId === m.id).length,
+          }));
+          opts.sort((a, b) => b.count - a.count);
+          return opts;
+        })()
       : filtroTipo === "personal"
-      ? categorias.map((c) => ({ id: c.id, label: c.nombre, color: c.color }))
+      ? (() => {
+          const opts = categorias.map((c) => ({
+            id: c.id,
+            label: c.nombre,
+            color: c.color,
+            count: incompletos.filter((p) => p.tipo === "personal" && p.categoriaPersonalId === c.id).length,
+          }));
+          opts.sort((a, b) => b.count - a.count);
+          return opts;
+        })()
       : [];
 
   const pendientesFiltrados = pendientes.filter((p) => {

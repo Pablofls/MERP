@@ -135,7 +135,17 @@ export default function EscolarPage() {
         {materias.length > 1 && (
           <div className="mb-3">
             <FiltroChips
-              opciones={[{ id: null, label: "Todo" }, ...materias.map((m) => ({ id: m.id, label: m.nombre, color: m.color }))]}
+              opciones={[
+                { id: null, label: "Todo" },
+                ...[...materias]
+                  .map((m) => ({
+                    id: m.id,
+                    label: m.nombre,
+                    color: m.color,
+                    count: pendientes.filter((p) => p.tipo === "escolar" && !p.completado && p.materiaId === m.id).length,
+                  }))
+                  .sort((a, b) => b.count - a.count),
+              ]}
               valor={filtroMateria}
               onChange={setFiltroMateria}
             />

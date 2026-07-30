@@ -237,7 +237,17 @@ export default function PersonalPage() {
         {categorias.length > 1 && (
           <div className="mb-3">
             <FiltroChips
-              opciones={[{ id: null, label: "Todo" }, ...categorias.map((c) => ({ id: c.id, label: c.nombre, color: c.color }))]}
+              opciones={[
+                { id: null, label: "Todo" },
+                ...[...categorias]
+                  .map((c) => ({
+                    id: c.id,
+                    label: c.nombre,
+                    color: c.color,
+                    count: pendientesPersonales.filter((p) => !p.completado && p.categoriaPersonalId === c.id).length,
+                  }))
+                  .sort((a, b) => b.count - a.count),
+              ]}
               valor={filtroCategoria}
               onChange={setFiltroCategoria}
             />

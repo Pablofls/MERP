@@ -12,10 +12,10 @@ interface Props {
   conteoSemana?: number;
   sumaSemana?: number;
   onRegistrar: (habitoId: string, fecha: string, valor: number) => void;
-  onEliminar: (id: string) => void;
+  onEditar: (habito: Habito) => void;
 }
 
-export default function TarjetaHabito({ habito, colorIndex, fecha, registroDia, racha, conteoSemana, sumaSemana, onRegistrar, onEliminar }: Props) {
+export default function TarjetaHabito({ habito, colorIndex, fecha, registroDia, racha, conteoSemana, sumaSemana, onRegistrar, onEditar }: Props) {
   const [inputValor, setInputValor] = useState(registroDia?.valor?.toString() ?? "");
   const [editandoValor, setEditandoValor] = useState(false);
   const hoy = fechaHoy();
@@ -174,8 +174,8 @@ export default function TarjetaHabito({ habito, colorIndex, fecha, registroDia, 
       </div>
 
       <div className="px-5 pb-2 flex justify-end">
-        <button onClick={() => onEliminar(habito.id)} className="text-[10px] text-gray-300 hover:text-red-400 transition-colors">
-          Eliminar
+        <button onClick={() => onEditar(habito)} className="text-[10px] text-gray-300 hover:text-blue-500 transition-colors">
+          Editar
         </button>
       </div>
     </div>
