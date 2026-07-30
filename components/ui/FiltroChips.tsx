@@ -16,7 +16,7 @@ interface Props {
 
 export default function FiltroChips({ opciones, valor, onChange }: Props) {
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div className="flex gap-1.5 overflow-x-auto pt-2 pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       {opciones.map((op) => {
         const activo = valor === op.id;
         return (
