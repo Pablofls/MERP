@@ -12,7 +12,7 @@ interface Props {
   categorias: CategoriaPersonal[];
   onClose: () => void;
   onToggle: (id: string) => void;
-  onEditar: (id: string, datos: Partial<Pick<Pendiente, "titulo" | "descripcion" | "fechaLimite" | "materiaId">>) => void;
+  onEditar: (id: string, datos: Partial<Pick<Pendiente, "titulo" | "descripcion" | "fechaLimite" | "materiaId" | "categoriaPersonalId">>) => void;
   onEliminar: (id: string) => void;
 }
 
@@ -22,6 +22,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
   const [descripcion, setDescripcion] = useState("");
   const [fechaLimite, setFechaLimite] = useState("");
   const [materiaId, setMateriaId] = useState("");
+  const [categoriaPersonalId, setCategoriaPersonalId] = useState("");
   const [nuevaSubtarea, setNuevaSubtarea] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -39,6 +40,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
     setDescripcion(pendiente.descripcion ?? "");
     setFechaLimite(pendiente.fechaLimite ?? "");
     setMateriaId(pendiente.materiaId ?? materias[0]?.id ?? "");
+    setCategoriaPersonalId(pendiente.categoriaPersonalId ?? categorias[0]?.id ?? "");
     setEditando(true);
   }
 
@@ -53,6 +55,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
       descripcion: descripcion.trim() || undefined,
       fechaLimite: fechaLimite || undefined,
       materiaId: pendiente.tipo === "escolar" ? materiaId : undefined,
+      categoriaPersonalId: pendiente.tipo === "personal" ? categoriaPersonalId : undefined,
     });
     setEditando(false);
     onClose();
@@ -228,6 +231,21 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
               >
                 {materias.map((m) => (
                   <option key={m.id} value={m.id}>{m.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {pendiente.tipo === "personal" && categorias.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Categoría</label>
+              <select
+                value={categoriaPersonalId}
+                onChange={(e) => setCategoriaPersonalId(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white"
+              >
+                {categorias.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
               </select>
             </div>
