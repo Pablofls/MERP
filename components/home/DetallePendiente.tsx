@@ -21,9 +21,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fechaLimite, setFechaLimite] = useState("");
-  const [tipo, setTipo] = useState<"escolar" | "personal">("personal");
-  const [materiaId, setMateriaId] = useState("");
-  const [categoriaPersonalId, setCategoriaPersonalId] = useState("");
+  const [categoria, setCategoria] = useState("");
   const [nuevaSubtarea, setNuevaSubtarea] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -40,9 +38,10 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
     setTitulo(pendiente.titulo);
     setDescripcion(pendiente.descripcion ?? "");
     setFechaLimite(pendiente.fechaLimite ?? "");
-    setTipo(pendiente.tipo);
-    setMateriaId(pendiente.materiaId ?? materias[0]?.id ?? "");
-    setCategoriaPersonalId(pendiente.categoriaPersonalId ?? categorias[0]?.id ?? "");
+    const cat = pendiente.tipo === "escolar"
+      ? `m:${pendiente.materiaId ?? materias[0]?.id ?? ""}`
+      : `p:${pendiente.categoriaPersonalId ?? categorias[0]?.id ?? ""}`;
+    setCategoria(cat);
     setEditando(true);
   }
 
@@ -52,13 +51,14 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
 
   function guardar() {
     if (!pendiente || !titulo.trim()) return;
+    const esEscolar = categoria.startsWith("m:");
     onEditar(pendiente.id, {
       titulo: titulo.trim(),
       descripcion: descripcion.trim() || undefined,
       fechaLimite: fechaLimite || undefined,
-      tipo,
-      materiaId: tipo === "escolar" ? materiaId : undefined,
-      categoriaPersonalId: tipo === "personal" ? categoriaPersonalId : undefined,
+      tipo: esEscolar ? "escolar" : "personal",
+      materiaId: esEscolar ? categoria.slice(2) : undefined,
+      categoriaPersonalId: esEscolar ? undefined : categoria.slice(2),
     });
     setEditando(false);
     onClose();
@@ -225,55 +225,28 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
           className="space-y-4"
         >
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tipo</label>
-            <div className="flex gap-2">
-              {(["escolar", "personal"] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTipo(t)}
-                  className={cn(
-                    "flex-1 py-2 rounded-lg text-sm font-medium border transition-colors capitalize",
-                    tipo === t
-                      ? "bg-blue-900 text-white border-blue-900"
-                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                  )}
-                >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
-              ))}
-            </div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Categoría</label>
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white"
+            >
+              {materias.length > 0 && (
+                <optgroup label="Materias">
+                  {materias.map((m) => (
+                    <option key={m.id} value={`m:${m.id}`}>{m.nombre}</option>
+                  ))}
+                </optgroup>
+              )}
+              {categorias.length > 0 && (
+                <optgroup label="Personal">
+                  {categorias.map((c) => (
+                    <option key={c.id} value={`p:${c.id}`}>{c.nombre}</option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
           </div>
-
-          {tipo === "escolar" && materias.length > 0 && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Materia</label>
-              <select
-                value={materiaId || materias[0]?.id}
-                onChange={(e) => setMateriaId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white"
-              >
-                {materias.map((m) => (
-                  <option key={m.id} value={m.id}>{m.nombre}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {tipo === "personal" && categorias.length > 0 && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Categoría</label>
-              <select
-                value={categoriaPersonalId || categorias[0]?.id}
-                onChange={(e) => setCategoriaPersonalId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white"
-              >
-                {categorias.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nombre}</option>
-                ))}
-              </select>
-            </div>
-          )}
 
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Título</label>
