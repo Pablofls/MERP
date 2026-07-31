@@ -12,7 +12,7 @@ interface Props {
   categorias: CategoriaPersonal[];
   onClose: () => void;
   onToggle: (id: string) => void;
-  onEditar: (id: string, datos: Partial<Pick<Pendiente, "titulo" | "descripcion" | "fechaLimite" | "materiaId" | "categoriaPersonalId">>) => void;
+  onEditar: (id: string, datos: Partial<Pick<Pendiente, "titulo" | "descripcion" | "fechaLimite" | "tipo" | "materiaId" | "categoriaPersonalId">>) => void;
   onEliminar: (id: string) => void;
 }
 
@@ -21,6 +21,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fechaLimite, setFechaLimite] = useState("");
+  const [tipo, setTipo] = useState<"escolar" | "personal">("personal");
   const [materiaId, setMateriaId] = useState("");
   const [categoriaPersonalId, setCategoriaPersonalId] = useState("");
   const [nuevaSubtarea, setNuevaSubtarea] = useState("");
@@ -39,6 +40,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
     setTitulo(pendiente.titulo);
     setDescripcion(pendiente.descripcion ?? "");
     setFechaLimite(pendiente.fechaLimite ?? "");
+    setTipo(pendiente.tipo);
     setMateriaId(pendiente.materiaId ?? materias[0]?.id ?? "");
     setCategoriaPersonalId(pendiente.categoriaPersonalId ?? categorias[0]?.id ?? "");
     setEditando(true);
@@ -54,8 +56,9 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
       titulo: titulo.trim(),
       descripcion: descripcion.trim() || undefined,
       fechaLimite: fechaLimite || undefined,
-      materiaId: pendiente.tipo === "escolar" ? materiaId : undefined,
-      categoriaPersonalId: pendiente.tipo === "personal" ? categoriaPersonalId : undefined,
+      tipo,
+      materiaId: tipo === "escolar" ? materiaId : undefined,
+      categoriaPersonalId: tipo === "personal" ? categoriaPersonalId : undefined,
     });
     setEditando(false);
     onClose();
@@ -221,11 +224,32 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
           onSubmit={(e) => { e.preventDefault(); guardar(); }}
           className="space-y-4"
         >
-          {pendiente.tipo === "escolar" && (
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tipo</label>
+            <div className="flex gap-2">
+              {(["escolar", "personal"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTipo(t)}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg text-sm font-medium border transition-colors capitalize",
+                    tipo === t
+                      ? "bg-blue-900 text-white border-blue-900"
+                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                  )}
+                >
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {tipo === "escolar" && materias.length > 0 && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Materia</label>
               <select
-                value={materiaId}
+                value={materiaId || materias[0]?.id}
                 onChange={(e) => setMateriaId(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white"
               >
@@ -236,11 +260,11 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
             </div>
           )}
 
-          {pendiente.tipo === "personal" && categorias.length > 0 && (
+          {tipo === "personal" && categorias.length > 0 && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Categoría</label>
               <select
-                value={categoriaPersonalId}
+                value={categoriaPersonalId || categorias[0]?.id}
                 onChange={(e) => setCategoriaPersonalId(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white"
               >
