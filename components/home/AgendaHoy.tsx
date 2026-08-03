@@ -22,6 +22,7 @@ interface ItemAgenda {
   estado: "activa" | "pasada" | "futura";
   origen: "app" | "google";
   salon?: string;
+  zoomUrl?: string | null;
   todoElDia?: boolean;
   eventoOriginal?: { id: string; titulo: string; descripcion?: string | null; hangoutLink?: string | null; inicio: string | null; fin: string | null; todoElDia: boolean; recurringEventId?: string | null };
 }
@@ -30,6 +31,12 @@ function formatHora(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-MX", {
     hour: "2-digit", minute: "2-digit", hour12: false,
   });
+}
+
+function extractZoomUrl(descripcion?: string | null, hangoutLink?: string | null): string | null {
+  if (hangoutLink?.includes("zoom.us")) return hangoutLink;
+  const match = descripcion?.match(/https?:\/\/[^\s]*zoom\.us\/[^\s]*/);
+  return match?.[0] ?? null;
 }
 
 function getFechaConOffset(offset: number): Date {
@@ -87,6 +94,10 @@ export default function AgendaHoy({ clases, materias }: Props) {
       const mat = materias.find((m) => m.id === c.materiaId);
       const ini = minutosDesdeMedianoche(c.horaInicio);
       const fin = minutosDesdeMedianoche(c.horaFin);
+      // Buscar el evento Google duplicado (ya filtrado de la lista) para obtener su Zoom link
+      const googleMatch = googleEventos.find(
+        (e) => e.titulo.toLowerCase() === (mat?.nombre ?? "").toLowerCase() && Math.abs(minutosDesdeMedianoche(formatHora(e.inicio!)) - ini) <= 5
+      );
       return {
         id: c.id,
         titulo: mat?.nombre ?? "Clase",
@@ -97,6 +108,7 @@ export default function AgendaHoy({ clases, materias }: Props) {
         estado: getEstado(ini, fin),
         origen: "app" as const,
         salon: c.salon,
+        zoomUrl: extractZoomUrl(googleMatch?.descripcion, googleMatch?.hangoutLink),
       };
     });
 
@@ -125,6 +137,7 @@ export default function AgendaHoy({ clases, materias }: Props) {
         estado: getEstado(ini, fin),
         origen: "google" as const,
         eventoOriginal: e,
+        zoomUrl: extractZoomUrl(e.descripcion, e.hangoutLink),
       };
     });
 
@@ -218,10 +231,27 @@ export default function AgendaHoy({ clases, materias }: Props) {
                     {item.salon ? ` · ${item.salon}` : ""}
                   </p>
                 </div>
-                {item.estado === "activa" && (
+                {item.zoomUrl && (
+                  <a
+                    href={item.zoomUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition-colors flex-shrink-0"
+                  >
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/>
+                    </svg>
+                    Zoom
+                  </a>
+                )}
+                {!item.zoomUrl && item.estado === "activa" && (
                   <span className="text-xs font-medium text-blue-900 bg-blue-100 px-2 py-0.5 rounded">Ahora</span>
                 )}
-                {esGoogle && item.estado !== "activa" && <CalendarIcon />}
+                {item.zoomUrl && item.estado === "activa" && (
+                  <span className="text-xs font-medium text-blue-900 bg-blue-100 px-2 py-0.5 rounded flex-shrink-0">Ahora</span>
+                )}
+                {esGoogle && item.estado !== "activa" && !item.zoomUrl && <CalendarIcon />}
               </Wrapper>
             );
           })}
