@@ -101,7 +101,15 @@ export default function AgendaHoy({ clases, materias }: Props) {
     });
 
   const itemsGoogle: ItemAgenda[] = googleEventos
-    .filter((e) => !e.todoElDia && e.inicio && e.fin)
+    .filter((e) => {
+      if (e.todoElDia || !e.inicio || !e.fin) return false;
+      const horaIni = formatHora(e.inicio);
+      const iniMin = minutosDesdeMedianoche(horaIni);
+      // Skip Google events that duplicate an app class (same title + start time within 5 min)
+      return !itemsApp.some(
+        (a) => a.titulo.toLowerCase() === e.titulo.toLowerCase() && Math.abs(a.minutosInicio - iniMin) <= 5
+      );
+    })
     .map((e) => {
       const horaIni = formatHora(e.inicio!);
       const horaFin = formatHora(e.fin!);
