@@ -284,6 +284,8 @@ export default function HorarioSemanal({ clases, materias }: Props) {
                         onClick={() => setEventoSeleccionado({
                           id: evento.id,
                           titulo: evento.titulo,
+                          descripcion: evento.descripcion,
+                          hangoutLink: evento.hangoutLink,
                           inicio: evento.inicioISO,
                           fin: evento.finISO,
                           todoElDia: false,

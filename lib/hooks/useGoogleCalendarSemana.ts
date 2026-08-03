@@ -10,6 +10,7 @@ export interface GoogleEventoSemana {
   id: string;
   titulo: string;
   descripcion?: string | null;
+  hangoutLink?: string | null;
   dia: DiaSemana;
   horaInicio: string; // "HH:MM"
   horaFin: string;    // "HH:MM"
@@ -86,6 +87,7 @@ export function useGoogleCalendarSemana(semanaOffset: number = 0) {
             id: e.id,
             titulo: e.titulo,
             descripcion: e.descripcion ?? null,
+            hangoutLink: e.hangoutLink ?? null,
             dia,
             horaInicio: formatHora(e.inicio),
             horaFin: formatHora(e.fin),

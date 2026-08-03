@@ -211,7 +211,13 @@ export default function EventoCalendarioModal({ evento, onClose, onRefetch }: Pr
                 </a>
               )}
               {evento.descripcion && (
-                <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">{evento.descripcion}</p>
+                <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap break-words">
+                  {evento.descripcion.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                    /^https?:\/\//.test(part)
+                      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline break-all">{part}</a>
+                      : part
+                  )}
+                </p>
               )}
             </div>
 
