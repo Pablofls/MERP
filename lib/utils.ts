@@ -40,13 +40,17 @@ export function fechaHoy(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey" }).format(new Date());
 }
 
+export function fechaRelativa(diasOffset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + diasOffset);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey" }).format(d);
+}
+
 export function etiquetaFecha(iso: string): string {
   const hoy = fechaHoy();
-  const manana = new Date();
-  manana.setDate(manana.getDate() + 1);
-  const mananaIso = manana.toISOString().split("T")[0];
+  const manana = fechaRelativa(1);
   if (iso === hoy) return "Hoy";
-  if (iso === mananaIso) return "Mañana";
+  if (iso === manana) return "Mañana";
   return formatFechaCorta(iso);
 }
 

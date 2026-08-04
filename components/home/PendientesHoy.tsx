@@ -39,7 +39,7 @@ function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
   const grupos: { label: string; items: Pendiente[] }[] = Array.from(mapa.entries()).map(
     ([fecha, items]) => ({ label: etiquetaFecha(fecha), items })
   );
-  if (sinFecha.length > 0) grupos.push({ label: "Sin fecha", items: sinFecha });
+  if (sinFecha.length > 0) grupos.unshift({ label: "Sin fecha", items: sinFecha });
   return grupos;
 }
 
