@@ -152,6 +152,7 @@ export function usePendientes() {
     if (!error && data) {
       const actualizado = fromDB(data as PendienteDB);
       setPendientes((prev) => prev.map((p) => (p.id === id ? actualizado : p)));
+
       if (actualizado.googleTaskId) {
         editarContenidoGoogleTask(
           actualizado.googleTaskId,
@@ -159,6 +160,22 @@ export function usePendientes() {
           actualizado.descripcion,
           actualizado.fechaLimite
         );
+      } else if (actualizado.fechaLimite) {
+        // Pendiente sin Google Task que ahora tiene fecha: crearlo
+        const googleTaskId = await crearGoogleTask(
+          actualizado.titulo,
+          actualizado.descripcion,
+          actualizado.fechaLimite
+        );
+        if (googleTaskId) {
+          await supabase
+            .from("pendientes")
+            .update({ google_task_id: googleTaskId })
+            .eq("id", id);
+          setPendientes((prev) =>
+            prev.map((p) => (p.id === id ? { ...p, googleTaskId } : p))
+          );
+        }
       }
     }
   }
