@@ -167,7 +167,7 @@ export default function HorarioSemanal({ clases, materias }: Props) {
       </div>
 
       {/* Encabezado días */}
-      <div className="grid border-b border-gray-100" style={{ gridTemplateColumns: `2.5rem repeat(${diasVisibles}, 1fr)` }}>
+      <div className="grid border-b border-gray-100" style={{ gridTemplateColumns: `2.5rem repeat(${diasVisibles}, 1fr) 0.5rem` }}>
         <div />
         {diasSlice.map((dia, i) => {
           const fechaDia = fechasDiaSlice[i];
@@ -186,6 +186,7 @@ export default function HorarioSemanal({ clases, materias }: Props) {
             </div>
           );
         })}
+        <div />
       </div>
 
       {/* Cuerpo con scroll */}
@@ -210,7 +211,7 @@ export default function HorarioSemanal({ clases, materias }: Props) {
             return fechasDia[idx]?.toISOString().split("T")[0] === hoy;
           }) && (
             <div
-              className="absolute left-10 right-0 pointer-events-none z-10 flex items-center"
+              className="absolute left-10 right-2 pointer-events-none z-10 flex items-center"
               style={{ top: `${((minutosAhora - HORA_INICIO) / TOTAL_MIN) * 100}%` }}
             >
               <div className="w-2 h-2 rounded-full bg-red-500 -ml-1 flex-shrink-0" />
@@ -219,7 +220,7 @@ export default function HorarioSemanal({ clases, materias }: Props) {
           )}
 
           {/* Columnas */}
-          <div className="absolute left-10 right-0 top-0 bottom-0 grid" style={{ gridTemplateColumns: `repeat(${diasVisibles}, 1fr)` }}>
+          <div className="absolute left-10 right-2 top-0 bottom-0 grid" style={{ gridTemplateColumns: `repeat(${diasVisibles}, 1fr)` }}>
             {diasSlice.map((dia, i) => {
               const fechaDiaStr = fechasDiaSlice[i].toISOString().split("T")[0];
               const eventosDelDia = googleEventos.filter((e) => e.dia === dia);

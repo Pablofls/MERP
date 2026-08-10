@@ -111,8 +111,8 @@ export default function EscolarPage() {
       )}
 
       {/* Horario + Fechas importantes (two-column) */}
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        <section className="flex-1 min-w-0">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <section className="flex-1 min-w-0 w-full">
           <HorarioSemanal clases={clases} materias={materias} />
         </section>
 
