@@ -62,7 +62,7 @@ export async function PATCH(req: NextRequest) {
   const auth = await authAndRate(req);
   if (auth instanceof NextResponse) return auth;
 
-  const { eventId, titulo, descripcion, inicio, fin, editarTodos, baseEventId } = await req.json();
+  const { eventId, titulo, descripcion, inicio, fin, timeZone, editarTodos, baseEventId } = await req.json();
 
   if (!isValidEventId(eventId))
     return NextResponse.json({ error: "Invalid eventId" }, { status: 400 });
@@ -85,11 +85,8 @@ export async function PATCH(req: NextRequest) {
   const patch: Record<string, unknown> = {};
   if (titulo !== undefined) patch.summary = titulo;
   if (descripcion !== undefined) patch.description = descripcion;
-  // Don't update times when editing the whole series (occurrence times ≠ base event times)
-  if (!editarTodos) {
-    if (inicio !== undefined) patch.start = { dateTime: inicio };
-    if (fin !== undefined) patch.end = { dateTime: fin };
-  }
+  if (inicio !== undefined) patch.start = { dateTime: inicio, ...(timeZone ? { timeZone } : {}) };
+  if (fin !== undefined) patch.end = { dateTime: fin, ...(timeZone ? { timeZone } : {}) };
 
   const res = await fetch(`${CAL_BASE}/${encodeURIComponent(targetId)}`, {
     method: "PATCH",
@@ -222,7 +219,8 @@ export async function POST(req: NextRequest) {
       console.error("Google Calendar create error:", err?.error?.message ?? err?.error?.status ?? res.status);
       return NextResponse.json({ ok: false });
     }
-    return NextResponse.json({ ok: true });
+    const created = await res.json();
+    return NextResponse.json({ ok: true, eventId: created.id ?? null });
   }
 
   // Listar eventos

@@ -119,6 +119,28 @@ export default function GestorClases({ clases, materias, onAgregar, onEditar, on
     if (!editando) return;
     setEditGuardando(true);
     try {
+      // Actualizar Google Calendar si la clase tiene un evento vinculado
+      if (editando.googleEventId) {
+        const token = await getToken();
+        if (token) {
+          const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const baseDate = editFechaInicio || editando.fechaInicio || hoy();
+          const mat = materias.find((m) => m.id === editMateriaId);
+          await fetch("/api/google/calendar", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              eventId: editando.googleEventId,
+              titulo: mat?.nombre,
+              descripcion: editSalon.trim() || undefined,
+              inicio: `${baseDate}T${editHoraInicio}:00`,
+              fin: `${baseDate}T${editHoraFin}:00`,
+              timeZone,
+            }),
+          });
+        }
+      }
+
       await onEditar(editando.id, {
         materiaId: editMateriaId,
         dia: editDia,
@@ -147,6 +169,7 @@ export default function GestorClases({ clases, materias, onAgregar, onEditar, on
     try {
       // Crear evento en Google Calendar (misma lógica que CrearEventoModal)
       const token = await getToken();
+      let googleEventId: string | null = null;
       if (token) {
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const inicio = `${fechaInicio}T${horaInicio}:00`;
@@ -162,11 +185,13 @@ export default function GestorClases({ clases, materias, onAgregar, onEditar, on
           recurrence = [rrule];
         }
 
-        await fetch("/api/google/calendar", {
+        const gcalRes = await fetch("/api/google/calendar", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "crear", titulo, descripcion: salon.trim() || undefined, inicio, fin, todoElDia: false, timeZone, recurrence }),
         });
+        const gcalData = await gcalRes.json().catch(() => ({}));
+        googleEventId = gcalData.eventId ?? null;
       }
 
       // Guardar en Supabase (un registro por día seleccionado)
@@ -179,6 +204,7 @@ export default function GestorClases({ clases, materias, onAgregar, onEditar, on
           salon: salon.trim() || undefined,
           fechaInicio: fechaInicio || null,
           fechaFin: (seRepite && fechaFin) ? fechaFin : (fechaInicio || null),
+          googleEventId,
         });
       }
 
