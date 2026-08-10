@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Pendiente, Materia, CategoriaPersonal } from "@/lib/types";
 import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
+import { etiquetaTipo, colorTipo } from "@/components/escolar/FechasImportantes";
 import Modal from "@/components/ui/Modal";
 import FormPendiente from "./FormPendiente";
 import DetallePendiente from "./DetallePendiente";
@@ -172,7 +173,12 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
                       onClick={() => setDetalle(p)}
                     >
                       <div className="flex flex-wrap items-center gap-2 mt-1">
-                        {p.tipo === "escolar" ? (
+                        {p.tipoEvaluacion ? (
+                          <>
+                            <Badge color={colorTipo(p.tipoEvaluacion)}>{etiquetaTipo(p.tipoEvaluacion)}</Badge>
+                            {mat && <Badge color={mat.color}>{mat.nombre}</Badge>}
+                          </>
+                        ) : p.tipo === "escolar" ? (
                           <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
                         ) : (
                           <Badge color={cat?.color ?? "#4a3a6b"}>{cat?.nombre ?? "Personal"}</Badge>

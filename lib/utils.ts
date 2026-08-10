@@ -1,4 +1,4 @@
-import type { DiaSemana } from "./types";
+import type { DiaSemana, FechaImportante, Pendiente } from "./types";
 
 export const DIAS_SEMANA: DiaSemana[] = [
   "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo",
@@ -70,6 +70,25 @@ const HABIT_PALETTE = [
 
 export function getHabitColorByIndex(index: number): string {
   return HABIT_PALETTE[index % HABIT_PALETTE.length];
+}
+
+export function estaEnSieteDias(fecha: string): boolean {
+  const hoy = fechaHoy();
+  const limite = fechaRelativa(7);
+  return fecha >= hoy && fecha <= limite;
+}
+
+export function fechaImportanteAPendiente(fi: FechaImportante): Pendiente {
+  return {
+    id: fi.id,
+    titulo: fi.titulo,
+    descripcion: fi.descripcion,
+    fechaLimite: fi.fecha,
+    completado: fi.completado,
+    tipo: "escolar",
+    materiaId: fi.materiaId,
+    tipoEvaluacion: fi.tipo,
+  };
 }
 
 // kept for components that don't have index access

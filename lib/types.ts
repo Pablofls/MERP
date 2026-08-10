@@ -36,6 +36,18 @@ export interface CategoriaPersonal {
   color: string;
 }
 
+export type TipoEvaluacion = "examen_final" | "examen_parcial" | "quiz" | "proyecto";
+
+export interface FechaImportante {
+  id: string;
+  titulo: string;
+  descripcion?: string;
+  fecha: string; // "YYYY-MM-DD"
+  materiaId?: string;
+  tipo: TipoEvaluacion;
+  completado: boolean;
+}
+
 export interface Pendiente {
   id: string;
   titulo: string;
@@ -45,6 +57,7 @@ export interface Pendiente {
   tipo: "escolar" | "personal";
   materiaId?: string; // solo si tipo === "escolar"
   categoriaPersonalId?: string; // solo si tipo === "personal"
+  tipoEvaluacion?: TipoEvaluacion; // solo en pendientes virtuales de FechaImportante
   // Para Fase 3
   googleTaskId?: string | null;
 }

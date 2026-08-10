@@ -3,10 +3,12 @@ import { useState } from "react";
 import { usePendientes } from "@/lib/hooks/usePendientes";
 import { useMaterias } from "@/lib/hooks/useMaterias";
 import { useClases } from "@/lib/hooks/useClases";
+import { useFechasImportantes } from "@/lib/hooks/useFechasImportantes";
 import HorarioSemanal from "@/components/escolar/HorarioSemanal";
 import GestorMaterias from "@/components/escolar/GestorMaterias";
 import GestorClases from "@/components/escolar/GestorClases";
-import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn } from "@/lib/utils";
+import FechasImportantes, { etiquetaTipo, colorTipo } from "@/components/escolar/FechasImportantes";
+import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn, estaEnSieteDias, fechaImportanteAPendiente } from "@/lib/utils";
 import DetallePendiente from "@/components/home/DetallePendiente";
 import PendienteItem from "@/components/home/PendienteItem";
 import Badge from "@/components/ui/Badge";
@@ -40,6 +42,7 @@ export default function EscolarPage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { materias, agregar: agregarMat, editar: editarMat, eliminar: eliminarMat } = useMaterias();
   const { clases, agregar: agregarClase, editar: editarClase, eliminar: eliminarClase } = useClases();
+  const { fechas, agregar: agregarFecha, editar: editarFecha, toggleCompletado: toggleFecha, eliminar: eliminarFecha } = useFechasImportantes();
   const [modalPendiente, setModalPendiente] = useState(false);
   const [configAbierto, setConfigAbierto] = useState(false);
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
@@ -47,16 +50,36 @@ export default function EscolarPage() {
   const [orden, toggleOrden] = useOrdenFecha("escolar");
   const [filtroMateria, setFiltroMateria] = useState<string | null>(null);
 
+  // Fechas importantes dentro de 7 días convertidas a pendientes virtuales
+  const fechasProximas = fechas
+    .filter((f) => !f.completado && estaEnSieteDias(f.fecha))
+    .map(fechaImportanteAPendiente);
+
   const pendientesEscolares = pendientes.filter(
     (p) => p.tipo === "escolar"
       && (mostrarCompletados || !p.completado)
       && (!filtroMateria || p.materiaId === filtroMateria)
   );
-  const grupos = agruparPorDia(pendientesEscolares, orden);
+
+  // Mergeamos fechas próximas (filtradas por materia si aplica) con pendientes escolares
+  const fechasProximasFiltradas = fechasProximas.filter(
+    (p) => !filtroMateria || p.materiaId === filtroMateria
+  );
+  const todosLosPendientes = [...pendientesEscolares, ...fechasProximasFiltradas];
+  const grupos = agruparPorDia(todosLosPendientes, orden);
   const getMat = (id?: string) => materias.find((m) => m.id === id);
 
+  function handleToggle(id: string) {
+    // Si el id pertenece a una fecha importante, usar su toggle
+    if (fechas.some((f) => f.id === id)) {
+      toggleFecha(id);
+    } else {
+      toggleCompletado(id);
+    }
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-6 pb-6 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 pt-6 pb-6 space-y-6">
       {/* Encabezado */}
       <div className="flex items-center justify-between">
         <div>
@@ -87,11 +110,23 @@ export default function EscolarPage() {
         </div>
       )}
 
-      {/* Horario semanal */}
-      <section>
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Horario semanal</h2>
-        <HorarioSemanal clases={clases} materias={materias} />
-      </section>
+      {/* Horario + Fechas importantes (two-column) */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <section className="flex-1 min-w-0">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Horario semanal</h2>
+          <HorarioSemanal clases={clases} materias={materias} />
+        </section>
+
+        <aside className="w-full lg:w-72 flex-shrink-0">
+          <FechasImportantes
+            fechas={fechas}
+            materias={materias}
+            onAgregar={agregarFecha}
+            onEditar={editarFecha}
+            onEliminar={eliminarFecha}
+          />
+        </aside>
+      </div>
 
       {/* Pendientes escolares */}
       <section>
@@ -152,7 +187,7 @@ export default function EscolarPage() {
           </div>
         )}
 
-        {pendientesEscolares.length === 0 ? (
+        {todosLosPendientes.length === 0 ? (
           <EmptyState title="Sin pendientes escolares" />
         ) : (
           <div className="space-y-4">
@@ -167,11 +202,18 @@ export default function EscolarPage() {
                       <PendienteItem
                         key={p.id}
                         pendiente={p}
-                        onToggle={toggleCompletado}
+                        onToggle={handleToggle}
                         onClick={() => setDetalle(p)}
                       >
                         <div className="flex flex-wrap items-center gap-2 mt-1">
-                          <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
+                          {p.tipoEvaluacion ? (
+                            <Badge color={colorTipo(p.tipoEvaluacion)}>{etiquetaTipo(p.tipoEvaluacion)}</Badge>
+                          ) : (
+                            <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
+                          )}
+                          {p.tipoEvaluacion && mat && (
+                            <Badge color={mat.color}>{mat.nombre}</Badge>
+                          )}
                           {p.descripcion && (
                             <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>
                           )}
@@ -206,7 +248,7 @@ export default function EscolarPage() {
         materias={materias}
         categorias={[]}
         onClose={() => setDetalle(null)}
-        onToggle={(id) => { toggleCompletado(id); setDetalle(null); }}
+        onToggle={(id) => { handleToggle(id); setDetalle(null); }}
         onEditar={editar}
         onEliminar={eliminar}
       />
