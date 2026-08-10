@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS fechas_importantes (
 
 ALTER TABLE fechas_importantes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own fechas_importantes" ON fechas_importantes;
 CREATE POLICY "Users manage own fechas_importantes"
   ON fechas_importantes
   FOR ALL
