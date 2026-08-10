@@ -77,6 +77,7 @@ export function useClases() {
     if (datos.salon !== undefined) patch.salon = datos.salon ?? null;
     if (datos.fechaInicio !== undefined) patch.fecha_inicio = datos.fechaInicio ?? null;
     if (datos.fechaFin !== undefined) patch.fecha_fin = datos.fechaFin ?? null;
+    if (datos.googleEventId !== undefined) patch.google_event_id = datos.googleEventId ?? null;
 
     const { data, error } = await supabase
       .from("clases")

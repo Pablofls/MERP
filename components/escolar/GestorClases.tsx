@@ -119,19 +119,43 @@ export default function GestorClases({ clases, materias, onAgregar, onEditar, on
     if (!editando) return;
     setEditGuardando(true);
     try {
-      // Actualizar Google Calendar si la clase tiene un evento vinculado
-      if (editando.googleEventId) {
-        const token = await getToken();
-        if (token) {
+      const token = await getToken();
+      const mat = materias.find((m) => m.id === editMateriaId);
+      const baseDate = editFechaInicio || editando.fechaInicio || hoy();
+      let resolvedGCalId = editando.googleEventId ?? null;
+
+      if (token && mat) {
+        // Si no hay ID vinculado, buscar el evento en GCal por nombre de materia
+        if (!resolvedGCalId) {
+          const desde = new Date();
+          desde.setHours(0, 0, 0, 0);
+          const hasta = new Date(desde);
+          hasta.setDate(desde.getDate() + 14);
+          const listRes = await fetch("/api/google/calendar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              action: "listar",
+              timeMin: desde.toISOString(),
+              timeMax: hasta.toISOString(),
+            }),
+          });
+          const listData = await listRes.json().catch(() => ({}));
+          type GCalEvento = { titulo: string; id: string; recurringEventId?: string | null };
+          const match = (listData.eventos ?? [] as GCalEvento[]).find(
+            (ev: GCalEvento) => ev.titulo === mat.nombre
+          );
+          if (match) resolvedGCalId = match.recurringEventId ?? match.id;
+        }
+
+        if (resolvedGCalId) {
           const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          const baseDate = editFechaInicio || editando.fechaInicio || hoy();
-          const mat = materias.find((m) => m.id === editMateriaId);
           await fetch("/api/google/calendar", {
             method: "PATCH",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({
-              eventId: editando.googleEventId,
-              titulo: mat?.nombre,
+              eventId: resolvedGCalId,
+              titulo: mat.nombre,
               descripcion: editSalon.trim() || undefined,
               inicio: `${baseDate}T${editHoraInicio}:00`,
               fin: `${baseDate}T${editHoraFin}:00`,
@@ -149,6 +173,8 @@ export default function GestorClases({ clases, materias, onAgregar, onEditar, on
         salon: editSalon.trim() || undefined,
         fechaInicio: editFechaInicio || null,
         fechaFin: editFechaFin || null,
+        // Guardar el ID encontrado si antes era null
+        ...(resolvedGCalId && !editando.googleEventId ? { googleEventId: resolvedGCalId } : {}),
       });
       setEditando(null);
     } finally {
