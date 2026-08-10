@@ -39,7 +39,7 @@ function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
 export default function EscolarPage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { materias, agregar: agregarMat, editar: editarMat, eliminar: eliminarMat } = useMaterias();
-  const { clases, agregar: agregarClase, eliminar: eliminarClase } = useClases();
+  const { clases, agregar: agregarClase, editar: editarClase, eliminar: eliminarClase } = useClases();
   const [modalPendiente, setModalPendiente] = useState(false);
   const [configAbierto, setConfigAbierto] = useState(false);
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
@@ -82,7 +82,7 @@ export default function EscolarPage() {
             <GestorMaterias materias={materias} onAgregar={agregarMat} onEditar={editarMat} onEliminar={eliminarMat} />
           </div>
           <div className="p-4">
-            <GestorClases clases={clases} materias={materias} onAgregar={agregarClase} onEliminar={eliminarClase} />
+            <GestorClases clases={clases} materias={materias} onAgregar={agregarClase} onEditar={editarClase} onEliminar={eliminarClase} />
           </div>
         </div>
       )}

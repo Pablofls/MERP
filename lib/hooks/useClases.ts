@@ -75,6 +75,8 @@ export function useClases() {
     if (datos.horaInicio !== undefined) patch.hora_inicio = datos.horaInicio;
     if (datos.horaFin !== undefined) patch.hora_fin = datos.horaFin;
     if (datos.salon !== undefined) patch.salon = datos.salon ?? null;
+    if (datos.fechaInicio !== undefined) patch.fecha_inicio = datos.fechaInicio ?? null;
+    if (datos.fechaFin !== undefined) patch.fecha_fin = datos.fechaFin ?? null;
 
     const { data, error } = await supabase
       .from("clases")
