@@ -62,7 +62,7 @@ export async function PATCH(req: NextRequest) {
   const auth = await authAndRate(req);
   if (auth instanceof NextResponse) return auth;
 
-  const { eventId, titulo, descripcion, inicio, fin, timeZone, editarTodos, baseEventId } = await req.json();
+  const { eventId, titulo, descripcion, inicio, fin, timeZone, todoElDia, editarTodos, baseEventId, recurrence } = await req.json();
 
   if (!isValidEventId(eventId))
     return NextResponse.json({ error: "Invalid eventId" }, { status: 400 });
@@ -74,10 +74,32 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid titulo" }, { status: 400 });
   if (descripcion !== undefined && (typeof descripcion !== "string" || descripcion.length > 8000))
     return NextResponse.json({ error: "Invalid descripcion" }, { status: 400 });
-  if (inicio !== undefined && !isValidISOString(inicio))
-    return NextResponse.json({ error: "Invalid inicio" }, { status: 400 });
-  if (fin !== undefined && !isValidISOString(fin))
-    return NextResponse.json({ error: "Invalid fin" }, { status: 400 });
+  if (todoElDia !== undefined && typeof todoElDia !== "boolean")
+    return NextResponse.json({ error: "Invalid todoElDia" }, { status: 400 });
+
+  const dateRE = /^\d{4}-\d{2}-\d{2}$/;
+  if (todoElDia) {
+    if (inicio !== undefined && !dateRE.test(inicio))
+      return NextResponse.json({ error: "Invalid inicio" }, { status: 400 });
+    if (fin !== undefined && !dateRE.test(fin))
+      return NextResponse.json({ error: "Invalid fin" }, { status: 400 });
+  } else {
+    if (inicio !== undefined && !isValidISOString(inicio))
+      return NextResponse.json({ error: "Invalid inicio" }, { status: 400 });
+    if (fin !== undefined && !isValidISOString(fin))
+      return NextResponse.json({ error: "Invalid fin" }, { status: 400 });
+  }
+
+  if (recurrence !== undefined) {
+    const RRULE_RE = /^RRULE:FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)(;[A-Z0-9=,+\-:]+)*$/;
+    if (
+      !Array.isArray(recurrence) ||
+      recurrence.length > 5 ||
+      recurrence.some((r: unknown) => typeof r !== "string" || !RRULE_RE.test(r))
+    ) {
+      return NextResponse.json({ error: "Invalid recurrence" }, { status: 400 });
+    }
+  }
 
   // When editing all occurrences, target the base (recurring) event
   const targetId = editarTodos && baseEventId ? baseEventId : eventId;
@@ -85,8 +107,14 @@ export async function PATCH(req: NextRequest) {
   const patch: Record<string, unknown> = {};
   if (titulo !== undefined) patch.summary = titulo;
   if (descripcion !== undefined) patch.description = descripcion;
-  if (inicio !== undefined) patch.start = { dateTime: inicio, ...(timeZone ? { timeZone } : {}) };
-  if (fin !== undefined) patch.end = { dateTime: fin, ...(timeZone ? { timeZone } : {}) };
+  if (todoElDia) {
+    if (inicio !== undefined) patch.start = { date: inicio };
+    if (fin !== undefined) patch.end = { date: fin };
+  } else {
+    if (inicio !== undefined) patch.start = { dateTime: inicio, ...(timeZone ? { timeZone } : {}) };
+    if (fin !== undefined) patch.end = { dateTime: fin, ...(timeZone ? { timeZone } : {}) };
+  }
+  if (recurrence !== undefined) patch.recurrence = recurrence;
 
   const res = await fetch(`${CAL_BASE}/${encodeURIComponent(targetId)}`, {
     method: "PATCH",
@@ -266,8 +294,8 @@ export async function POST(req: NextRequest) {
       titulo: e.summary ?? "(Sin título)",
       descripcion: e.description ?? null,
       hangoutLink: e.hangoutLink ?? null,
-      inicio: e.start?.dateTime ?? null,
-      fin: e.end?.dateTime ?? null,
+      inicio: e.start?.dateTime ?? e.start?.date ?? null,
+      fin: e.end?.dateTime ?? e.end?.date ?? null,
       todoElDia: !!e.start?.date,
       recurringEventId: e.recurringEventId ?? null,
     }));
