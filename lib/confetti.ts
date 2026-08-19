@@ -29,22 +29,22 @@ export function triggerConfetti(originX: number, originY: number) {
   document.body.appendChild(canvas);
 
   const ctx = canvas.getContext("2d")!;
-  const count = 45;
+  const count = 70;
   const particles: Particle[] = [];
 
   for (let i = 0; i < count; i++) {
     const angle = (Math.random() * Math.PI * 2);
-    const speed = 3 + Math.random() * 5;
+    const speed = 5 + Math.random() * 9;
     particles.push({
       x: originX,
       y: originY,
       vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 4,
+      vy: Math.sin(angle) * speed - 6,
       rotation: Math.random() * Math.PI * 2,
       rotationSpeed: (Math.random() - 0.5) * 0.3,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      width: 6 + Math.random() * 5,
-      height: 3 + Math.random() * 3,
+      width: 7 + Math.random() * 6,
+      height: 3.5 + Math.random() * 3,
       opacity: 1,
     });
   }
