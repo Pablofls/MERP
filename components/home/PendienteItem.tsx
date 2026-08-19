@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Pendiente } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { triggerConfetti } from "@/lib/confetti";
 
 interface Props {
   pendiente: Pendiente;
@@ -12,11 +13,16 @@ interface Props {
 
 export default function PendienteItem({ pendiente: p, onToggle, onClick, children }: Props) {
   const [completando, setCompletando] = useState(false);
+  const checkboxRef = useRef<HTMLButtonElement>(null);
 
   function handleToggle() {
     if (p.completado) {
       onToggle(p.id);
       return;
+    }
+    if (checkboxRef.current) {
+      const rect = checkboxRef.current.getBoundingClientRect();
+      triggerConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
     }
     setCompletando(true);
     setTimeout(() => {
@@ -28,6 +34,7 @@ export default function PendienteItem({ pendiente: p, onToggle, onClick, childre
   return (
     <li className={cn("flex items-start gap-3 py-3", completando && "completing-row")}>
       <button
+        ref={checkboxRef}
         onClick={handleToggle}
         className={cn(
           "mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
