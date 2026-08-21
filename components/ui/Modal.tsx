@@ -24,6 +24,7 @@ export default function Modal({ open, onClose, title, children, className }: Mod
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div
         className="absolute inset-0 bg-black/40"
+        data-tutorial-id="modal-close"
         onClick={onClose}
       />
       <div
@@ -32,10 +33,11 @@ export default function Modal({ open, onClose, title, children, className }: Mod
           className
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10" data-tutorial-id="modal-content">
           <h2 className="text-base font-semibold text-gray-900">{title}</h2>
           <button
             onClick={onClose}
+            data-tutorial-id="modal-close-btn"
             className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

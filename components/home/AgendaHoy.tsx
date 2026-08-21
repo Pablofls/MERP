@@ -151,7 +151,7 @@ export default function AgendaHoy({ clases, materias }: Props) {
   });
 
   return (
-    <section>
+    <section data-tutorial-id="agenda-section">
       {/* Header con navegación */}
       <div className="flex items-center justify-between mb-3">
         <div>
@@ -177,6 +177,7 @@ export default function AgendaHoy({ clases, materias }: Props) {
           </button>
           <button
             onClick={() => setModalCrear(true)}
+            data-tutorial-id="btn-crear-evento"
             className="ml-1 flex items-center gap-1 bg-blue-900 text-white text-xs font-medium px-2.5 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

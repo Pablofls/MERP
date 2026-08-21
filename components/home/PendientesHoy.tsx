@@ -108,7 +108,7 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
   const getCat = (id?: string) => categorias.find((c) => c.id === id);
 
   return (
-    <section>
+    <section data-tutorial-id="pendientes-section">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Pendientes</h2>
         <div className="flex items-center gap-3">
@@ -135,6 +135,7 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
           </button>
           <button
             onClick={() => setModalOpen(true)}
+            data-tutorial-id="btn-agregar-pendiente"
             className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

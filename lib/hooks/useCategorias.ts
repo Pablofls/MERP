@@ -6,8 +6,6 @@ import type { CategoriaPersonal } from "../types";
 
 const DEFAULTS: { nombre: string; color: string }[] = [
   { nombre: "Personal", color: "#4a3a6b" },
-  { nombre: "Morfosys", color: "#1a5c3e" },
-  { nombre: "Kenet", color: "#2d6090" },
 ];
 
 type CategoriaDB = { id: string; nombre: string; color: string; user_id: string; created_at: string };

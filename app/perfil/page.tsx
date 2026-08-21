@@ -56,7 +56,7 @@ export default function PerfilPage() {
       </div>
 
       {/* Google Calendar */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4" data-tutorial-id="google-calendar-section">
         <div className="flex items-center gap-3">
           {/* Logo Google Calendar */}
           <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 48 48" fill="none">

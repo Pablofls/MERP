@@ -242,7 +242,7 @@ export default function GestorClases({ clases, materias, onAgregar, onEditar, on
   }
 
   return (
-    <div>
+    <div data-tutorial-id="gestor-clases">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Clases</h3>
         <button

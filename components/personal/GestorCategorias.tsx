@@ -29,7 +29,7 @@ export default function GestorCategorias({ categorias, onAgregar, onEliminar }: 
   }
 
   return (
-    <div>
+    <div data-tutorial-id="gestor-categorias">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Categorías</h3>
         <button

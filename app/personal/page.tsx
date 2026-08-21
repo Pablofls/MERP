@@ -176,6 +176,7 @@ export default function PersonalPage() {
         </div>
         <button
           onClick={() => setConfigAbierto(!configAbierto)}
+          data-tutorial-id="btn-config-personal"
           className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -193,7 +194,7 @@ export default function PersonalPage() {
       )}
 
       {/* Calendario semanal */}
-      <section>
+      <section data-tutorial-id="calendario-personal-section">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Esta semana</h2>
         <CalendarioSemana pendientes={pendientesPersonales} />
       </section>

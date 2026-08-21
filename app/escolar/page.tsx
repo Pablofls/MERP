@@ -88,6 +88,7 @@ export default function EscolarPage() {
         </div>
         <button
           onClick={() => setConfigAbierto(!configAbierto)}
+          data-tutorial-id="btn-config-escolar"
           className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -112,11 +113,11 @@ export default function EscolarPage() {
 
       {/* Horario + Fechas importantes (two-column) */}
       <div className="flex flex-col lg:flex-row gap-6">
-        <section className="flex-1 min-w-0 w-full">
+        <section className="flex-1 min-w-0 w-full" data-tutorial-id="horario-section">
           <HorarioSemanal clases={clases} materias={materias} />
         </section>
 
-        <aside className="w-full lg:w-72 flex-shrink-0">
+        <aside className="w-full lg:w-72 flex-shrink-0" data-tutorial-id="fechas-section">
           <FechasImportantes
             fechas={fechas}
             materias={materias}
@@ -128,7 +129,7 @@ export default function EscolarPage() {
       </div>
 
       {/* Pendientes escolares */}
-      <section>
+      <section data-tutorial-id="pendientes-escolar-section">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pendientes</h2>
           <div className="flex items-center gap-3">

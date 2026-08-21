@@ -36,7 +36,7 @@ export default function GestorMaterias({ materias, onAgregar, onEditar, onElimin
   }
 
   return (
-    <div>
+    <div data-tutorial-id="gestor-materias">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Materias</h3>
         <button onClick={abrirNueva} className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors">
