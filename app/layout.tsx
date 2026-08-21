@@ -5,6 +5,8 @@ import Sidebar from "@/components/nav/Sidebar";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import AuthGuard from "@/components/AuthGuard";
 import { AuthProvider } from "@/lib/context/AuthContext";
+import { TutorialProvider } from "@/lib/context/TutorialContext";
+import Tutorial from "@/components/Tutorial";
 
 export const metadata: Metadata = {
   title: "MERP",
@@ -43,15 +45,18 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>
-          <AuthGuard>
-            <div className="flex min-h-screen">
-              <Sidebar />
-              <main className="flex-1 lg:ml-56 pb-safe min-w-0">
-                {children}
-              </main>
-            </div>
-            <BottomNav />
-          </AuthGuard>
+          <TutorialProvider>
+            <AuthGuard>
+              <div className="flex min-h-screen">
+                <Sidebar />
+                <main className="flex-1 lg:ml-56 pb-safe min-w-0">
+                  {children}
+                </main>
+              </div>
+              <BottomNav />
+              <Tutorial />
+            </AuthGuard>
+          </TutorialProvider>
         </AuthProvider>
         <ServiceWorkerRegister />
       </body>
