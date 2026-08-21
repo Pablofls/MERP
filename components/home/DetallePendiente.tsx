@@ -5,6 +5,7 @@ import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import { formatFechaCorta, esFechaVencida, cn } from "@/lib/utils";
 import { useSubtareas } from "@/lib/hooks/useSubtareas";
+import { triggerConfetti } from "@/lib/confetti";
 
 interface Props {
   pendiente: Pendiente | null;
@@ -24,6 +25,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
   const [categoria, setCategoria] = useState("");
   const [nuevaSubtarea, setNuevaSubtarea] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const completarBtnRef = useRef<HTMLButtonElement>(null);
 
   const { subtareas, agregar, toggleCompletar, eliminar: eliminarSub } = useSubtareas(pendiente?.id ?? null);
 
@@ -207,7 +209,14 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
               Editar
             </button>
             <button
-              onClick={() => onToggle(pendiente.id)}
+              ref={completarBtnRef}
+              onClick={() => {
+                if (!pendiente.completado && completarBtnRef.current) {
+                  const rect = completarBtnRef.current.getBoundingClientRect();
+                  triggerConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                }
+                onToggle(pendiente.id);
+              }}
               className={cn(
                 "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                 pendiente.completado
