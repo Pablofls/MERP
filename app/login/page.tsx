@@ -10,13 +10,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   function switchMode(next: "login" | "signup") {
     setMode(next);
     setError(null);
-    setSuccess(null);
     setPassword("");
     setConfirmPassword("");
   }
@@ -24,7 +22,6 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
     setLoading(true);
 
     if (mode === "signup") {
@@ -44,7 +41,7 @@ export default function LoginPage() {
           ? "Ya existe una cuenta con ese correo."
           : "No se pudo crear la cuenta. Intenta de nuevo.");
       } else {
-        setSuccess("Cuenta creada. Revisa tu correo para confirmar.");
+        router.push("/");
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -134,7 +131,6 @@ export default function LoginPage() {
           )}
 
           {error && <p className="text-sm text-red-500">{error}</p>}
-          {success && <p className="text-sm text-green-600">{success}</p>}
 
           <button
             type="submit"
