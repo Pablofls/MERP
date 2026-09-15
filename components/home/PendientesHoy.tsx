@@ -6,9 +6,11 @@ import Modal from "@/components/ui/Modal";
 import FormPendiente from "./FormPendiente";
 import DetallePendiente from "./DetallePendiente";
 import TimelinePendientes, { type GrupoTimeline } from "./TimelinePendientes";
+import ListaPendientes from "./ListaPendientes";
 import EmptyState from "@/components/ui/EmptyState";
 import FiltroChips, { type OpcionFiltro } from "@/components/ui/FiltroChips";
 import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
+import { useVistaPendientes } from "@/lib/hooks/useVistaPendientes";
 
 interface Props {
   pendientes: Pendiente[];
@@ -49,6 +51,7 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
   const [orden, toggleOrden] = useOrdenFecha("inicio");
+  const [vista, toggleVista] = useVistaPendientes("inicio");
   const [filtroTipo, setFiltroTipo] = useState<string | null>(null);
   const [filtroSub, setFiltroSub] = useState<string | null>(null);
 
@@ -108,7 +111,26 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
   return (
     <section data-tutorial-id="pendientes-section">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Pendientes</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Pendientes</h2>
+          <button
+            onClick={toggleVista}
+            title={vista === "timeline" ? "Ver como lista" : "Ver como linea del tiempo"}
+            className="flex items-center gap-1 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-md px-1.5 py-1 transition-colors"
+          >
+            {vista === "timeline" ? (
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h18" />
+                <circle cx="7.5" cy="12" r="2" />
+                <circle cx="16.5" cy="12" r="2" />
+              </svg>
+            )}
+          </button>
+        </div>
         <div className="flex items-center gap-3">
           <button
             onClick={toggleOrden}
@@ -155,13 +177,23 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
       {pendientesFiltrados.length === 0 ? (
         <EmptyState title="Sin pendientes" description="Todo al dia" />
       ) : (
-        <TimelinePendientes
-          grupos={grupos}
-          materias={materias}
-          categorias={categorias}
-          onToggle={onToggle}
-          onSeleccionar={setDetalle}
-        />
+        (vista === "timeline" ? (
+          <TimelinePendientes
+            grupos={grupos}
+            materias={materias}
+            categorias={categorias}
+            onToggle={onToggle}
+            onSeleccionar={setDetalle}
+          />
+        ) : (
+          <ListaPendientes
+            grupos={grupos}
+            materias={materias}
+            categorias={categorias}
+            onToggle={onToggle}
+            onSeleccionar={setDetalle}
+          />
+        ))
       )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nuevo pendiente">

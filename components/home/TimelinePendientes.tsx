@@ -39,96 +39,92 @@ export default function TimelinePendientes({ grupos, materias, categorias, onTog
   const getMat = (id?: string) => materias.find((m) => m.id === id);
   const getCat = (id?: string) => categorias.find((c) => c.id === id);
 
-  return (
-    <div ref={scrollRef} className="-mx-4 px-4 overflow-x-auto snap-x snap-mandatory pb-2">
-      <div className="flex min-w-max items-stretch">
-        {grupos.map((grupo, i) => {
-          const esHoy = grupo.fecha === hoy;
-          const vencidoGrupo = !!grupo.fecha && esFechaVencida(grupo.fecha);
-          const pendientesAbiertos = grupo.items.filter((p) => !p.completado).length;
-
-          return (
-            <div
-              key={grupo.label}
-              ref={esHoy ? hoyRef : undefined}
-              className="w-[210px] flex-shrink-0 snap-start"
-            >
-              {/* Encabezado del punto */}
-              <div className="px-1.5">
-                <p
-                  className={cn(
-                    "text-xs font-semibold uppercase tracking-wide truncate",
-                    esHoy ? "text-blue-900" : vencidoGrupo ? "text-red-600" : "text-gray-500"
-                  )}
-                >
-                  {grupo.label}
-                </p>
-                <p className="text-[11px] text-gray-400">
-                  {pendientesAbiertos > 0
-                    ? `${pendientesAbiertos} pendiente${pendientesAbiertos > 1 ? "s" : ""}`
-                    : "Sin abiertos"}
-                </p>
-              </div>
-
-              {/* Riel + punto */}
-              <div className="relative h-5 my-2">
-                <div
-                  className={cn(
-                    "absolute top-1/2 -translate-y-1/2 h-px bg-gray-200",
-                    i === 0 ? "left-3" : "left-0",
-                    i === grupos.length - 1 ? "right-3" : "right-0"
-                  )}
-                />
-                <span
-                  className={cn(
-                    "absolute top-1/2 left-1.5 -translate-y-1/2 rounded-full border-2 bg-white",
-                    esHoy
-                      ? "w-3.5 h-3.5 border-blue-900 ring-4 ring-blue-900/10"
-                      : vencidoGrupo
-                      ? "w-3 h-3 border-red-400"
-                      : "w-3 h-3 border-gray-300"
-                  )}
-                  style={esHoy ? { backgroundColor: "#1e3a8a" } : undefined}
-                />
-              </div>
-
-              {/* Tarjetas */}
-              <div className="px-1.5 space-y-2">
-                {grupo.items.map((p) => {
-                  const mat = getMat(p.materiaId);
-                  const cat = getCat(p.categoriaPersonalId);
-                  const vencido = !p.completado && !!p.fechaLimite && esFechaVencida(p.fechaLimite);
-                  return (
-                    <PendienteCard
-                      key={p.id}
-                      pendiente={p}
-                      vencido={vencido}
-                      onToggle={onToggle}
-                      onClick={() => onSeleccionar(p)}
-                    >
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        {p.tipoEvaluacion ? (
-                          <>
-                            <Badge color={colorTipo(p.tipoEvaluacion)}>{etiquetaTipo(p.tipoEvaluacion)}</Badge>
-                            {mat && <Badge color={mat.color}>{mat.nombre}</Badge>}
-                          </>
-                        ) : p.tipo === "escolar" ? (
-                          <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
-                        ) : (
-                          <Badge color={cat?.color ?? "#4a3a6b"}>{cat?.nombre ?? "Personal"}</Badge>
-                        )}
-                        {vencido && <span className="text-xs text-red-600 font-medium">Vencido</span>}
-                      </div>
-                      {p.descripcion && (
-                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">{p.descripcion}</p>
-                      )}
-                    </PendienteCard>
-                  );
-                })}
-              </div>
+  function tarjetas(grupo: GrupoTimeline) {
+    return grupo.items.map((p) => {
+      const mat = getMat(p.materiaId);
+      const cat = getCat(p.categoriaPersonalId);
+      const vencido = !p.completado && !!p.fechaLimite && esFechaVencida(p.fechaLimite);
+      return (
+        <div key={p.id} className="w-[190px] flex-shrink-0">
+          <PendienteCard pendiente={p} vencido={vencido} onToggle={onToggle} onClick={() => onSeleccionar(p)}>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+              {p.tipoEvaluacion ? (
+                <>
+                  <Badge color={colorTipo(p.tipoEvaluacion)}>{etiquetaTipo(p.tipoEvaluacion)}</Badge>
+                  {mat && <Badge color={mat.color}>{mat.nombre}</Badge>}
+                </>
+              ) : p.tipo === "escolar" ? (
+                <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
+              ) : (
+                <Badge color={cat?.color ?? "#4a3a6b"}>{cat?.nombre ?? "Personal"}</Badge>
+              )}
+              {vencido && <span className="text-xs text-red-600 font-medium">Vencido</span>}
             </div>
-          );
-        })}
+            {p.descripcion && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{p.descripcion}</p>}
+          </PendienteCard>
+        </div>
+      );
+    });
+  }
+
+  return (
+    // Se sale del contenedor central para que la linea abarque todo el ancho disponible
+    <div
+      ref={scrollRef}
+      className="overflow-x-auto px-4 -mx-4 lg:-mx-[max(0px,calc((100vw-14rem-42rem)/2-0.75rem))]"
+    >
+      <div className="relative w-max min-w-full py-2">
+        {/* Riel continuo de extremo a extremo */}
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-gray-300" />
+
+        <div className="relative flex items-stretch gap-6">
+          {grupos.map((grupo, i) => {
+            const esHoy = grupo.fecha === hoy;
+            const vencidoGrupo = !!grupo.fecha && esFechaVencida(grupo.fecha);
+            const abiertos = grupo.items.filter((p) => !p.completado).length;
+            const arriba = i % 2 === 0;
+
+            return (
+              <div
+                key={grupo.label}
+                ref={esHoy ? hoyRef : undefined}
+                className="grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] flex-shrink-0"
+              >
+                {/* Zona superior */}
+                <div className="flex items-end gap-2 pb-3">{arriba && tarjetas(grupo)}</div>
+
+                {/* Punto sobre el riel + etiqueta */}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "rounded-full border-2 bg-white flex-shrink-0",
+                      esHoy
+                        ? "w-3.5 h-3.5 border-blue-900 ring-4 ring-blue-900/10"
+                        : vencidoGrupo
+                        ? "w-3 h-3 border-red-400"
+                        : "w-3 h-3 border-gray-300"
+                    )}
+                    style={esHoy ? { backgroundColor: "#1e3a8a" } : undefined}
+                  />
+                  <span
+                    className={cn(
+                      "text-xs font-semibold uppercase tracking-wide whitespace-nowrap bg-gray-50 pr-1",
+                      esHoy ? "text-blue-900" : vencidoGrupo ? "text-red-600" : "text-gray-500"
+                    )}
+                  >
+                    {grupo.label}
+                    <span className="ml-1.5 font-normal normal-case text-gray-400">
+                      {abiertos > 0 ? `${abiertos} pendiente${abiertos > 1 ? "s" : ""}` : "sin abiertos"}
+                    </span>
+                  </span>
+                </div>
+
+                {/* Zona inferior */}
+                <div className="flex items-start gap-2 pt-3">{!arriba && tarjetas(grupo)}</div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
