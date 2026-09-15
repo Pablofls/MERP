@@ -93,6 +93,41 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Pendientes</h2>
           <BotonVista vista={vista} onToggle={toggleVista} />
         </div>
+        <div className="flex items-center gap-3">
+          {vista === "lista" && (
+            <button
+              onClick={toggleOrden}
+              title={orden === "desc" ? "Mayor a menor" : "Menor a mayor"}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              {orden === "desc" ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 15m0 0l3.75-3.75M17.25 15V5.25" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21l3.75-3.75" />
+                </svg>
+              )}
+            </button>
+          )}
+          <button
+            onClick={() => setMostrarCompletados(!mostrarCompletados)}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            {mostrarCompletados ? "Ocultar completados" : "Ver todos"}
+          </button>
+          <button
+            onClick={() => setModalOpen(true)}
+            data-tutorial-id="btn-agregar-pendiente"
+            className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Agregar
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
