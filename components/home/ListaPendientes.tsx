@@ -4,7 +4,7 @@ import { formatFechaCorta, esFechaVencida, cn } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import { etiquetaTipo, colorTipo } from "@/components/escolar/FechasImportantes";
 import PendienteItem from "./PendienteItem";
-import type { GrupoTimeline } from "./TimelinePendientes";
+import type { GrupoTimeline } from "@/lib/agrupar";
 
 interface Props {
   grupos: GrupoTimeline[];

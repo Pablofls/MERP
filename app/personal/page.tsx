@@ -3,14 +3,17 @@ import { useState } from "react";
 import { usePendientes } from "@/lib/hooks/usePendientes";
 import { useCategorias } from "@/lib/hooks/useCategorias";
 import type { Pendiente } from "@/lib/types";
-import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
-import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn, fechaHoy } from "@/lib/utils";
+import { useOrdenFecha } from "@/lib/hooks/useOrdenFecha";
+import { useVistaPendientes } from "@/lib/hooks/useVistaPendientes";
+import { agruparPorDia } from "@/lib/agrupar";
+import { cn, fechaHoy } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
-import Badge from "@/components/ui/Badge";
 import FiltroChips from "@/components/ui/FiltroChips";
 import DetallePendiente from "@/components/home/DetallePendiente";
-import PendienteItem from "@/components/home/PendienteItem";
+import TimelinePendientes from "@/components/home/TimelinePendientes";
+import ListaPendientes from "@/components/home/ListaPendientes";
+import BotonVista from "@/components/ui/BotonVista";
 import FormPendiente from "@/components/home/FormPendiente";
 import GestorCategorias from "@/components/personal/GestorCategorias";
 
@@ -129,25 +132,6 @@ function CalendarioSemana({ pendientes }: { pendientes: Pendiente[] }) {
 }
 
 
-function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
-  const conFecha = [...items.filter((p) => p.fechaLimite)].sort((a, b) =>
-    orden === "desc"
-      ? (a.fechaLimite! > b.fechaLimite! ? -1 : 1)
-      : (a.fechaLimite! < b.fechaLimite! ? -1 : 1)
-  );
-  const sinFecha = items.filter((p) => !p.fechaLimite);
-  const mapa = new Map<string, Pendiente[]>();
-  for (const p of conFecha) {
-    if (!mapa.has(p.fechaLimite!)) mapa.set(p.fechaLimite!, []);
-    mapa.get(p.fechaLimite!)!.push(p);
-  }
-  const grupos: { label: string; items: Pendiente[] }[] = Array.from(mapa.entries()).map(
-    ([fecha, items]) => ({ label: etiquetaFecha(fecha), items })
-  );
-  if (sinFecha.length > 0) grupos.push({ label: "Sin fecha", items: sinFecha });
-  return grupos;
-}
-
 export default function PersonalPage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { categorias, agregar: agregarCat, eliminar: eliminarCat } = useCategorias();
@@ -156,14 +140,15 @@ export default function PersonalPage() {
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
   const [orden, toggleOrden] = useOrdenFecha("personal");
+  const [vista, toggleVista] = useVistaPendientes("personal");
   const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null);
 
   const pendientesPersonales = pendientes.filter((p) => p.tipo === "personal");
   const pendientesFiltrados = pendientesPersonales.filter(
     (p) => (mostrarCompletados || !p.completado) && (!filtroCategoria || p.categoriaPersonalId === filtroCategoria)
   );
-  const grupos = agruparPorDia(pendientesFiltrados, orden);
-  const getCat = (id?: string) => categorias.find((c) => c.id === id);
+  // La linea de tiempo siempre corre de pasado a futuro; el orden solo aplica a la lista
+  const grupos = agruparPorDia(pendientesFiltrados, vista === "timeline" ? "asc" : orden);
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-6 pb-6 space-y-6">
@@ -202,8 +187,12 @@ export default function PersonalPage() {
       {/* Lista de pendientes */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pendientes</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pendientes</h2>
+            <BotonVista vista={vista} onToggle={toggleVista} />
+          </div>
           <div className="flex items-center gap-3">
+            {vista === "lista" && (
             <button
               onClick={toggleOrden}
               title={orden === "desc" ? "Mayor a menor" : "Menor a mayor"}
@@ -219,6 +208,7 @@ export default function PersonalPage() {
                 </svg>
               )}
             </button>
+            )}
             <button onClick={() => setMostrarCompletados(!mostrarCompletados)} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
               {mostrarCompletados ? "Ocultar completados" : "Ver todos"}
             </button>
@@ -258,37 +248,23 @@ export default function PersonalPage() {
         {pendientesFiltrados.length === 0 ? (
           <EmptyState title="Sin pendientes personales" />
         ) : (
-          <div className="space-y-4">
-            {grupos.map((grupo) => (
-              <div key={grupo.label}>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{grupo.label}</p>
-                <ul className="divide-y divide-gray-100">
-                  {grupo.items.map((p) => {
-                    const cat = getCat(p.categoriaPersonalId);
-                    const vencido = !p.completado && p.fechaLimite && esFechaVencida(p.fechaLimite);
-                    return (
-                      <PendienteItem
-                        key={p.id}
-                        pendiente={p}
-                        onToggle={toggleCompletado}
-                        onClick={() => setDetalle(p)}
-                      >
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          <Badge color={cat?.color ?? "#4a3a6b"}>{cat?.nombre ?? "Personal"}</Badge>
-                          {p.descripcion && <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>}
-                          {p.fechaLimite && (
-                            <span className={cn("text-xs", vencido ? "text-red-600 font-medium" : "text-gray-400")}>
-                              {vencido ? "Vencido · " : ""}{formatFechaCorta(p.fechaLimite)}
-                            </span>
-                          )}
-                        </div>
-                      </PendienteItem>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
+          vista === "timeline" ? (
+            <TimelinePendientes
+              grupos={grupos}
+              materias={[]}
+              categorias={categorias}
+              onToggle={toggleCompletado}
+              onSeleccionar={setDetalle}
+            />
+          ) : (
+            <ListaPendientes
+              grupos={grupos}
+              materias={[]}
+              categorias={categorias}
+              onToggle={toggleCompletado}
+              onSeleccionar={setDetalle}
+            />
+          )
         )}
       </section>
 

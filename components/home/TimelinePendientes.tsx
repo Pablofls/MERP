@@ -5,12 +5,9 @@ import { esFechaVencida, fechaHoy, cn } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import { etiquetaTipo, colorTipo } from "@/components/escolar/FechasImportantes";
 import PendienteCard from "./PendienteCard";
+import type { GrupoTimeline } from "@/lib/agrupar";
 
-export interface GrupoTimeline {
-  label: string;
-  fecha: string | null;
-  items: Pendiente[];
-}
+export type { GrupoTimeline };
 
 interface Props {
   grupos: GrupoTimeline[];

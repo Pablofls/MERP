@@ -1,16 +1,17 @@
 "use client";
 import { useState } from "react";
 import type { Pendiente, Materia, CategoriaPersonal } from "@/lib/types";
-import { etiquetaFecha } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
 import FormPendiente from "./FormPendiente";
 import DetallePendiente from "./DetallePendiente";
-import TimelinePendientes, { type GrupoTimeline } from "./TimelinePendientes";
+import TimelinePendientes from "./TimelinePendientes";
 import ListaPendientes from "./ListaPendientes";
 import EmptyState from "@/components/ui/EmptyState";
 import FiltroChips, { type OpcionFiltro } from "@/components/ui/FiltroChips";
-import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
+import { useOrdenFecha } from "@/lib/hooks/useOrdenFecha";
+import { agruparPorDia } from "@/lib/agrupar";
 import { useVistaPendientes } from "@/lib/hooks/useVistaPendientes";
+import BotonVista from "@/components/ui/BotonVista";
 
 interface Props {
   pendientes: Pendiente[];
@@ -20,30 +21,6 @@ interface Props {
   onAgregar: (datos: Omit<Pendiente, "id" | "completado">) => void;
   onEditar: (id: string, datos: Partial<Pick<Pendiente, "titulo" | "descripcion" | "fechaLimite" | "materiaId">>) => void;
   onEliminar: (id: string) => void;
-}
-
-function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc"): GrupoTimeline[] {
-  const conFecha = [...items.filter((p) => p.fechaLimite)].sort((a, b) =>
-    orden === "desc"
-      ? (a.fechaLimite! > b.fechaLimite! ? -1 : 1)
-      : (a.fechaLimite! < b.fechaLimite! ? -1 : 1)
-  );
-  const sinFecha = items.filter((p) => !p.fechaLimite);
-
-  const mapa = new Map<string, Pendiente[]>();
-  for (const p of conFecha) {
-    const key = p.fechaLimite!;
-    if (!mapa.has(key)) mapa.set(key, []);
-    mapa.get(key)!.push(p);
-  }
-
-  const grupos: GrupoTimeline[] = Array.from(mapa.entries()).map(([fecha, items]) => ({
-    label: etiquetaFecha(fecha),
-    fecha,
-    items,
-  }));
-  if (sinFecha.length > 0) grupos.unshift({ label: "Sin fecha", fecha: null, items: sinFecha });
-  return grupos;
 }
 
 export default function PendientesHoy({ pendientes, materias, categorias, onToggle, onAgregar, onEditar, onEliminar }: Props) {
@@ -114,58 +91,7 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Pendientes</h2>
-          <button
-            onClick={toggleVista}
-            title={vista === "timeline" ? "Ver como lista" : "Ver como linea del tiempo"}
-            className="flex items-center gap-1 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-md px-1.5 py-1 transition-colors"
-          >
-            {vista === "timeline" ? (
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
-              </svg>
-            ) : (
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h18" />
-                <circle cx="7.5" cy="12" r="2" />
-                <circle cx="16.5" cy="12" r="2" />
-              </svg>
-            )}
-          </button>
-        </div>
-        <div className="flex items-center gap-3">
-          {vista === "lista" && (
-            <button
-              onClick={toggleOrden}
-              title={orden === "desc" ? "Mayor a menor" : "Menor a mayor"}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              {orden === "desc" ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 15m0 0l3.75-3.75M17.25 15V5.25" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21l3.75-3.75" />
-                </svg>
-              )}
-            </button>
-          )}
-          <button
-            onClick={() => setMostrarCompletados(!mostrarCompletados)}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            {mostrarCompletados ? "Ocultar completados" : "Ver todos"}
-          </button>
-          <button
-            onClick={() => setModalOpen(true)}
-            data-tutorial-id="btn-agregar-pendiente"
-            className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
-          >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Agregar
-          </button>
+          <BotonVista vista={vista} onToggle={toggleVista} />
         </div>
       </div>
 

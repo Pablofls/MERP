@@ -7,36 +7,20 @@ import { useFechasImportantes } from "@/lib/hooks/useFechasImportantes";
 import HorarioSemanal from "@/components/escolar/HorarioSemanal";
 import GestorMaterias from "@/components/escolar/GestorMaterias";
 import GestorClases from "@/components/escolar/GestorClases";
-import FechasImportantes, { etiquetaTipo, colorTipo } from "@/components/escolar/FechasImportantes";
-import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn, estaEnSieteDias, fechaImportanteAPendiente } from "@/lib/utils";
+import FechasImportantes from "@/components/escolar/FechasImportantes";
+import { estaEnSieteDias, fechaImportanteAPendiente } from "@/lib/utils";
 import DetallePendiente from "@/components/home/DetallePendiente";
-import PendienteItem from "@/components/home/PendienteItem";
-import Badge from "@/components/ui/Badge";
+import TimelinePendientes from "@/components/home/TimelinePendientes";
+import ListaPendientes from "@/components/home/ListaPendientes";
+import BotonVista from "@/components/ui/BotonVista";
 import Modal from "@/components/ui/Modal";
 import FormPendiente from "@/components/home/FormPendiente";
 import EmptyState from "@/components/ui/EmptyState";
 import FiltroChips from "@/components/ui/FiltroChips";
 import type { Pendiente } from "@/lib/types";
-import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
-
-function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
-  const conFecha = [...items.filter((p) => p.fechaLimite)].sort((a, b) =>
-    orden === "desc"
-      ? (a.fechaLimite! > b.fechaLimite! ? -1 : 1)
-      : (a.fechaLimite! < b.fechaLimite! ? -1 : 1)
-  );
-  const sinFecha = items.filter((p) => !p.fechaLimite);
-  const mapa = new Map<string, Pendiente[]>();
-  for (const p of conFecha) {
-    if (!mapa.has(p.fechaLimite!)) mapa.set(p.fechaLimite!, []);
-    mapa.get(p.fechaLimite!)!.push(p);
-  }
-  const grupos: { label: string; items: Pendiente[] }[] = Array.from(mapa.entries()).map(
-    ([fecha, grp]) => ({ label: etiquetaFecha(fecha), items: grp })
-  );
-  if (sinFecha.length > 0) grupos.push({ label: "Sin fecha", items: sinFecha });
-  return grupos;
-}
+import { useOrdenFecha } from "@/lib/hooks/useOrdenFecha";
+import { useVistaPendientes } from "@/lib/hooks/useVistaPendientes";
+import { agruparPorDia } from "@/lib/agrupar";
 
 export default function EscolarPage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
@@ -48,6 +32,7 @@ export default function EscolarPage() {
   const [mostrarCompletados, setMostrarCompletados] = useState(false);
   const [detalle, setDetalle] = useState<Pendiente | null>(null);
   const [orden, toggleOrden] = useOrdenFecha("escolar");
+  const [vista, toggleVista] = useVistaPendientes("escolar");
   const [filtroMateria, setFiltroMateria] = useState<string | null>(null);
 
   // Fechas importantes dentro de 7 días convertidas a pendientes virtuales
@@ -66,8 +51,8 @@ export default function EscolarPage() {
     (p) => !filtroMateria || p.materiaId === filtroMateria
   );
   const todosLosPendientes = [...pendientesEscolares, ...fechasProximasFiltradas];
-  const grupos = agruparPorDia(todosLosPendientes, orden);
-  const getMat = (id?: string) => materias.find((m) => m.id === id);
+  // La linea de tiempo siempre corre de pasado a futuro; el orden solo aplica a la lista
+  const grupos = agruparPorDia(todosLosPendientes, vista === "timeline" ? "asc" : orden);
 
   function handleToggle(id: string) {
     // Si el id pertenece a una fecha importante, usar su toggle
@@ -131,8 +116,12 @@ export default function EscolarPage() {
       {/* Pendientes escolares */}
       <section data-tutorial-id="pendientes-escolar-section">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pendientes</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pendientes</h2>
+            <BotonVista vista={vista} onToggle={toggleVista} />
+          </div>
           <div className="flex items-center gap-3">
+            {vista === "lista" && (
             <button
               onClick={toggleOrden}
               title={orden === "desc" ? "Mayor a menor" : "Menor a mayor"}
@@ -148,6 +137,7 @@ export default function EscolarPage() {
                 </svg>
               )}
             </button>
+            )}
             <button
               onClick={() => setMostrarCompletados(!mostrarCompletados)}
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
@@ -190,46 +180,23 @@ export default function EscolarPage() {
         {todosLosPendientes.length === 0 ? (
           <EmptyState title="Sin pendientes escolares" />
         ) : (
-          <div className="space-y-4">
-            {grupos.map((grupo) => (
-              <div key={grupo.label}>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{grupo.label}</p>
-                <ul className="divide-y divide-gray-100">
-                  {grupo.items.map((p) => {
-                    const mat = getMat(p.materiaId);
-                    const vencido = !p.completado && p.fechaLimite && esFechaVencida(p.fechaLimite);
-                    return (
-                      <PendienteItem
-                        key={p.id}
-                        pendiente={p}
-                        onToggle={handleToggle}
-                        onClick={() => setDetalle(p)}
-                      >
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          {p.tipoEvaluacion ? (
-                            <Badge color={colorTipo(p.tipoEvaluacion)}>{etiquetaTipo(p.tipoEvaluacion)}</Badge>
-                          ) : (
-                            <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
-                          )}
-                          {p.tipoEvaluacion && mat && (
-                            <Badge color={mat.color}>{mat.nombre}</Badge>
-                          )}
-                          {p.descripcion && (
-                            <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>
-                          )}
-                          {p.fechaLimite && (
-                            <span className={cn("text-xs", vencido ? "text-red-600 font-medium" : "text-gray-400")}>
-                              {vencido ? "Vencido · " : ""}{formatFechaCorta(p.fechaLimite)}
-                            </span>
-                          )}
-                        </div>
-                      </PendienteItem>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
+          vista === "timeline" ? (
+            <TimelinePendientes
+              grupos={grupos}
+              materias={materias}
+              categorias={[]}
+              onToggle={handleToggle}
+              onSeleccionar={setDetalle}
+            />
+          ) : (
+            <ListaPendientes
+              grupos={grupos}
+              materias={materias}
+              categorias={[]}
+              onToggle={handleToggle}
+              onSeleccionar={setDetalle}
+            />
+          )
         )}
       </section>
 
