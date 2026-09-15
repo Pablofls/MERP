@@ -23,17 +23,32 @@ interface Props {
 export default function TimelinePendientes({ grupos, materias, categorias, onToggle, onSeleccionar }: Props) {
   const hoy = fechaHoy();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const hoyRef = useRef<HTMLDivElement>(null);
+  const puntoRef = useRef<HTMLSpanElement>(null);
   const yaCentrado = useRef(false);
 
-  // Al abrir, centrar la linea de tiempo en el dia de hoy
+  // Columna a centrar: hoy, o el dia futuro mas cercano si hoy no tiene nada
+  const idxHoy = grupos.findIndex((g) => g.fecha === hoy);
+  const idxCentro =
+    idxHoy !== -1
+      ? idxHoy
+      : (() => {
+          const futuro = grupos.findIndex((g) => g.fecha && g.fecha > hoy);
+          if (futuro !== -1) return futuro;
+          const conFecha = grupos.map((g, i) => (g.fecha ? i : -1)).filter((i) => i !== -1);
+          return conFecha.length > 0 ? conFecha[conFecha.length - 1] : -1;
+        })();
+
+  // Al abrir, dejar ese dia al centro de la linea de tiempo
   useEffect(() => {
     if (yaCentrado.current) return;
     const cont = scrollRef.current;
-    const col = hoyRef.current;
-    if (!cont || !col) return;
+    const punto = puntoRef.current;
+    if (!cont || !punto) return;
     yaCentrado.current = true;
-    cont.scrollLeft = Math.max(0, col.offsetLeft - cont.clientWidth / 2 + col.clientWidth / 2);
+    const contRect = cont.getBoundingClientRect();
+    const puntoRect = punto.getBoundingClientRect();
+    const delta = puntoRect.left + puntoRect.width / 2 - (contRect.left + cont.clientWidth / 2);
+    cont.scrollLeft = Math.max(0, cont.scrollLeft + delta);
   }, [grupos]);
 
   const getMat = (id?: string) => materias.find((m) => m.id === id);
@@ -85,17 +100,14 @@ export default function TimelinePendientes({ grupos, materias, categorias, onTog
             const arriba = i % 2 === 0;
 
             return (
-              <div
-                key={grupo.label}
-                ref={esHoy ? hoyRef : undefined}
-                className="grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] flex-shrink-0"
-              >
+              <div key={grupo.label} className="grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] flex-shrink-0">
                 {/* Zona superior */}
                 <div className="flex items-end gap-2 pb-3">{arriba && tarjetas(grupo)}</div>
 
                 {/* Punto sobre el riel + etiqueta */}
                 <div className="flex items-center gap-2">
                   <span
+                    ref={i === idxCentro ? puntoRef : undefined}
                     className={cn(
                       "rounded-full border-2 bg-white flex-shrink-0",
                       esHoy

@@ -106,7 +106,8 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
     return true;
   });
 
-  const grupos = agruparPorDia(pendientesFiltrados, orden);
+  // La linea de tiempo siempre corre de pasado a futuro; el orden solo aplica a la lista
+  const grupos = agruparPorDia(pendientesFiltrados, vista === "timeline" ? "asc" : orden);
 
   return (
     <section data-tutorial-id="pendientes-section">
@@ -132,21 +133,23 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
           </button>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={toggleOrden}
-            title={orden === "desc" ? "Mayor a menor" : "Menor a mayor"}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            {orden === "desc" ? (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 15m0 0l3.75-3.75M17.25 15V5.25" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21l3.75-3.75" />
-              </svg>
-            )}
-          </button>
+          {vista === "lista" && (
+            <button
+              onClick={toggleOrden}
+              title={orden === "desc" ? "Mayor a menor" : "Menor a mayor"}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              {orden === "desc" ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 15m0 0l3.75-3.75M17.25 15V5.25" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21l3.75-3.75" />
+                </svg>
+              )}
+            </button>
+          )}
           <button
             onClick={() => setMostrarCompletados(!mostrarCompletados)}
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
