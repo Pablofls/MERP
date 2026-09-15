@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import type { Pendiente, Materia, CategoriaPersonal } from "@/lib/types";
 import { esFechaVencida, fechaHoy, cn } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
@@ -21,7 +21,7 @@ export default function TimelinePendientes({ grupos, materias, categorias, onTog
   const hoy = fechaHoy();
   const scrollRef = useRef<HTMLDivElement>(null);
   const puntoRef = useRef<HTMLSpanElement>(null);
-  const yaCentrado = useRef(false);
+  const tocado = useRef(false);
 
   // Columna a centrar: hoy, o el dia futuro mas cercano si hoy no tiene nada
   const idxHoy = grupos.findIndex((g) => g.fecha === hoy);
@@ -35,18 +35,57 @@ export default function TimelinePendientes({ grupos, materias, categorias, onTog
           return conFecha.length > 0 ? conFecha[conFecha.length - 1] : -1;
         })();
 
-  // Al abrir, dejar ese dia al centro de la linea de tiempo
+  // Estirar el riel hasta los bordes del area principal, sea cual sea el
+  // ancho del contenedor de cada seccion. Se mide sobre el padre, que no
+  // cambia de tamano al aplicar los margenes.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const padre = el?.parentElement;
+    const main = el?.closest("main");
+    if (!el || !padre || !main) return;
+
+    const ajustar = () => {
+      const caja = padre.getBoundingClientRect();
+      const area = main.getBoundingClientRect();
+      el.style.marginLeft = `${-(caja.left - area.left)}px`;
+      el.style.marginRight = `${-(area.right - caja.right)}px`;
+    };
+    ajustar();
+
+    const observer = new ResizeObserver(ajustar);
+    observer.observe(main);
+    observer.observe(padre);
+    return () => observer.disconnect();
+  }, []);
+
+  // Si el usuario ya movio el riel, respetar su posicion
   useEffect(() => {
-    if (yaCentrado.current) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const marcar = () => { tocado.current = true; };
+    el.addEventListener("pointerdown", marcar);
+    el.addEventListener("wheel", marcar, { passive: true });
+    el.addEventListener("touchstart", marcar, { passive: true });
+    return () => {
+      el.removeEventListener("pointerdown", marcar);
+      el.removeEventListener("wheel", marcar);
+      el.removeEventListener("touchstart", marcar);
+    };
+  }, []);
+
+  // Dejar ese dia al centro de la linea de tiempo (tambien cuando los datos
+  // llegan despues del primer render)
+  const firmaFechas = grupos.map((g) => g.fecha ?? "-").join(",");
+  useEffect(() => {
+    if (tocado.current) return;
     const cont = scrollRef.current;
     const punto = puntoRef.current;
     if (!cont || !punto) return;
-    yaCentrado.current = true;
     const contRect = cont.getBoundingClientRect();
     const puntoRect = punto.getBoundingClientRect();
     const delta = puntoRect.left + puntoRect.width / 2 - (contRect.left + cont.clientWidth / 2);
     cont.scrollLeft = Math.max(0, cont.scrollLeft + delta);
-  }, [grupos]);
+  }, [firmaFechas]);
 
   const getMat = (id?: string) => materias.find((m) => m.id === id);
   const getCat = (id?: string) => categorias.find((c) => c.id === id);
@@ -81,15 +120,12 @@ export default function TimelinePendientes({ grupos, materias, categorias, onTog
 
   return (
     // Se sale del contenedor central para que la linea abarque todo el ancho disponible
-    <div
-      ref={scrollRef}
-      className="overflow-x-auto px-4 -mx-4 lg:-mx-[max(0px,calc((100vw-14rem-42rem)/2-0.75rem))]"
-    >
+    <div ref={scrollRef} className="overflow-x-auto px-4">
       <div className="relative w-max min-w-full py-2">
         {/* Riel continuo de extremo a extremo */}
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-gray-300" />
 
-        <div className="relative flex items-stretch gap-6">
+        <div className="relative flex items-stretch justify-center gap-6">
           {grupos.map((grupo, i) => {
             const esHoy = grupo.fecha === hoy;
             const vencidoGrupo = !!grupo.fecha && esFechaVencida(grupo.fecha);
