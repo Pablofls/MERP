@@ -1,13 +1,11 @@
 "use client";
 import { useState } from "react";
 import type { Pendiente, Materia, CategoriaPersonal } from "@/lib/types";
-import { formatFechaCorta, esFechaVencida, etiquetaFecha, cn } from "@/lib/utils";
-import Badge from "@/components/ui/Badge";
-import { etiquetaTipo, colorTipo } from "@/components/escolar/FechasImportantes";
+import { etiquetaFecha } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
 import FormPendiente from "./FormPendiente";
 import DetallePendiente from "./DetallePendiente";
-import PendienteItem from "./PendienteItem";
+import TimelinePendientes, { type GrupoTimeline } from "./TimelinePendientes";
 import EmptyState from "@/components/ui/EmptyState";
 import FiltroChips, { type OpcionFiltro } from "@/components/ui/FiltroChips";
 import { useOrdenFecha, type OrdenFecha } from "@/lib/hooks/useOrdenFecha";
@@ -22,7 +20,7 @@ interface Props {
   onEliminar: (id: string) => void;
 }
 
-function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
+function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc"): GrupoTimeline[] {
   const conFecha = [...items.filter((p) => p.fechaLimite)].sort((a, b) =>
     orden === "desc"
       ? (a.fechaLimite! > b.fechaLimite! ? -1 : 1)
@@ -37,10 +35,12 @@ function agruparPorDia(items: Pendiente[], orden: OrdenFecha = "desc") {
     mapa.get(key)!.push(p);
   }
 
-  const grupos: { label: string; items: Pendiente[] }[] = Array.from(mapa.entries()).map(
-    ([fecha, items]) => ({ label: etiquetaFecha(fecha), items })
-  );
-  if (sinFecha.length > 0) grupos.unshift({ label: "Sin fecha", items: sinFecha });
+  const grupos: GrupoTimeline[] = Array.from(mapa.entries()).map(([fecha, items]) => ({
+    label: etiquetaFecha(fecha),
+    fecha,
+    items,
+  }));
+  if (sinFecha.length > 0) grupos.unshift({ label: "Sin fecha", fecha: null, items: sinFecha });
   return grupos;
 }
 
@@ -104,8 +104,6 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
   });
 
   const grupos = agruparPorDia(pendientesFiltrados, orden);
-  const getMat = (id?: string) => materias.find((m) => m.id === id);
-  const getCat = (id?: string) => categorias.find((c) => c.id === id);
 
   return (
     <section data-tutorial-id="pendientes-section">
@@ -157,49 +155,13 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
       {pendientesFiltrados.length === 0 ? (
         <EmptyState title="Sin pendientes" description="Todo al dia" />
       ) : (
-        <div className="space-y-4">
-          {grupos.map((grupo) => (
-            <div key={grupo.label}>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{grupo.label}</p>
-              <ul className="divide-y divide-gray-100">
-                {grupo.items.map((p) => {
-                  const mat = getMat(p.materiaId);
-                  const cat = getCat(p.categoriaPersonalId);
-                  const vencido = !p.completado && p.fechaLimite && esFechaVencida(p.fechaLimite);
-                  return (
-                    <PendienteItem
-                      key={p.id}
-                      pendiente={p}
-                      onToggle={onToggle}
-                      onClick={() => setDetalle(p)}
-                    >
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        {p.tipoEvaluacion ? (
-                          <>
-                            <Badge color={colorTipo(p.tipoEvaluacion)}>{etiquetaTipo(p.tipoEvaluacion)}</Badge>
-                            {mat && <Badge color={mat.color}>{mat.nombre}</Badge>}
-                          </>
-                        ) : p.tipo === "escolar" ? (
-                          <Badge color={mat?.color ?? "#1e4976"}>{mat?.nombre ?? "Escolar"}</Badge>
-                        ) : (
-                          <Badge color={cat?.color ?? "#4a3a6b"}>{cat?.nombre ?? "Personal"}</Badge>
-                        )}
-                        {p.descripcion && (
-                          <span className="text-xs text-gray-400 truncate max-w-[200px]">{p.descripcion}</span>
-                        )}
-                        {p.fechaLimite && (
-                          <span className={cn("text-xs", vencido ? "text-red-600 font-medium" : "text-gray-400")}>
-                            {vencido ? "Vencido · " : ""}{formatFechaCorta(p.fechaLimite)}
-                          </span>
-                        )}
-                      </div>
-                    </PendienteItem>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
+        <TimelinePendientes
+          grupos={grupos}
+          materias={materias}
+          categorias={categorias}
+          onToggle={onToggle}
+          onSeleccionar={setDetalle}
+        />
       )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nuevo pendiente">

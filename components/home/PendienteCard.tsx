@@ -1,0 +1,72 @@
+"use client";
+import { useRef, useState } from "react";
+import type { Pendiente } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { triggerConfetti } from "@/lib/confetti";
+
+interface Props {
+  pendiente: Pendiente;
+  onToggle: (id: string) => void;
+  onClick: () => void;
+  vencido?: boolean;
+  children?: React.ReactNode;
+}
+
+export default function PendienteCard({ pendiente: p, onToggle, onClick, vencido, children }: Props) {
+  const [completando, setCompletando] = useState(false);
+  const checkboxRef = useRef<HTMLButtonElement>(null);
+
+  function handleToggle() {
+    if (p.completado) {
+      onToggle(p.id);
+      return;
+    }
+    if (checkboxRef.current) {
+      const rect = checkboxRef.current.getBoundingClientRect();
+      triggerConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    }
+    setCompletando(true);
+    setTimeout(() => {
+      onToggle(p.id);
+      setCompletando(false);
+    }, 660);
+  }
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-white p-2.5 shadow-sm transition-colors",
+        vencido ? "border-red-200" : "border-gray-200",
+        p.completado && "opacity-60",
+        completando && "completing-row"
+      )}
+    >
+      <div className="flex items-start gap-2">
+        <button
+          ref={checkboxRef}
+          onClick={handleToggle}
+          className={cn(
+            "mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
+            p.completado ? "bg-blue-900 border-blue-900" : "border-gray-300 hover:border-blue-700"
+          )}
+        >
+          {p.completado && (
+            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          )}
+        </button>
+
+        <button onClick={onClick} className="flex-1 min-w-0 text-left">
+          <div className="relative">
+            <p className={cn("text-sm leading-snug", p.completado ? "line-through text-gray-400" : "text-gray-800")}>
+              {p.titulo}
+            </p>
+            {completando && <span className="completing-strike" />}
+          </div>
+          {children}
+        </button>
+      </div>
+    </div>
+  );
+}
