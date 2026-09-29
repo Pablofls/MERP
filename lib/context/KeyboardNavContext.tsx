@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 
 export interface HotkeyTarget {
   label: string;
-  order: number;
   getNode: () => HTMLElement | null;
 }
 
@@ -31,6 +30,22 @@ function esCampoDeTexto(el: Element | null): boolean {
   const tag = el.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
   return (el as HTMLElement).isContentEditable;
+}
+
+function esAlt(key: string): boolean {
+  return key === "Alt" || key === "AltGraph";
+}
+
+/**
+ * Traduce el codigo fisico de tecla (independiente de layout y de
+ * combinaciones raras como Option+letra en macOS, que produce
+ * caracteres acentuados en `key`) a la letra/digito que usamos como
+ * identificador del atajo.
+ */
+function codigoALetra(code: string): string | null {
+  if (code.startsWith("Key") && code.length === 4) return code.slice(3);
+  if (code.startsWith("Digit") && code.length === 6) return code.slice(5);
+  return null;
 }
 
 export function KeyboardNavProvider({ children }: { children: React.ReactNode }) {
@@ -60,10 +75,18 @@ export function KeyboardNavProvider({ children }: { children: React.ReactNode })
       const usados = new Set<string>();
       const mapa = new Map<string, string>();
       const entradas = Array.from(registro.current.entries())
-        .filter(([, t]) => !!t.getNode())
-        .sort((a, b) => a[1].order - b[1].order);
+        .map(([id, target]) => ({ id, target, nodo: target.getNode() }))
+        .filter((e): e is { id: string; target: HotkeyTarget; nodo: HTMLElement } => !!e.nodo)
+        // Orden visual real (arriba-abajo, izquierda-derecha) en vez de
+        // depender del orden de montaje de los componentes.
+        .sort((a, b) => {
+          const pos = a.nodo.compareDocumentPosition(b.nodo);
+          if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+          if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+          return 0;
+        });
 
-      for (const [id, target] of entradas) {
+      for (const { id, target } of entradas) {
         const candidatos = [...letrasCandidatas(target.label), ...ALFABETO];
         const letra = candidatos.find((c) => !usados.has(c));
         if (letra) {
@@ -79,15 +102,15 @@ export function KeyboardNavProvider({ children }: { children: React.ReactNode })
     }
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Alt" && !e.repeat) {
+      if (esAlt(e.key) && !e.repeat) {
         if (esCampoDeTexto(document.activeElement)) return;
         setAsignaciones(calcularAsignaciones());
         setActivo(true);
         return;
       }
-      if (e.altKey && activoRef.current && !e.ctrlKey && !e.metaKey) {
-        if (e.key.length !== 1) return;
-        const letra = e.key.toUpperCase();
+      if ((e.altKey || esAlt(e.key)) && activoRef.current && !e.ctrlKey && !e.metaKey) {
+        const letra = codigoALetra(e.code);
+        if (!letra) return;
         for (const [id, l] of asignacionesRef.current) {
           if (l === letra) {
             e.preventDefault();
@@ -100,7 +123,7 @@ export function KeyboardNavProvider({ children }: { children: React.ReactNode })
     }
 
     function onKeyUp(e: KeyboardEvent) {
-      if (e.key === "Alt") ocultar();
+      if (esAlt(e.key)) ocultar();
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -151,8 +174,8 @@ function HotkeyHints({
         return (
           <span
             key={id}
-            className="absolute flex items-center justify-center w-5 h-5 rounded bg-blue-900 text-white text-[11px] font-bold shadow-md border border-white"
-            style={{ top: rect.top - 8, left: rect.left - 8 }}
+            className="absolute flex items-center justify-center min-w-[22px] h-[22px] px-1 rounded-md bg-slate-900 text-white text-xs font-bold leading-none tracking-wide ring-2 ring-white shadow-[0_2px_5px_rgba(0,0,0,0.45)]"
+            style={{ top: rect.top - 10, left: rect.left - 10 }}
           >
             {letra}
           </span>
