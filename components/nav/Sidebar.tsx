@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useGoogleStatus } from "@/lib/hooks/useGoogleStatus";
 import { useUser } from "@/lib/context/AuthContext";
+import { useHotkey } from "@/lib/hooks/useHotkey";
 
 const TABS = [
   { href: "/",        label: "Inicio"   },
@@ -12,10 +13,29 @@ const TABS = [
   { href: "/habitos", label: "Habitos"  },
 ];
 
+function TabLink({ href, label, active }: { href: string; label: string; active: boolean }) {
+  const hotkeyRef = useHotkey<HTMLAnchorElement>(label);
+  return (
+    <Link
+      href={href}
+      ref={hotkeyRef}
+      className={cn(
+        "px-3 py-2.5 rounded-lg text-base font-medium transition-colors",
+        active
+          ? "text-gray-50 cursor-default"
+          : "text-gray-900 hover:text-gray-500"
+      )}
+    >
+      {label}
+    </Link>
+  );
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const user = useUser();
   const { conectado } = useGoogleStatus();
+  const perfilHotkeyRef = useHotkey<HTMLAnchorElement>("Perfil");
 
   if (pathname === "/login") return null;
 
@@ -33,26 +53,14 @@ export default function Sidebar() {
       <nav className="flex flex-col gap-0.5 flex-1">
         {TABS.map((tab) => {
           const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={cn(
-                "px-3 py-2.5 rounded-lg text-base font-medium transition-colors",
-                active
-                  ? "text-gray-50 cursor-default"
-                  : "text-gray-900 hover:text-gray-500"
-              )}
-            >
-              {tab.label}
-            </Link>
-          );
+          return <TabLink key={tab.href} href={tab.href} label={tab.label} active={active} />;
         })}
       </nav>
 
       {/* Perfil al fondo */}
       <Link
         href="/perfil"
+        ref={perfilHotkeyRef}
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mt-4",
           perfilActive ? "text-gray-50 cursor-default" : "hover:bg-gray-100"

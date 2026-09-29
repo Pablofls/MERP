@@ -6,6 +6,7 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import AuthGuard from "@/components/AuthGuard";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { TutorialProvider } from "@/lib/context/TutorialContext";
+import { KeyboardNavProvider } from "@/lib/context/KeyboardNavContext";
 import Tutorial from "@/components/Tutorial";
 
 export const metadata: Metadata = {
@@ -46,16 +47,18 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <TutorialProvider>
-            <AuthGuard>
-              <div className="flex min-h-screen">
-                <Sidebar />
-                <main className="flex-1 lg:ml-56 pb-safe min-w-0">
-                  {children}
-                </main>
-              </div>
-              <BottomNav />
-              <Tutorial />
-            </AuthGuard>
+            <KeyboardNavProvider>
+              <AuthGuard>
+                <div className="flex min-h-screen">
+                  <Sidebar />
+                  <main className="flex-1 lg:ml-56 pb-safe min-w-0">
+                    {children}
+                  </main>
+                </div>
+                <BottomNav />
+                <Tutorial />
+              </AuthGuard>
+            </KeyboardNavProvider>
           </TutorialProvider>
         </AuthProvider>
         <ServiceWorkerRegister />

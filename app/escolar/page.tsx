@@ -21,6 +21,7 @@ import type { Pendiente } from "@/lib/types";
 import { useOrdenFecha } from "@/lib/hooks/useOrdenFecha";
 import { useVistaPendientes } from "@/lib/hooks/useVistaPendientes";
 import { agruparPorDia } from "@/lib/agrupar";
+import { useHotkey } from "@/lib/hooks/useHotkey";
 
 export default function EscolarPage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
@@ -34,6 +35,7 @@ export default function EscolarPage() {
   const [orden, toggleOrden] = useOrdenFecha("escolar");
   const [vista, toggleVista] = useVistaPendientes("escolar");
   const [filtroMateria, setFiltroMateria] = useState<string | null>(null);
+  const agregarHotkeyRef = useHotkey<HTMLButtonElement>("Agregar");
 
   // Fechas importantes dentro de 7 días convertidas a pendientes virtuales
   const fechasProximas = fechas
@@ -145,6 +147,7 @@ export default function EscolarPage() {
               {mostrarCompletados ? "Ocultar completados" : "Ver todos"}
             </button>
             <button
+              ref={agregarHotkeyRef}
               onClick={() => setModalPendiente(true)}
               className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
             >

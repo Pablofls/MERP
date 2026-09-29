@@ -12,6 +12,7 @@ import { useOrdenFecha } from "@/lib/hooks/useOrdenFecha";
 import { agruparPorDia } from "@/lib/agrupar";
 import { useVistaPendientes } from "@/lib/hooks/useVistaPendientes";
 import BotonVista from "@/components/ui/BotonVista";
+import { useHotkey } from "@/lib/hooks/useHotkey";
 
 interface Props {
   pendientes: Pendiente[];
@@ -31,6 +32,7 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
   const [vista, toggleVista] = useVistaPendientes("inicio");
   const [filtroTipo, setFiltroTipo] = useState<string | null>(null);
   const [filtroSub, setFiltroSub] = useState<string | null>(null);
+  const agregarHotkeyRef = useHotkey<HTMLButtonElement>("Agregar");
 
   function handleFiltroTipo(id: string | null) {
     setFiltroTipo(id);
@@ -118,6 +120,7 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
             {mostrarCompletados ? "Ocultar completados" : "Ver todos"}
           </button>
           <button
+            ref={agregarHotkeyRef}
             onClick={() => setModalOpen(true)}
             data-tutorial-id="btn-agregar-pendiente"
             className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
@@ -132,7 +135,7 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
 
       {/* Filtros */}
       <div className="space-y-1.5 mb-3">
-        <FiltroChips opciones={opcionesTipo} valor={filtroTipo} onChange={handleFiltroTipo} />
+        <FiltroChips opciones={opcionesTipo} valor={filtroTipo} onChange={handleFiltroTipo} atajos />
         {opcionesSub.length > 0 && (
           <FiltroChips opciones={[{ id: null, label: "Todo" }, ...opcionesSub]} valor={filtroSub} onChange={setFiltroSub} />
         )}

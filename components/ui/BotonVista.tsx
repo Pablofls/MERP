@@ -1,5 +1,6 @@
 "use client";
 import type { VistaPendientes } from "@/lib/hooks/useVistaPendientes";
+import { useHotkey } from "@/lib/hooks/useHotkey";
 
 interface Props {
   vista: VistaPendientes;
@@ -7,8 +8,10 @@ interface Props {
 }
 
 export default function BotonVista({ vista, onToggle }: Props) {
+  const hotkeyRef = useHotkey<HTMLButtonElement>("Vista");
   return (
     <button
+      ref={hotkeyRef}
       onClick={onToggle}
       title={vista === "timeline" ? "Ver como lista" : "Ver como linea del tiempo"}
       className="flex items-center gap-1 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-md px-1.5 py-1 transition-colors"

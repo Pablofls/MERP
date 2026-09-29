@@ -16,6 +16,7 @@ import ListaPendientes from "@/components/home/ListaPendientes";
 import BotonVista from "@/components/ui/BotonVista";
 import FormPendiente from "@/components/home/FormPendiente";
 import GestorCategorias from "@/components/personal/GestorCategorias";
+import { useHotkey } from "@/lib/hooks/useHotkey";
 
 function getSemanaConOffset(offset: number): Date[] {
   const hoy = new Date();
@@ -142,6 +143,7 @@ export default function PersonalPage() {
   const [orden, toggleOrden] = useOrdenFecha("personal");
   const [vista, toggleVista] = useVistaPendientes("personal");
   const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null);
+  const agregarHotkeyRef = useHotkey<HTMLButtonElement>("Agregar");
 
   const pendientesPersonales = pendientes.filter((p) => p.tipo === "personal");
   const pendientesFiltrados = pendientesPersonales.filter(
@@ -213,6 +215,7 @@ export default function PersonalPage() {
               {mostrarCompletados ? "Ocultar completados" : "Ver todos"}
             </button>
             <button
+              ref={agregarHotkeyRef}
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
             >
