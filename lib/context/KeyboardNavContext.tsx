@@ -33,19 +33,6 @@ function esCampoDeTexto(el: Element | null): boolean {
 }
 
 /**
- * Odoo usa Control en macOS y Alt en Windows/Linux para sus atajos,
- * justamente porque Option+letra en macOS genera caracteres
- * especiales (acentos, "ß", etc.) en vez de la letra normal.
- * Replicamos el mismo criterio aqui.
- */
-function detectarTeclaModificadora(): { tecla: "Control" | "Alt"; esMac: boolean } {
-  if (typeof navigator === "undefined") return { tecla: "Alt", esMac: false };
-  const plataforma = navigator.platform || navigator.userAgent || "";
-  const esMac = /Mac|iPhone|iPad|iPod/i.test(plataforma);
-  return { tecla: esMac ? "Control" : "Alt", esMac };
-}
-
-/**
  * Traduce el codigo fisico de tecla (independiente de layout y de
  * combinaciones raras como Option+letra en macOS, que produce
  * caracteres acentuados en `key`) a la letra/digito que usamos como
@@ -110,17 +97,14 @@ export function KeyboardNavProvider({ children }: { children: React.ReactNode })
       setActivo(false);
     }
 
-    const { tecla: teclaModificadora, esMac } = detectarTeclaModificadora();
-
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === teclaModificadora && !e.repeat) {
+      if (e.key === "Alt" && !e.repeat) {
         if (esCampoDeTexto(document.activeElement)) return;
         setAsignaciones(calcularAsignaciones());
         setActivo(true);
         return;
       }
-      const modificadorPresionado = esMac ? e.ctrlKey : e.altKey;
-      if (modificadorPresionado && activoRef.current && !e.metaKey) {
+      if (e.altKey && activoRef.current && !e.ctrlKey && !e.metaKey) {
         const letra = codigoALetra(e.code);
         if (!letra) return;
         for (const [id, l] of asignacionesRef.current) {
@@ -135,7 +119,7 @@ export function KeyboardNavProvider({ children }: { children: React.ReactNode })
     }
 
     function onKeyUp(e: KeyboardEvent) {
-      if (e.key === teclaModificadora) ocultar();
+      if (e.key === "Alt") ocultar();
     }
 
     window.addEventListener("keydown", onKeyDown);
