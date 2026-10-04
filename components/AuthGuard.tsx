@@ -10,7 +10,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (user === null && pathname !== "/login") {
+    if (user === null && pathname !== "/login" && !pathname.startsWith("/auth/")) {
       router.replace("/login");
     } else {
       setChecked(true);
