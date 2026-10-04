@@ -58,32 +58,10 @@ export default function LoginPage() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gray-50 px-4 z-50">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">MERP</h1>
-
-        <div className="flex rounded-lg overflow-hidden border border-gray-200 mb-6">
-          <button
-            type="button"
-            onClick={() => switchMode("login")}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
-              mode === "login"
-                ? "bg-blue-900 text-white"
-                : "bg-white text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Iniciar sesión
-          </button>
-          <button
-            type="button"
-            onClick={() => switchMode("signup")}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
-              mode === "signup"
-                ? "bg-blue-900 text-white"
-                : "bg-white text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Crear cuenta
-          </button>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">MERP</h1>
+        <p className="text-sm text-gray-500 text-center mb-6">
+          {mode === "signup" ? "Crea tu cuenta" : "Inicia sesión en tu cuenta"}
+        </p>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 space-y-4 shadow-sm border border-gray-100">
           <div>
@@ -142,6 +120,17 @@ export default function LoginPage() {
               : mode === "signup" ? "Crear cuenta" : "Entrar"}
           </button>
         </form>
+
+        <p className="text-sm text-gray-500 text-center mt-6">
+          {mode === "signup" ? "¿Ya tienes cuenta? " : "¿Eres un usuario nuevo? "}
+          <button
+            type="button"
+            onClick={() => switchMode(mode === "signup" ? "login" : "signup")}
+            className="text-blue-900 font-medium underline hover:text-blue-700"
+          >
+            {mode === "signup" ? "Inicia sesión" : "Regístrate"}
+          </button>
+        </p>
       </div>
     </div>
   );
