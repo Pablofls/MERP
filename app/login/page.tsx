@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const [resetSent, setResetSent] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,8 +28,9 @@ export default function LoginPage() {
     if (error) setError("No se pudo iniciar sesión con Google. Intenta de nuevo.");
   }
 
-  function switchMode(next: "login" | "signup") {
+  function switchMode(next: "login" | "signup" | "forgot") {
     setMode(next);
+    setResetSent(false);
     setError(null);
     setPassword("");
     setConfirmPassword("");
@@ -38,6 +40,19 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    if (mode === "forgot") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      });
+      if (error) {
+        setError("No se pudo enviar el correo. Intenta de nuevo.");
+      } else {
+        setResetSent(true);
+      }
+      setLoading(false);
+      return;
+    }
 
     if (mode === "signup") {
       if (password !== confirmPassword) {
@@ -75,7 +90,11 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">MERP</h1>
         <p className="text-sm text-gray-500 text-center mb-6">
-          {mode === "signup" ? "Crea tu cuenta" : "Inicia sesión en tu cuenta"}
+          {mode === "signup"
+            ? "Crea tu cuenta"
+            : mode === "forgot"
+            ? "Recupera tu contraseña"
+            : "Inicia sesión en tu cuenta"}
         </p>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 space-y-4 shadow-sm border border-gray-100">
@@ -93,6 +112,7 @@ export default function LoginPage() {
             />
           </div>
 
+          {mode !== "forgot" && (
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
               Contraseña
@@ -106,6 +126,19 @@ export default function LoginPage() {
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
             />
           </div>
+          )}
+
+          {mode === "login" && (
+            <div className="text-right -mt-2">
+              <button
+                type="button"
+                onClick={() => switchMode("forgot")}
+                className="text-xs text-blue-900 hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+          )}
 
           {mode === "signup" && (
             <div>
@@ -123,6 +156,18 @@ export default function LoginPage() {
             </div>
           )}
 
+          {mode === "forgot" && (
+            <p className="text-sm text-gray-500">
+              Escribe tu correo y te enviaremos un enlace para restablecer tu contraseña.
+            </p>
+          )}
+
+          {resetSent && (
+            <p className="text-sm text-green-600">
+              Si el correo está registrado, recibirás un enlace en unos minutos.
+            </p>
+          )}
+
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <button
@@ -130,12 +175,16 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-50 transition-colors"
           >
-            {loading
+            {mode === "forgot"
+              ? loading ? "Enviando..." : "Enviar enlace"
+              : loading
               ? mode === "signup" ? "Creando cuenta..." : "Entrando..."
               : mode === "signup" ? "Crear cuenta" : "Entrar"}
           </button>
         </form>
 
+        {mode !== "forgot" && (
+          <>
         <div className="flex items-center gap-3 my-5">
           <div className="flex-1 h-px bg-gray-200" />
           <span className="text-xs text-gray-400">o</span>
@@ -155,15 +204,17 @@ export default function LoginPage() {
           </svg>
           Continuar con Google
         </button>
+          </>
+        )}
 
         <p className="text-sm text-gray-500 text-center mt-6">
-          {mode === "signup" ? "¿Ya tienes cuenta? " : "¿Eres un usuario nuevo? "}
+          {mode === "login" ? "¿Eres un usuario nuevo? " : mode === "signup" ? "¿Ya tienes cuenta? " : ""}
           <button
             type="button"
-            onClick={() => switchMode(mode === "signup" ? "login" : "signup")}
+            onClick={() => switchMode(mode === "login" ? "signup" : "login")}
             className="text-blue-900 font-medium underline hover:text-blue-700"
           >
-            {mode === "signup" ? "Inicia sesión" : "Regístrate"}
+            {mode === "login" ? "Regístrate" : mode === "signup" ? "Inicia sesión" : "Volver a iniciar sesión"}
           </button>
         </p>
       </div>

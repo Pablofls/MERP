@@ -37,7 +37,7 @@ export default function Sidebar() {
   const { conectado } = useGoogleStatus();
   const perfilHotkeyRef = useHotkey<HTMLAnchorElement>("Perfil");
 
-  if (pathname === "/login") return null;
+  if (pathname === "/login" || pathname === "/reset-password") return null;
 
   const inicial = user?.email?.[0]?.toUpperCase() ?? "U";
   const perfilActive = pathname.startsWith("/perfil");
