@@ -6,10 +6,11 @@ import { useCategorias } from "@/lib/hooks/useCategorias";
 import { useFechasImportantes } from "@/lib/hooks/useFechasImportantes";
 import AgendaHoy from "@/components/home/AgendaHoy";
 import PendientesHoy from "@/components/home/PendientesHoy";
+import { SkeletonLista } from "@/components/ui/Skeleton";
 import { estaEnSieteDias, fechaImportanteAPendiente } from "@/lib/utils";
 
 export default function HomePage() {
-  const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
+  const { cargando, pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { materias } = useMaterias();
   const { clases } = useClases();
   const { categorias } = useCategorias();
@@ -36,6 +37,7 @@ export default function HomePage() {
       <div className="space-y-6">
         <AgendaHoy clases={clases} materias={materias} />
         <div className="border-t border-gray-100" />
+        {cargando ? <SkeletonLista /> : (
         <PendientesHoy
           pendientes={todosPendientes}
           materias={materias}
@@ -45,6 +47,7 @@ export default function HomePage() {
           onEditar={editar}
           onEliminar={eliminar}
         />
+        )}
       </div>
     </div>
   );

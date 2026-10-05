@@ -1,9 +1,10 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { Pendiente, Materia, CategoriaPersonal } from "@/lib/types";
 import Modal from "@/components/ui/Modal";
 import FormPendiente from "./FormPendiente";
-import DetallePendiente from "./DetallePendiente";
+const DetallePendiente = dynamic(() => import("./DetallePendiente"), { ssr: false });
 import TimelinePendientes from "./TimelinePendientes";
 import ListaPendientes from "./ListaPendientes";
 import EmptyState from "@/components/ui/EmptyState";

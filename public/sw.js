@@ -1,10 +1,8 @@
-const CACHE_NAME = "merp-v1";
-const STATIC_ASSETS = ["/", "/escolar", "/personal", "/habitos"];
+// Solo cachea assets estáticos con hash (/_next/static, íconos). No intercepta HTML,
+// RSC ni datos: esos van directo a la red (la caché de datos vive en TanStack Query).
+const CACHE_NAME = "merp-v2";
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
@@ -21,17 +19,21 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const url = new URL(event.request.url);
-  // Never cache API routes, auth callbacks, or cross-origin requests
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
+  if (!url.pathname.startsWith("/_next/static/") && !url.pathname.startsWith("/icons/")) return;
 
+  // Los nombres llevan hash de contenido: caché primero, red como respaldo
   event.respondWith(
-    fetch(event.request)
-      .then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return res;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(event.request).then(
+      (hit) =>
+        hit ||
+        fetch(event.request).then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return res;
+        })
+    )
   );
 });

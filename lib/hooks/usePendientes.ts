@@ -33,7 +33,7 @@ function fromDB(row: PendienteDB): Pendiente {
 
 export function usePendientes() {
   const user = useUser();
-  const [pendientes, setPendientes] = useCachedList<Pendiente>("pendientes", async () =>
+  const [pendientes, setPendientes, cargando] = useCachedList<Pendiente>("pendientes", async () =>
     ok(await supabase.from("pendientes").select("*").order("created_at", { ascending: false }))
       .map((r) => fromDB(r as PendienteDB))
   );
@@ -172,5 +172,5 @@ export function usePendientes() {
     }
   }
 
-  return { pendientes, agregar, toggleCompletado, eliminar, editar };
+  return { cargando, pendientes, agregar, toggleCompletado, eliminar, editar };
 }

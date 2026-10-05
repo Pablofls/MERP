@@ -6,7 +6,7 @@ import type { Materia } from "../types";
 
 export function useMaterias() {
   const user = useUser();
-  const [materias, setMaterias] = useCachedList<Materia>("materias", async () =>
+  const [materias, setMaterias, cargando] = useCachedList<Materia>("materias", async () =>
     ok(await supabase.from("materias").select("*").order("created_at")) as Materia[]
   );
 
@@ -36,5 +36,5 @@ export function useMaterias() {
     if (!error) setMaterias((prev) => prev.filter((m) => m.id !== id));
   }
 
-  return { materias, agregar, editar, eliminar };
+  return { cargando, materias, agregar, editar, eliminar };
 }

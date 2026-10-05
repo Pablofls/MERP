@@ -8,7 +8,7 @@ import QueryProvider from "@/components/QueryProvider";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { TutorialProvider } from "@/lib/context/TutorialContext";
 import { KeyboardNavProvider } from "@/lib/context/KeyboardNavContext";
-import Tutorial from "@/components/Tutorial";
+import Tutorial from "@/components/TutorialLazy";
 
 export const metadata: Metadata = {
   title: "MERP",

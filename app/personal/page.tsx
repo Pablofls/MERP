@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { usePendientes } from "@/lib/hooks/usePendientes";
 import { useCategorias } from "@/lib/hooks/useCategorias";
@@ -8,9 +9,10 @@ import { useVistaPendientes } from "@/lib/hooks/useVistaPendientes";
 import { agruparPorDia } from "@/lib/agrupar";
 import { cn, fechaHoy } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
+import { SkeletonLista } from "@/components/ui/Skeleton";
 import EmptyState from "@/components/ui/EmptyState";
 import FiltroChips from "@/components/ui/FiltroChips";
-import DetallePendiente from "@/components/home/DetallePendiente";
+const DetallePendiente = dynamic(() => import("@/components/home/DetallePendiente"), { ssr: false });
 import TimelinePendientes from "@/components/home/TimelinePendientes";
 import ListaPendientes from "@/components/home/ListaPendientes";
 import BotonVista from "@/components/ui/BotonVista";
@@ -134,7 +136,7 @@ function CalendarioSemana({ pendientes }: { pendientes: Pendiente[] }) {
 
 
 export default function PersonalPage() {
-  const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
+  const { cargando, pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
   const { categorias, agregar: agregarCat, eliminar: eliminarCat } = useCategorias();
   const [modalOpen, setModalOpen] = useState(false);
   const [configAbierto, setConfigAbierto] = useState(false);
@@ -248,7 +250,9 @@ export default function PersonalPage() {
           </div>
         )}
 
-        {pendientesFiltrados.length === 0 ? (
+        {cargando ? (
+          <SkeletonLista />
+        ) : pendientesFiltrados.length === 0 ? (
           <EmptyState title="Sin pendientes personales" />
         ) : (
           vista === "timeline" ? (

@@ -1,15 +1,16 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { usePendientes } from "@/lib/hooks/usePendientes";
 import { useMaterias } from "@/lib/hooks/useMaterias";
 import { useClases } from "@/lib/hooks/useClases";
 import { useFechasImportantes } from "@/lib/hooks/useFechasImportantes";
-import HorarioSemanal from "@/components/escolar/HorarioSemanal";
+const HorarioSemanal = dynamic(() => import("@/components/escolar/HorarioSemanal"), { ssr: false });
 import GestorMaterias from "@/components/escolar/GestorMaterias";
-import GestorClases from "@/components/escolar/GestorClases";
+const GestorClases = dynamic(() => import("@/components/escolar/GestorClases"), { ssr: false });
 import FechasImportantes from "@/components/escolar/FechasImportantes";
 import { estaEnSieteDias, fechaImportanteAPendiente } from "@/lib/utils";
-import DetallePendiente from "@/components/home/DetallePendiente";
+const DetallePendiente = dynamic(() => import("@/components/home/DetallePendiente"), { ssr: false });
 import TimelinePendientes from "@/components/home/TimelinePendientes";
 import ListaPendientes from "@/components/home/ListaPendientes";
 import BotonVista from "@/components/ui/BotonVista";
@@ -25,7 +26,7 @@ import { useHotkey } from "@/lib/hooks/useHotkey";
 
 export default function EscolarPage() {
   const { pendientes, agregar, toggleCompletado, eliminar, editar } = usePendientes();
-  const { materias, agregar: agregarMat, editar: editarMat, eliminar: eliminarMat } = useMaterias();
+  const { cargando: cargandoMaterias, materias, agregar: agregarMat, editar: editarMat, eliminar: eliminarMat } = useMaterias();
   const { clases, agregar: agregarClase, editar: editarClase, eliminar: eliminarClase } = useClases();
   const { fechas, agregar: agregarFecha, editar: editarFecha, toggleCompletado: toggleFecha, eliminar: eliminarFecha } = useFechasImportantes();
   const [modalPendiente, setModalPendiente] = useState(false);
@@ -71,7 +72,7 @@ export default function EscolarPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Escolar</h1>
-          <p className="text-xs text-gray-400 mt-0.5">{materias.length} materias · {clases.length} clases</p>
+          <p className="text-xs text-gray-400 mt-0.5">{cargandoMaterias ? "Cargando…" : `${materias.length} materias · ${clases.length} clases`}</p>
         </div>
         <button
           onClick={() => setConfigAbierto(!configAbierto)}

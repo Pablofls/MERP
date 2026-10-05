@@ -1,10 +1,12 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useState, useRef, useEffect } from "react";
 import type { ClaseHorario, Materia } from "@/lib/types";
 import { useGoogleCalendarSemana } from "@/lib/hooks/useGoogleCalendarSemana";
 import { DIAS_SEMANA, DIAS_SHORT, minutosDesdeMedianoche, fechaHoy, cn } from "@/lib/utils";
-import EventoCalendarioModal, { type EventoCalendario } from "@/components/home/EventoCalendarioModal";
-import CrearEventoModal from "@/components/home/CrearEventoModal";
+import type { EventoCalendario } from "@/components/home/EventoCalendarioModal";
+const EventoCalendarioModal = dynamic(() => import("@/components/home/EventoCalendarioModal"), { ssr: false });
+const CrearEventoModal = dynamic(() => import("@/components/home/CrearEventoModal"), { ssr: false });
 
 interface Props {
   clases: ClaseHorario[];

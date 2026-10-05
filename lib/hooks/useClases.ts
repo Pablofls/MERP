@@ -45,7 +45,7 @@ function toDB(datos: Omit<ClaseHorario, "id">) {
 
 export function useClases() {
   const user = useUser();
-  const [clases, setClases] = useCachedList<ClaseHorario>("clases", async () =>
+  const [clases, setClases, cargando] = useCachedList<ClaseHorario>("clases", async () =>
     ok(await supabase.from("clases").select("*").order("dia")).map((r) => fromDB(r as ClaseDB))
   );
 
@@ -85,5 +85,5 @@ export function useClases() {
     if (!error) setClases((prev) => prev.filter((c) => c.id !== id));
   }
 
-  return { clases, agregar, editar, eliminar };
+  return { cargando, clases, agregar, editar, eliminar };
 }

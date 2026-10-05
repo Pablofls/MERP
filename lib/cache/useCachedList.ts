@@ -16,12 +16,12 @@ export function useCachedList<T>(
   key: string,
   fetcher: (user: User) => Promise<T[]>,
   extra: string | null = "",
-): [T[], Dispatch<SetStateAction<T[]>>] {
+): [T[], Dispatch<SetStateAction<T[]>>, boolean] {
   const user = useUser();
   const qc = useQueryClient();
   const queryKey = [key, user?.id ?? null, extra];
 
-  const { data } = useQuery({
+  const { data, isPending } = useQuery({
     queryKey,
     queryFn: () => fetcher(user!),
     enabled: !!user && extra !== null,
@@ -37,7 +37,7 @@ export function useCachedList<T>(
     [qc, keyStr],
   );
 
-  return [data ?? (VACIO as T[]), setData];
+  return [data ?? (VACIO as T[]), setData, isPending && extra !== null];
 }
 
 /** Lanza si Supabase devuelve error para que la caché conserve los datos previos. */
