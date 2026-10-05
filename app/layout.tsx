@@ -4,6 +4,7 @@ import BottomNav from "@/components/nav/BottomNav";
 import Sidebar from "@/components/nav/Sidebar";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import AuthGuard from "@/components/AuthGuard";
+import QueryProvider from "@/components/QueryProvider";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { TutorialProvider } from "@/lib/context/TutorialContext";
 import { KeyboardNavProvider } from "@/lib/context/KeyboardNavContext";
@@ -46,6 +47,7 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>
+          <QueryProvider>
           <TutorialProvider>
             <KeyboardNavProvider>
               <AuthGuard>
@@ -60,6 +62,7 @@ export default function RootLayout({
               </AuthGuard>
             </KeyboardNavProvider>
           </TutorialProvider>
+          </QueryProvider>
         </AuthProvider>
         <ServiceWorkerRegister />
       </body>

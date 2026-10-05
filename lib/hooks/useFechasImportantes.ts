@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
+import { useCachedList, ok } from "../cache/useCachedList";
 import type { FechaImportante } from "../types";
 
 type FechaImportanteDB = {
@@ -28,18 +28,10 @@ function fromDB(row: FechaImportanteDB): FechaImportante {
 
 export function useFechasImportantes() {
   const user = useUser();
-  const [fechas, setFechas] = useState<FechaImportante[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("fechas_importantes")
-      .select("*")
-      .order("fecha", { ascending: true })
-      .then(({ data }) => {
-        if (data) setFechas((data as FechaImportanteDB[]).map(fromDB));
-      });
-  }, [user]);
+  const [fechas, setFechas] = useCachedList<FechaImportante>("fechas_importantes", async () =>
+    ok(await supabase.from("fechas_importantes").select("*").order("fecha", { ascending: true }))
+      .map((r) => fromDB(r as FechaImportanteDB))
+  );
 
   async function agregar(datos: Omit<FechaImportante, "id" | "completado">) {
     if (!user) return;

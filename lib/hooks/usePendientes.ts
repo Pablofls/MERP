@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
+import { useCachedList, ok } from "../cache/useCachedList";
 import { crearGoogleTask, actualizarGoogleTask, eliminarGoogleTask, editarContenidoGoogleTask } from "../google-tasks";
 import type { Pendiente } from "../types";
 
@@ -33,18 +33,10 @@ function fromDB(row: PendienteDB): Pendiente {
 
 export function usePendientes() {
   const user = useUser();
-  const [pendientes, setPendientes] = useState<Pendiente[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("pendientes")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (data) setPendientes((data as PendienteDB[]).map(fromDB));
-      });
-  }, [user]);
+  const [pendientes, setPendientes] = useCachedList<Pendiente>("pendientes", async () =>
+    ok(await supabase.from("pendientes").select("*").order("created_at", { ascending: false }))
+      .map((r) => fromDB(r as PendienteDB))
+  );
 
   async function agregar(datos: Omit<Pendiente, "id" | "completado">) {
     if (!user) return;

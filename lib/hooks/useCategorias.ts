@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
+import { useCachedList, ok } from "../cache/useCachedList";
 import type { CategoriaPersonal } from "../types";
 
 const DEFAULTS: { nombre: string; color: string }[] = [
@@ -16,28 +16,15 @@ function fromDB(row: CategoriaDB): CategoriaPersonal {
 
 export function useCategorias() {
   const user = useUser();
-  const [categorias, setCategorias] = useState<CategoriaPersonal[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("categorias_personales")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .then(async ({ data }) => {
-        if (!data) return;
-        if (data.length > 0) {
-          setCategorias((data as CategoriaDB[]).map(fromDB));
-        } else {
-          const inserts = DEFAULTS.map((d) => ({ ...d, user_id: user.id }));
-          const { data: seeded } = await supabase
-            .from("categorias_personales")
-            .insert(inserts)
-            .select();
-          if (seeded) setCategorias((seeded as CategoriaDB[]).map(fromDB));
-        }
-      });
-  }, [user]);
+  const [categorias, setCategorias] = useCachedList<CategoriaPersonal>("categorias", async (u) => {
+    const data = ok(
+      await supabase.from("categorias_personales").select("*").order("created_at", { ascending: true })
+    ) as CategoriaDB[];
+    if (data.length > 0) return data.map(fromDB);
+    const inserts = DEFAULTS.map((d) => ({ ...d, user_id: u.id }));
+    const seeded = ok(await supabase.from("categorias_personales").insert(inserts).select()) as CategoriaDB[];
+    return seeded.map(fromDB);
+  });
 
   async function agregar(nombre: string, color: string) {
     if (!user || !nombre.trim()) return;

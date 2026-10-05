@@ -1,26 +1,28 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
 
 export function useGoogleStatus() {
-  const [conectado, setConectado] = useState<boolean | null>(null);
   const user = useUser();
+  const qc = useQueryClient();
+  const queryKey = ["google_status", user?.id ?? null];
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("google_tokens")
-      .select("user_id")
-      .maybeSingle()
-      .then(({ data }) => setConectado(!!data));
-  }, [user]);
+  const { data } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("google_tokens").select("user_id").maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+    enabled: !!user,
+  });
 
   async function desconectar() {
     if (!user) return;
     await supabase.from("google_tokens").delete().eq("user_id", user.id);
-    setConectado(false);
+    qc.setQueryData(queryKey, false);
   }
 
-  return { conectado, desconectar };
+  return { conectado: data ?? null, desconectar };
 }

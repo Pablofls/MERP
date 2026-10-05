@@ -1,23 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
+import { useCachedList, ok } from "../cache/useCachedList";
 import type { Materia } from "../types";
 
 export function useMaterias() {
   const user = useUser();
-  const [materias, setMaterias] = useState<Materia[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("materias")
-      .select("*")
-      .order("created_at")
-      .then(({ data }) => {
-        if (data) setMaterias(data);
-      });
-  }, [user]);
+  const [materias, setMaterias] = useCachedList<Materia>("materias", async () =>
+    ok(await supabase.from("materias").select("*").order("created_at")) as Materia[]
+  );
 
   async function agregar(datos: Omit<Materia, "id">) {
     if (!user) return;

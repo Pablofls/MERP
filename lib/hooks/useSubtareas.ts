@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
+import { useCachedList, ok } from "../cache/useCachedList";
 import type { Subtarea } from "../types";
 
 type SubtareaDB = {
@@ -22,19 +22,13 @@ function fromDB(row: SubtareaDB): Subtarea {
 
 export function useSubtareas(pendienteId: string | null) {
   const user = useUser();
-  const [subtareas, setSubtareas] = useState<Subtarea[]>([]);
-
-  useEffect(() => {
-    if (!user || !pendienteId) { setSubtareas([]); return; }
-    supabase
-      .from("subtareas")
-      .select("*")
-      .eq("pendiente_id", pendienteId)
-      .order("created_at")
-      .then(({ data }) => {
-        if (data) setSubtareas((data as SubtareaDB[]).map(fromDB));
-      });
-  }, [user, pendienteId]);
+  const [subtareas, setSubtareas] = useCachedList<Subtarea>(
+    "subtareas",
+    async () =>
+      ok(await supabase.from("subtareas").select("*").eq("pendiente_id", pendienteId!).order("created_at"))
+        .map((r) => fromDB(r as SubtareaDB)),
+    pendienteId,
+  );
 
   async function agregar(titulo: string) {
     if (!user || !pendienteId || !titulo.trim()) return;

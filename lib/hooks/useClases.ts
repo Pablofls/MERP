@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
+import { useCachedList, ok } from "../cache/useCachedList";
 import type { ClaseHorario } from "../types";
 
 type ClaseDB = {
@@ -45,18 +45,9 @@ function toDB(datos: Omit<ClaseHorario, "id">) {
 
 export function useClases() {
   const user = useUser();
-  const [clases, setClases] = useState<ClaseHorario[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("clases")
-      .select("*")
-      .order("dia")
-      .then(({ data }) => {
-        if (data) setClases((data as ClaseDB[]).map(fromDB));
-      });
-  }, [user]);
+  const [clases, setClases] = useCachedList<ClaseHorario>("clases", async () =>
+    ok(await supabase.from("clases").select("*").order("dia")).map((r) => fromDB(r as ClaseDB))
+  );
 
   async function agregar(datos: Omit<ClaseHorario, "id">) {
     if (!user) return;

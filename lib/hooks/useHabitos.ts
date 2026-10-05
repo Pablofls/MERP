@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
+import { useCachedList, ok } from "../cache/useCachedList";
 import type { Habito, RegistroHabito } from "../types";
 
 type HabitoDB = {
@@ -50,30 +50,20 @@ function registroFromDB(row: RegistroDB): RegistroHabito {
 
 export function useHabitos() {
   const user = useUser();
-  const [habitos, setHabitos] = useState<Habito[]>([]);
-  const [registros, setRegistros] = useState<RegistroHabito[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("habitos")
-      .select("*")
-      .order("created_at")
-      .then(({ data }) => {
-        if (data) setHabitos((data as HabitoDB[]).map(habitoFromDB));
-      });
-
+  const [habitos, setHabitos] = useCachedList<Habito>("habitos", async () =>
+    ok(await supabase.from("habitos").select("*").order("created_at")).map((r) => habitoFromDB(r as HabitoDB))
+  );
+  const [registros, setRegistros] = useCachedList<RegistroHabito>("registros_habito", async () => {
     const hace90dias = new Date();
     hace90dias.setDate(hace90dias.getDate() - 90);
-    supabase
-      .from("registros_habito")
-      .select("*")
-      .gte("fecha", hace90dias.toISOString().split("T")[0])
-      .order("fecha", { ascending: false })
-      .then(({ data }) => {
-        if (data) setRegistros((data as RegistroDB[]).map(registroFromDB));
-      });
-  }, [user]);
+    return ok(
+      await supabase
+        .from("registros_habito")
+        .select("*")
+        .gte("fecha", hace90dias.toISOString().split("T")[0])
+        .order("fecha", { ascending: false })
+    ).map((r) => registroFromDB(r as RegistroDB));
+  });
 
   async function agregarHabito(datos: Omit<Habito, "id" | "activo">) {
     if (!user) return;
