@@ -96,10 +96,12 @@ export function useHabitos() {
     const patch: Record<string, unknown> = {};
     if (datos.topico !== undefined) patch.topico = datos.topico;
     if (datos.tipoMedida !== undefined) patch.tipo_medida = datos.tipoMedida;
-    if (datos.unidad !== undefined) patch.unidad = datos.unidad ?? null;
+    // habitos_metas_ck: unidad y metas dependen de tipo_medida/frecuencia. El formulario envía siempre
+    // estas claves (con undefined = "no aplica"), así que se escriben como null para no dejar residuos.
+    if ("unidad" in datos) patch.unidad = datos.unidad ?? null;
     if (datos.frecuencia !== undefined) patch.frecuencia = datos.frecuencia;
-    if (datos.metaSemanal !== undefined) patch.meta_semanal = datos.metaSemanal ?? null;
-    if (datos.metaCantidadSemanal !== undefined) patch.meta_cantidad_semanal = datos.metaCantidadSemanal ?? null;
+    if ("metaSemanal" in datos) patch.meta_semanal = datos.metaSemanal ?? null;
+    if ("metaCantidadSemanal" in datos) patch.meta_cantidad_semanal = datos.metaCantidadSemanal ?? null;
     if (datos.activo !== undefined) patch.activo = datos.activo;
 
     const { data, error } = await supabase

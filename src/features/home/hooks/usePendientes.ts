@@ -150,6 +150,9 @@ export function usePendientes() {
     if (datos.tipo !== undefined) patch.tipo = datos.tipo;
     if (datos.materiaId !== undefined) patch.materia_id = datos.materiaId ?? null;
     if (datos.categoriaPersonalId !== undefined) patch.categoria_personal_id = datos.categoriaPersonalId ?? null;
+    // pendientes_tipo_ck: un pendiente escolar no tiene categoría personal y viceversa
+    if (datos.tipo === "escolar") patch.categoria_personal_id = null;
+    if (datos.tipo === "personal") patch.materia_id = null;
 
     const { data, error } = await supabase
       .from("pendientes")
