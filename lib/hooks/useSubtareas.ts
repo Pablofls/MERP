@@ -25,7 +25,7 @@ export function useSubtareas(pendienteId: string | null) {
   const [subtareas, setSubtareas] = useCachedList<Subtarea>(
     "subtareas",
     async () =>
-      ok(await supabase.from("subtareas").select("*").eq("pendiente_id", pendienteId!).order("created_at"))
+      ok(await supabase.from("subtareas").select("id,pendiente_id,titulo,completado").eq("pendiente_id", pendienteId!).order("created_at"))
         .map((r) => fromDB(r as SubtareaDB)),
     pendienteId,
   );

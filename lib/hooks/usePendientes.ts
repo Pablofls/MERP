@@ -31,10 +31,26 @@ function fromDB(row: PendienteDB): Pendiente {
   };
 }
 
+const COLUMNAS =
+  "id,titulo,descripcion,fecha_limite,completado,tipo,materia_id,categoria_personal_id,google_task_id";
+
+// Los pendientes completados de hace más de 90 días no se cargan (los activos siempre)
+function desdeCompletados() {
+  const d = new Date();
+  d.setDate(d.getDate() - 90);
+  return d.toISOString();
+}
+
 export function usePendientes() {
   const user = useUser();
   const [pendientes, setPendientes, cargando] = useCachedList<Pendiente>("pendientes", async () =>
-    ok(await supabase.from("pendientes").select("*").order("created_at", { ascending: false }))
+    ok(
+      await supabase
+        .from("pendientes")
+        .select(COLUMNAS)
+        .or(`completado.eq.false,created_at.gte.${desdeCompletados()}`)
+        .order("created_at", { ascending: false })
+    )
       .map((r) => fromDB(r as PendienteDB))
   );
 

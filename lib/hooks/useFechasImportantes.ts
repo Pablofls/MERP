@@ -29,7 +29,7 @@ function fromDB(row: FechaImportanteDB): FechaImportante {
 export function useFechasImportantes() {
   const user = useUser();
   const [fechas, setFechas] = useCachedList<FechaImportante>("fechas_importantes", async () =>
-    ok(await supabase.from("fechas_importantes").select("*").order("fecha", { ascending: true }))
+    ok(await supabase.from("fechas_importantes").select("id,titulo,descripcion,fecha,materia_id,tipo,completado").order("fecha", { ascending: true }))
       .map((r) => fromDB(r as FechaImportanteDB))
   );
 

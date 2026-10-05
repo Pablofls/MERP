@@ -18,7 +18,7 @@ export function useCategorias() {
   const user = useUser();
   const [categorias, setCategorias] = useCachedList<CategoriaPersonal>("categorias", async (u) => {
     const data = ok(
-      await supabase.from("categorias_personales").select("*").order("created_at", { ascending: true })
+      await supabase.from("categorias_personales").select("id,nombre,color,user_id,created_at").order("created_at", { ascending: true })
     ) as CategoriaDB[];
     if (data.length > 0) return data.map(fromDB);
     const inserts = DEFAULTS.map((d) => ({ ...d, user_id: u.id }));

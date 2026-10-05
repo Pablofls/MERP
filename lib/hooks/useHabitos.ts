@@ -51,7 +51,7 @@ function registroFromDB(row: RegistroDB): RegistroHabito {
 export function useHabitos() {
   const user = useUser();
   const [habitos, setHabitos] = useCachedList<Habito>("habitos", async () =>
-    ok(await supabase.from("habitos").select("*").order("created_at")).map((r) => habitoFromDB(r as HabitoDB))
+    ok(await supabase.from("habitos").select("id,topico,tipo_medida,unidad,frecuencia,meta_semanal,meta_cantidad_semanal,activo").order("created_at")).map((r) => habitoFromDB(r as HabitoDB))
   );
   const [registros, setRegistros] = useCachedList<RegistroHabito>("registros_habito", async () => {
     const hace90dias = new Date();
@@ -59,7 +59,7 @@ export function useHabitos() {
     return ok(
       await supabase
         .from("registros_habito")
-        .select("*")
+        .select("id,habito_id,fecha,valor")
         .gte("fecha", hace90dias.toISOString().split("T")[0])
         .order("fecha", { ascending: false })
     ).map((r) => registroFromDB(r as RegistroDB));
