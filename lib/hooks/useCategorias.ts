@@ -2,6 +2,7 @@
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
 import { useCachedList, ok } from "../cache/useCachedList";
+import type { User } from "@supabase/supabase-js";
 import type { CategoriaPersonal } from "../types";
 
 const DEFAULTS: { nombre: string; color: string }[] = [
@@ -14,17 +15,22 @@ function fromDB(row: CategoriaDB): CategoriaPersonal {
   return { id: row.id, nombre: row.nombre, color: row.color };
 }
 
+export const fetchCategorias = async (u: User): Promise<CategoriaPersonal[]> => {
+  const data = ok(
+    await supabase
+      .from("categorias_personales")
+      .select("id,nombre,color,user_id,created_at")
+      .order("created_at", { ascending: true })
+  ) as CategoriaDB[];
+  if (data.length > 0) return data.map(fromDB);
+  const inserts = DEFAULTS.map((d) => ({ ...d, user_id: u.id }));
+  const seeded = ok(await supabase.from("categorias_personales").insert(inserts).select()) as CategoriaDB[];
+  return seeded.map(fromDB);
+};
+
 export function useCategorias() {
   const user = useUser();
-  const [categorias, setCategorias] = useCachedList<CategoriaPersonal>("categorias", async (u) => {
-    const data = ok(
-      await supabase.from("categorias_personales").select("id,nombre,color,user_id,created_at").order("created_at", { ascending: true })
-    ) as CategoriaDB[];
-    if (data.length > 0) return data.map(fromDB);
-    const inserts = DEFAULTS.map((d) => ({ ...d, user_id: u.id }));
-    const seeded = ok(await supabase.from("categorias_personales").insert(inserts).select()) as CategoriaDB[];
-    return seeded.map(fromDB);
-  });
+  const [categorias, setCategorias] = useCachedList<CategoriaPersonal>("categorias", fetchCategorias);
 
   async function agregar(nombre: string, color: string) {
     if (!user || !nombre.trim()) return;

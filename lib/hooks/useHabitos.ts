@@ -48,22 +48,30 @@ function registroFromDB(row: RegistroDB): RegistroHabito {
   return { id: row.id, habitoId: row.habito_id, fecha: row.fecha, valor: row.valor };
 }
 
+export const fetchHabitos = async (): Promise<Habito[]> =>
+  ok(
+    await supabase
+      .from("habitos")
+      .select("id,topico,tipo_medida,unidad,frecuencia,meta_semanal,meta_cantidad_semanal,activo")
+      .order("created_at")
+  ).map((r) => habitoFromDB(r as HabitoDB));
+
+export const fetchRegistros = async (): Promise<RegistroHabito[]> => {
+  const hace90dias = new Date();
+  hace90dias.setDate(hace90dias.getDate() - 90);
+  return ok(
+    await supabase
+      .from("registros_habito")
+      .select("id,habito_id,fecha,valor")
+      .gte("fecha", hace90dias.toISOString().split("T")[0])
+      .order("fecha", { ascending: false })
+  ).map((r) => registroFromDB(r as RegistroDB));
+};
+
 export function useHabitos() {
   const user = useUser();
-  const [habitos, setHabitos] = useCachedList<Habito>("habitos", async () =>
-    ok(await supabase.from("habitos").select("id,topico,tipo_medida,unidad,frecuencia,meta_semanal,meta_cantidad_semanal,activo").order("created_at")).map((r) => habitoFromDB(r as HabitoDB))
-  );
-  const [registros, setRegistros] = useCachedList<RegistroHabito>("registros_habito", async () => {
-    const hace90dias = new Date();
-    hace90dias.setDate(hace90dias.getDate() - 90);
-    return ok(
-      await supabase
-        .from("registros_habito")
-        .select("id,habito_id,fecha,valor")
-        .gte("fecha", hace90dias.toISOString().split("T")[0])
-        .order("fecha", { ascending: false })
-    ).map((r) => registroFromDB(r as RegistroDB));
-  });
+  const [habitos, setHabitos] = useCachedList<Habito>("habitos", fetchHabitos);
+  const [registros, setRegistros] = useCachedList<RegistroHabito>("registros_habito", fetchRegistros);
 
   async function agregarHabito(datos: Omit<Habito, "id" | "activo">) {
     if (!user) return;

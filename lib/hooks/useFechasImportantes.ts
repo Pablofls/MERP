@@ -26,12 +26,17 @@ function fromDB(row: FechaImportanteDB): FechaImportante {
   };
 }
 
+export const fetchFechas = async (): Promise<FechaImportante[]> =>
+  ok(
+    await supabase
+      .from("fechas_importantes")
+      .select("id,titulo,descripcion,fecha,materia_id,tipo,completado")
+      .order("fecha", { ascending: true })
+  ).map((r) => fromDB(r as FechaImportanteDB));
+
 export function useFechasImportantes() {
   const user = useUser();
-  const [fechas, setFechas] = useCachedList<FechaImportante>("fechas_importantes", async () =>
-    ok(await supabase.from("fechas_importantes").select("id,titulo,descripcion,fecha,materia_id,tipo,completado").order("fecha", { ascending: true }))
-      .map((r) => fromDB(r as FechaImportanteDB))
-  );
+  const [fechas, setFechas] = useCachedList<FechaImportante>("fechas_importantes", fetchFechas);
 
   async function agregar(datos: Omit<FechaImportante, "id" | "completado">) {
     if (!user) return;

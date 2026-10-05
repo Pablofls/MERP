@@ -41,18 +41,18 @@ function desdeCompletados() {
   return d.toISOString();
 }
 
+export const fetchPendientes = async (): Promise<Pendiente[]> =>
+  ok(
+    await supabase
+      .from("pendientes")
+      .select(COLUMNAS)
+      .or(`completado.eq.false,created_at.gte.${desdeCompletados()}`)
+      .order("created_at", { ascending: false })
+  ).map((r) => fromDB(r as PendienteDB));
+
 export function usePendientes() {
   const user = useUser();
-  const [pendientes, setPendientes, cargando] = useCachedList<Pendiente>("pendientes", async () =>
-    ok(
-      await supabase
-        .from("pendientes")
-        .select(COLUMNAS)
-        .or(`completado.eq.false,created_at.gte.${desdeCompletados()}`)
-        .order("created_at", { ascending: false })
-    )
-      .map((r) => fromDB(r as PendienteDB))
-  );
+  const [pendientes, setPendientes, cargando] = useCachedList<Pendiente>("pendientes", fetchPendientes);
 
   async function agregar(datos: Omit<Pendiente, "id" | "completado">) {
     if (!user) return;

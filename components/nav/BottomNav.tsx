@@ -1,4 +1,5 @@
 "use client";
+import { usePrefetchRutas } from "@/lib/cache/prefetch";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ const TABS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const prefetchRuta = usePrefetchRutas();
   if (pathname === "/login" || pathname === "/reset-password") return null;
 
   return (
@@ -55,6 +57,8 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
+              onTouchStart={() => prefetchRuta(tab.href)}
+              onMouseEnter={() => prefetchRuta(tab.href)}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
                 active ? "text-blue-900" : "text-gray-400"

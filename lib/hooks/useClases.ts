@@ -43,11 +43,17 @@ function toDB(datos: Omit<ClaseHorario, "id">) {
   };
 }
 
+export const fetchClases = async (): Promise<ClaseHorario[]> =>
+  ok(
+    await supabase
+      .from("clases")
+      .select("id,materia_id,dia,hora_inicio,hora_fin,salon,fecha_inicio,fecha_fin,google_event_id")
+      .order("dia")
+  ).map((r) => fromDB(r as ClaseDB));
+
 export function useClases() {
   const user = useUser();
-  const [clases, setClases, cargando] = useCachedList<ClaseHorario>("clases", async () =>
-    ok(await supabase.from("clases").select("id,materia_id,dia,hora_inicio,hora_fin,salon,fecha_inicio,fecha_fin,google_event_id").order("dia")).map((r) => fromDB(r as ClaseDB))
-  );
+  const [clases, setClases, cargando] = useCachedList<ClaseHorario>("clases", fetchClases);
 
   async function agregar(datos: Omit<ClaseHorario, "id">) {
     if (!user) return;

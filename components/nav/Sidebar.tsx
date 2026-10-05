@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useGoogleStatus } from "@/lib/hooks/useGoogleStatus";
 import { useUser } from "@/lib/context/AuthContext";
 import { useHotkey } from "@/lib/hooks/useHotkey";
+import { usePrefetchRutas } from "@/lib/cache/prefetch";
 
 const TABS = [
   { href: "/",        label: "Inicio"   },
@@ -13,12 +14,14 @@ const TABS = [
   { href: "/habitos", label: "Habitos"  },
 ];
 
-function TabLink({ href, label, active }: { href: string; label: string; active: boolean }) {
+function TabLink({ href, label, active, onPrefetch }: { href: string; label: string; active: boolean; onPrefetch: (href: string) => void }) {
   const hotkeyRef = useHotkey<HTMLAnchorElement>(label);
   return (
     <Link
       href={href}
       ref={hotkeyRef}
+      onMouseEnter={() => onPrefetch(href)}
+      onFocus={() => onPrefetch(href)}
       className={cn(
         "px-3 py-2.5 rounded-lg text-base font-medium transition-colors",
         active
@@ -35,6 +38,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const user = useUser();
   const { conectado } = useGoogleStatus();
+  const prefetchRuta = usePrefetchRutas(true);
   const perfilHotkeyRef = useHotkey<HTMLAnchorElement>("Perfil");
 
   if (pathname === "/login" || pathname === "/reset-password") return null;
@@ -53,7 +57,7 @@ export default function Sidebar() {
       <nav className="flex flex-col gap-0.5 flex-1">
         {TABS.map((tab) => {
           const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
-          return <TabLink key={tab.href} href={tab.href} label={tab.label} active={active} />;
+          return <TabLink key={tab.href} href={tab.href} label={tab.label} active={active} onPrefetch={prefetchRuta} />;
         })}
       </nav>
 

@@ -4,11 +4,12 @@ import { useUser } from "../context/AuthContext";
 import { useCachedList, ok } from "../cache/useCachedList";
 import type { Materia } from "../types";
 
+export const fetchMaterias = async (): Promise<Materia[]> =>
+  ok(await supabase.from("materias").select("id,nombre,color").order("created_at")) as Materia[];
+
 export function useMaterias() {
   const user = useUser();
-  const [materias, setMaterias, cargando] = useCachedList<Materia>("materias", async () =>
-    ok(await supabase.from("materias").select("id,nombre,color").order("created_at")) as Materia[]
-  );
+  const [materias, setMaterias, cargando] = useCachedList<Materia>("materias", fetchMaterias);
 
   async function agregar(datos: Omit<Materia, "id">) {
     if (!user) return;
