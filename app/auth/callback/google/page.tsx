@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-export default function GoogleCallbackPage() {
+function GoogleCallbackPageContenido() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [estado, setEstado] = useState<"procesando" | "error">("procesando");
@@ -90,5 +90,13 @@ export default function GoogleCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function GoogleCallbackPage() {
+  return (
+    <Suspense>
+      <GoogleCallbackPageContenido />
+    </Suspense>
   );
 }

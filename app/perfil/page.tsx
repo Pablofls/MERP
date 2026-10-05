@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useGoogleStatus } from "@/lib/hooks/useGoogleStatus";
@@ -12,7 +12,7 @@ const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/tasks",
 ].join(" ");
 
-export default function PerfilPage() {
+function PerfilPageContenido() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
@@ -132,5 +132,13 @@ export default function PerfilPage() {
         Cerrar sesión
       </button>
     </div>
+  );
+}
+
+export default function PerfilPage() {
+  return (
+    <Suspense>
+      <PerfilPageContenido />
+    </Suspense>
   );
 }
