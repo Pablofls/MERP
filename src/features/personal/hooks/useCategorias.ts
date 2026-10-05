@@ -15,17 +15,25 @@ function fromDB(row: CategoriaDB): CategoriaPersonal {
   return { id: row.id, nombre: row.nombre, color: row.color };
 }
 
-export const fetchCategorias = async (u: User): Promise<CategoriaPersonal[]> => {
-  const data = ok(
+const COLUMNAS_CATEGORIA = "id,nombre,color,user_id,created_at";
+
+const leerCategorias = async () =>
+  ok(
     await supabase
       .from("categorias_personales")
-      .select("id,nombre,color,user_id,created_at")
+      .select(COLUMNAS_CATEGORIA)
       .order("created_at", { ascending: true })
   ) as CategoriaDB[];
+
+export const fetchCategorias = async (u: User): Promise<CategoriaPersonal[]> => {
+  const data = await leerCategorias();
   if (data.length > 0) return data.map(fromDB);
   const inserts = DEFAULTS.map((d) => ({ ...d, user_id: u.id }));
-  const seeded = ok(await supabase.from("categorias_personales").insert(inserts).select()) as CategoriaDB[];
-  return seeded.map(fromDB);
+  const sembrado = await supabase.from("categorias_personales").insert(inserts).select();
+  // Si otra consulta concurrente ya sembró las categorías, el índice único (user_id, nombre) rechaza
+  // este insert: se relee en vez de fallar
+  if (sembrado.error) return (await leerCategorias()).map(fromDB);
+  return (ok(sembrado) as CategoriaDB[]).map(fromDB);
 };
 
 export function useCategorias() {
