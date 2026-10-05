@@ -4,12 +4,13 @@ import { supabase } from "@/lib/supabase";
 import type { ClaseHorario, Materia, DiaSemana } from "@/lib/types";
 import { DIAS_SHORT } from "@/lib/utils";
 import EmptyState from "@/components/ui/EmptyState";
+import type { NuevaClase } from "@/features/escolar/hooks/useClases";
 import { cn } from "@/lib/utils";
 
 interface Props {
   clases: ClaseHorario[];
   materias: Materia[];
-  onAgregar: (datos: Omit<ClaseHorario, "id">) => void;
+  onAgregar: (datos: NuevaClase) => void;
   onEditar: (id: string, datos: Partial<ClaseHorario>) => void;
   onEliminar: (id: string) => void;
 }
@@ -220,19 +221,17 @@ export default function GestorClases({ clases, materias, onAgregar, onEditar, on
         googleEventId = gcalData.eventId ?? null;
       }
 
-      // Guardar en Supabase (un registro por día seleccionado)
-      for (const dia of dias) {
-        onAgregar({
-          materiaId,
-          dia,
-          horaInicio,
-          horaFin,
-          salon: salon.trim() || undefined,
-          fechaInicio: fechaInicio || null,
-          fechaFin: (seRepite && fechaFin) ? fechaFin : (fechaInicio || null),
-          googleEventId,
-        });
-      }
+      // Guardar en Supabase (una clase con todos sus días)
+      onAgregar({
+        materiaId,
+        dias,
+        horaInicio,
+        horaFin,
+        salon: salon.trim() || undefined,
+        fechaInicio: fechaInicio || null,
+        fechaFin: (seRepite && fechaFin) ? fechaFin : (fechaInicio || null),
+        googleEventId,
+      });
 
       setOpen(false);
       setSalon("");

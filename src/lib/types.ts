@@ -6,8 +6,11 @@ export interface Materia {
   color: string; // hex color
 }
 
+// Una ocurrencia semanal de una clase (fila "plana" por día). En la BD una clase (`clases`) tiene
+// varios días (`clase_dias`); `id` identifica la ocurrencia ("<claseId>:<dia>") y `claseId` la clase.
 export interface ClaseHorario {
   id: string;
+  claseId: string;
   materiaId: string;
   dia: DiaSemana;
   horaInicio: string; // "HH:MM"

@@ -14,7 +14,7 @@ type Consulta = { key: string; fetcher: (u: User) => Promise<unknown> };
 
 const PENDIENTES = { key: "pendientes", fetcher: fetchPendientes };
 const MATERIAS = { key: "materias", fetcher: fetchMaterias };
-const CLASES = { key: "clases", fetcher: fetchClases };
+const CLASES = { key: "clases_v2", fetcher: fetchClases };
 const FECHAS = { key: "fechas_importantes", fetcher: fetchFechas };
 const CATEGORIAS = { key: "categorias", fetcher: fetchCategorias };
 
