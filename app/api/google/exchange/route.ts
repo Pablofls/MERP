@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { encrypt } from "@/lib/server/encrypt";
+import { invalidateGoogleToken } from "@/lib/server/google-auth";
 
 // When NEXT_PUBLIC_APP_URL is not set, fall through to request-derived origin below.
 const ALLOWED_REDIRECT_ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? null;
@@ -30,6 +31,8 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // Se reconecta la cuenta: descartar el access token cacheado de la anterior
+  invalidateGoogleToken(user.id);
 
   // Separate client with the user token for RLS-scoped DB writes
   const supabase = createClient(

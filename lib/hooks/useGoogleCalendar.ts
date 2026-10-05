@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../supabase";
 import { useUser } from "../context/AuthContext";
 import { useGoogleStatus } from "./useGoogleStatus";
@@ -14,50 +14,45 @@ export interface GoogleEventoHoy {
   todoElDia: boolean;
 }
 
+/** Pide eventos de Google Calendar al backend; lanza si falla para conservar la caché previa. */
+export async function fetchEventosGoogle(timeMin: Date, timeMax: Date) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("sin sesión");
+
+  const res = await fetch("/api/google/calendar", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ timeMin: timeMin.toISOString(), timeMax: timeMax.toISOString() }),
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error("calendar");
+  return data.eventos as any[];
+}
+
+export function useCalendarioRefetch() {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ queryKey: ["google_cal"] });
+}
+
 export function useGoogleCalendar(diaOffset: number = 0) {
   const user = useUser();
   const { conectado } = useGoogleStatus();
-  const [eventos, setEventos] = useState<GoogleEventoHoy[]>([]);
-  const [cargando, setCargando] = useState(false);
-  const [version, setVersion] = useState(0);
+  const refetch = useCalendarioRefetch();
 
-  useEffect(() => {
-    if (!user || !conectado) return;
+  const base = new Date();
+  base.setDate(base.getDate() + diaOffset);
+  const inicio = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+  const fin = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1);
 
-    const base = new Date();
-    base.setDate(base.getDate() + diaOffset);
-    const inicio = new Date(base.getFullYear(), base.getMonth(), base.getDate());
-    const fin = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1);
+  const { data, isFetching } = useQuery({
+    // clave por fecha (no por offset) para que la caché persistida no se desfase al cambiar de día
+    queryKey: ["google_cal", user?.id ?? null, "dia", inicio.toISOString()],
+    queryFn: async () => (await fetchEventosGoogle(inicio, fin)) as GoogleEventoHoy[],
+    enabled: !!user && !!conectado,
+  });
 
-    async function fetchEventos() {
-      setCargando(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) return;
-
-        const res = await fetch("/api/google/calendar", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            timeMin: inicio.toISOString(),
-            timeMax: fin.toISOString(),
-          }),
-        });
-
-        const data = await res.json();
-        if (data.ok) setEventos(data.eventos);
-      } catch {
-        // silently fail — calendar is optional
-      } finally {
-        setCargando(false);
-      }
-    }
-
-    fetchEventos();
-  }, [user, conectado, version, diaOffset]);
-
-  return { eventos, cargando, refetch: () => setVersion((v) => v + 1) };
+  return { eventos: data ?? [], cargando: isFetching, refetch };
 }

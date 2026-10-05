@@ -4,7 +4,29 @@ import { decrypt } from "./encrypt";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+// Caché en memoria (por instancia) del access token de Google, por usuario de Supabase.
+// Evita releer google_tokens y refrescar contra Google en cada llamada.
+const accessTokenCache = new Map<string, { token: string; expiresAt: number }>();
+
+export function invalidateGoogleToken(userId: string) {
+  accessTokenCache.delete(userId);
+}
+
+// Solo se llama con un JWT ya verificado por requireAuth.
+function userIdFromJwt(jwt: string): string | null {
+  try {
+    const payload = JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString());
+    return typeof payload.sub === "string" ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getGoogleAccessToken(supabaseToken: string): Promise<string | null> {
+  const userId = userIdFromJwt(supabaseToken);
+  const cached = userId ? accessTokenCache.get(userId) : undefined;
+  if (cached && cached.expiresAt > Date.now()) return cached.token;
+
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${supabaseToken}` } },
   });
@@ -39,6 +61,10 @@ export async function getGoogleAccessToken(supabaseToken: string): Promise<strin
 
   if (!res.ok) return null;
   const token = await res.json();
+  if (userId && token.access_token) {
+    const ttl = Math.max((Number(token.expires_in) || 3600) - 120, 0) * 1000;
+    accessTokenCache.set(userId, { token: token.access_token, expiresAt: Date.now() + ttl });
+  }
   return token.access_token ?? null;
 }
 
@@ -48,10 +74,10 @@ export async function requireAuth(authHeader: string | null): Promise<string | n
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7);
 
-  // Pass the token directly — getUser() without args uses internal session storage
-  // which is always empty in server-side (stateless) contexts.
+  // getClaims(jwt) verifica la firma localmente (JWKS en caché) y la expiración,
+  // sin viaje a Supabase Auth en cada llamada.
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const { data: { user } } = await supabase.auth.getUser(token);
+  const { data, error } = await supabase.auth.getClaims(token);
 
-  return user ? token : null;
+  return !error && data?.claims?.sub ? token : null;
 }

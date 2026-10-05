@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import { useQuery } from "@tanstack/react-query";
 import { useUser } from "../context/AuthContext";
 import { useGoogleStatus } from "./useGoogleStatus";
+import { fetchEventosGoogle, useCalendarioRefetch } from "./useGoogleCalendar";
 import { DIAS_SEMANA } from "../utils";
 import type { DiaSemana } from "../types";
 
@@ -39,71 +39,45 @@ function formatHora(iso: string): string {
 export function useGoogleCalendarSemana(semanaOffset: number = 0) {
   const user = useUser();
   const { conectado } = useGoogleStatus();
-  const [eventos, setEventos] = useState<GoogleEventoSemana[]>([]);
-  const [version, setVersion] = useState(0);
+  const refetch = useCalendarioRefetch();
 
-  useEffect(() => {
-    if (!user || !conectado) return;
+  const lunes = getLunesDeSemana(semanaOffset);
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 7);
 
-    const lunes = getLunesDeSemana(semanaOffset);
-    const domingo = new Date(lunes);
-    domingo.setDate(lunes.getDate() + 7);
+  const { data } = useQuery({
+    queryKey: ["google_cal", user?.id ?? null, "semana", lunes.toISOString()],
+    queryFn: async () => {
+      // "YYYY-MM-DD" → DiaSemana
+      const fechaADia = new Map<string, DiaSemana>();
+      DIAS_SEMANA.forEach((dia, i) => {
+        const d = new Date(lunes);
+        d.setDate(lunes.getDate() + i);
+        fechaADia.set(d.toISOString().split("T")[0], dia);
+      });
 
-    // Build map: "YYYY-MM-DD" → DiaSemana
-    const fechaADia = new Map<string, DiaSemana>();
-    DIAS_SEMANA.forEach((dia, i) => {
-      const d = new Date(lunes);
-      d.setDate(lunes.getDate() + i);
-      fechaADia.set(d.toISOString().split("T")[0], dia);
-    });
-
-    async function fetchSemana() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) return;
-
-        const res = await fetch("/api/google/calendar", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            timeMin: lunes.toISOString(),
-            timeMax: domingo.toISOString(),
-          }),
+      const mapped: GoogleEventoSemana[] = [];
+      for (const e of await fetchEventosGoogle(lunes, domingo)) {
+        if (e.todoElDia || !e.inicio || !e.fin) continue;
+        const dia = fechaADia.get(e.inicio.split("T")[0]);
+        if (!dia) continue;
+        mapped.push({
+          id: e.id,
+          titulo: e.titulo,
+          descripcion: e.descripcion ?? null,
+          hangoutLink: e.hangoutLink ?? null,
+          dia,
+          horaInicio: formatHora(e.inicio),
+          horaFin: formatHora(e.fin),
+          inicioISO: e.inicio,
+          finISO: e.fin,
+          recurringEventId: e.recurringEventId ?? null,
         });
-
-        const data = await res.json();
-        if (!data.ok) return;
-
-        const mapped: GoogleEventoSemana[] = [];
-        for (const e of data.eventos) {
-          if (e.todoElDia || !e.inicio || !e.fin) continue;
-          const fecha = e.inicio.split("T")[0];
-          const dia = fechaADia.get(fecha);
-          if (!dia) continue;
-          mapped.push({
-            id: e.id,
-            titulo: e.titulo,
-            descripcion: e.descripcion ?? null,
-            hangoutLink: e.hangoutLink ?? null,
-            dia,
-            horaInicio: formatHora(e.inicio),
-            horaFin: formatHora(e.fin),
-            inicioISO: e.inicio,
-            finISO: e.fin,
-            recurringEventId: e.recurringEventId ?? null,
-          });
-        }
-        setEventos(mapped);
-      } catch {
-        // calendario es opcional
       }
-    }
+      return mapped;
+    },
+    enabled: !!user && !!conectado,
+  });
 
-    fetchSemana();
-  }, [user, conectado, version, semanaOffset]);
-
-  return { eventos, refetch: () => setVersion((v) => v + 1) };
+  return { eventos: data ?? [], refetch };
 }
