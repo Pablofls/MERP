@@ -5,9 +5,9 @@
 -- Refleja hasta: 20261007_unicidad_nombres.sql (aplicadas 20261005 y 20261006; 20261007 es opcional).
 -- Normalización: 4FN (clases + clase_dias), FKs compuestas (fk, user_id) para consistencia con RLS.
 --
--- Las tablas base (materias, pendientes, habitos, registros_habito) se crearon antes de que el repo
--- guardara DDL: sus definiciones aquí están reconstruidas de los hooks (src/features/**/hooks) y deben
--- contrastarse con la sección 1_columnas / 2_constraints de supabase/diagnostico_esquema.sql.
+-- Las tablas base (materias, pendientes, habitos, registros_habito, eventos) se crearon antes de que el repo
+-- guardara DDL: sus definiciones se verificaron contra supabase/diagnostico_esquema.sql (2026-10-04, PostgreSQL 17).
+-- Los nombres de constraints/políticas de la BD original se conservan; los cambios de M1–M3 se marcan con su migración.
 --
 -- Convención RLS: toda tabla tiene user_id y política "auth.uid() = user_id" (FOR ALL).
 
@@ -17,7 +17,7 @@ create table materias (
   user_id     uuid not null references auth.users(id) on delete cascade,
   nombre      text not null,
   color       text not null,                              -- hex
-  created_at  timestamptz not null default now(),
+  created_at  timestamptz default now(),
   constraint materias_id_user_key unique (id, user_id)
 );
 create index idx_materias_user_created on materias (user_id, created_at);
@@ -76,13 +76,13 @@ create table pendientes (
   user_id               uuid not null references auth.users(id) on delete cascade,
   titulo                text not null,
   descripcion           text,
-  fecha_limite          timestamptz,                       -- tipo exacto: confirmar con el diagnóstico
+  fecha_limite          date,
   completado            boolean not null default false,
-  tipo                  text not null,                     -- 'escolar' | 'personal'
+  tipo                  text not null constraint pendientes_tipo_check check (tipo in ('escolar','personal')),
   materia_id            uuid,
   categoria_personal_id uuid,
   google_task_id        text,
-  created_at            timestamptz not null default now(),
+  created_at            timestamptz default now(),
   constraint pendientes_id_user_key unique (id, user_id),
   constraint pendientes_materia_fk foreign key (materia_id, user_id)
     references materias (id, user_id) on delete set null (materia_id),
@@ -131,16 +131,15 @@ create table habitos (
   id                    uuid primary key default gen_random_uuid(),
   user_id               uuid not null references auth.users(id) on delete cascade,
   topico                text not null,
-  tipo_medida           text not null,                     -- 'numerica' | 'booleana'
+  tipo_medida           text not null constraint habitos_tipo_medida_check check (tipo_medida in ('numerica','booleana')),
   unidad                text,                              -- solo numérica
   frecuencia            text not null default 'diaria',    -- 'diaria' | 'semanal'
   meta_semanal          integer,                           -- semanal, modo conteo (1..7)
   meta_cantidad_semanal numeric,                           -- semanal numérica, modo acumulado
   activo                boolean not null default true,
-  created_at            timestamptz not null default now(),
+  created_at            timestamptz default now(),
   constraint habitos_id_user_key unique (id, user_id),
   constraint habitos_frecuencia_ck check (frecuencia in ('diaria','semanal')),
-  constraint habitos_tipo_medida_ck check (tipo_medida in ('numerica','booleana')),
   constraint habitos_metas_ck check (
     (meta_semanal is null or (frecuencia = 'semanal' and meta_semanal between 1 and 7))
     and (meta_cantidad_semanal is null or (frecuencia = 'semanal' and tipo_medida = 'numerica' and meta_cantidad_semanal > 0))
@@ -162,6 +161,19 @@ create table registros_habito (
 );
 create index idx_registros_habito_user_fecha on registros_habito (user_id, fecha desc);
 
+-- ── eventos (SIN USO en la app; tabla heredada de la fase 1, pendiente de decidir si se elimina) ──
+create table eventos (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid references auth.users(id) on delete cascade,
+  titulo          text not null,
+  fecha_inicio    timestamptz not null,
+  fecha_fin       timestamptz not null,
+  tipo            text not null constraint eventos_tipo_check check (tipo in ('escolar','personal')),
+  materia_id      uuid references materias(id) on delete set null,
+  google_event_id text,
+  created_at      timestamptz default now()
+);
+
 -- ── google_tokens (1:1 con el usuario) ──────────────────────────────────────────────────────────
 create table google_tokens (
   user_id       uuid primary key references auth.users(id) on delete cascade,
@@ -181,6 +193,7 @@ alter table fechas_importantes    enable row level security;
 alter table habitos               enable row level security;
 alter table registros_habito      enable row level security;
 alter table google_tokens         enable row level security;
+alter table eventos               enable row level security;
 
 create policy "clases: own rows"      on clases      for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "clase_dias: own rows"  on clase_dias  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -188,4 +201,8 @@ create policy "subtareas: own rows"   on subtareas   for all using (auth.uid() =
 create policy "Users manage own categorias" on categorias_personales for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Users manage own fechas_importantes" on fechas_importantes for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "google_tokens_own_row" on google_tokens for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
--- materias, pendientes, habitos, registros_habito: política equivalente "auth.uid() = user_id" (nombre exacto: ver 4_politicas_rls del diagnóstico).
+create policy "own_materias"   on materias         for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own_pendientes" on pendientes       for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own_habitos"    on habitos          for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own_registros"  on registros_habito for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own_eventos"    on eventos          for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

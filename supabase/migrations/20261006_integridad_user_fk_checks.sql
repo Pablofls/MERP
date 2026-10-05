@@ -7,10 +7,9 @@
 -- Una sola transacción: si hay datos que violen algo (p. ej. materia de otro usuario), falla y no cambia nada.
 -- Correr antes supabase/diagnostico_esquema.sql y revisar la sección 7_violaciones.
 --
--- Supuesto de ON DELETE al reemplazar FKs de tablas base cuyo DDL no estaba en el repo:
---   pendientes/fechas_importantes -> materia: SET NULL | subtareas -> pendientes: CASCADE
---   registros_habito -> habitos: CASCADE        | clases -> materias: CASCADE
--- Confirmar con la sección 2_constraints del diagnóstico antes de ejecutar.
+-- ON DELETE confirmado con el diagnóstico (2026-10-04) y conservado al reemplazar las FKs:
+--   pendientes/fechas_importantes -> materia, pendientes -> categoria: SET NULL
+--   subtareas -> pendientes, registros_habito -> habitos, clases -> materias: CASCADE
 
 begin;
 
@@ -46,6 +45,21 @@ begin
   end if;
   execute format('alter table %s validate constraint %I', tbl, nombre);
 end $$;
+
+-- user_id es nullable en materias/pendientes/habitos/registros_habito. Una FK compuesta (MATCH SIMPLE) no se
+-- comprueba con user_id NULL, así que se exige NOT NULL (la app siempre lo envía; con RLS esas filas serían invisibles).
+do $$
+declare t text; n int;
+begin
+  foreach t in array array['materias','pendientes','habitos','registros_habito'] loop
+    execute format('select count(*) from %I where user_id is null', t) into n;
+    if n > 0 then raise exception 'M2: % filas con user_id NULL en %; corregir antes de migrar', n, t; end if;
+  end loop;
+end $$;
+alter table materias         alter column user_id set not null;
+alter table pendientes       alter column user_id set not null;
+alter table habitos          alter column user_id set not null;
+alter table registros_habito alter column user_id set not null;
 
 -- 0. Limpieza dirigida (solo normaliza valores que la app ya ignora; no borra filas) -----------------
 -- pendientes: la app decide por `tipo`; la FK del otro tipo es residuo de ediciones previas.
@@ -95,7 +109,7 @@ select pg_temp.add_con('pendientes', 'pendientes_tipo_ck',
   $c$check ((tipo = 'escolar' and categoria_personal_id is null) or (tipo = 'personal' and materia_id is null))$c$);
 
 select pg_temp.add_con('habitos', 'habitos_frecuencia_ck', $c$check (frecuencia in ('diaria','semanal'))$c$);
-select pg_temp.add_con('habitos', 'habitos_tipo_medida_ck', $c$check (tipo_medida in ('numerica','booleana'))$c$);
+-- tipo_medida ya tiene habitos_tipo_medida_check en la BD
 select pg_temp.add_con('habitos', 'habitos_metas_ck', $c$check (
   (meta_semanal is null or (frecuencia = 'semanal' and meta_semanal between 1 and 7))
   and (meta_cantidad_semanal is null or (frecuencia = 'semanal' and tipo_medida = 'numerica' and meta_cantidad_semanal > 0))

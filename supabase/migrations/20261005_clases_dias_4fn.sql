@@ -9,6 +9,14 @@
 
 begin;
 
+-- 0. Guardia: `clases.user_id` es nullable en la BD actual; el esquema nuevo lo exige NOT NULL
+do $$
+begin
+  if exists (select 1 from clases where user_id is null) then
+    raise exception 'M1: hay clases con user_id NULL; asignarles dueño o borrarlas antes de migrar';
+  end if;
+end $$;
+
 -- 1. Tablas nuevas -----------------------------------------------------------------------------
 create table clases_new (
   id            uuid        primary key default gen_random_uuid(),
