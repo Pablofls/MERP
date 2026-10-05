@@ -11,3 +11,4 @@ dist-ssr
 .vercel
 *.log
 next-env.d.ts
+*.tsbuildinfo
