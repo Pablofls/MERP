@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGoogleAccessToken, requireAuth } from "@/features/google/server/google-auth";
+import { getGoogleAccessToken, googleFetch, requireAuth } from "@/features/google/server/google-auth";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 
 const CAL_BASE = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
@@ -31,14 +31,14 @@ function applyUntil(rrule: string, untilISO: string): string {
     + `;UNTIL=${until}`;
 }
 
-async function authAndRate(req: NextRequest): Promise<{ accessToken: string } | NextResponse> {
+async function authAndRate(req: NextRequest): Promise<{ accessToken: string; supabaseToken: string } | NextResponse> {
   if (!checkRateLimit(`cal:${getIp(req)}`, 30, 60_000))
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   const supabaseToken = await requireAuth(req.headers.get("Authorization"));
   if (!supabaseToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const accessToken = await getGoogleAccessToken(supabaseToken);
   if (!accessToken) return NextResponse.json({ ok: false, motivo: "no_token" });
-  return { accessToken };
+  return { accessToken, supabaseToken };
 }
 
 // GET /api/google/calendar?eventId=... — fetch a single event (for reading recurrence rules)
@@ -264,9 +264,9 @@ export async function POST(req: NextRequest) {
     fields: "items(id,summary,description,hangoutLink,start,end,status,colorId,recurringEventId)",
   });
 
-  const res = await fetch(`${CAL_BASE}?${params}`, {
-    headers: { Authorization: `Bearer ${auth.accessToken}` },
-  });
+  // googleFetch reintenta con token nuevo si Google responde 401 (acceso revocado)
+  const res = await googleFetch(auth.supabaseToken, `${CAL_BASE}?${params}`);
+  if (!res) return NextResponse.json({ ok: false, motivo: "no_token" });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGoogleAccessToken, requireAuth } from "@/features/google/server/google-auth";
+import { googleFetch, requireAuth } from "@/features/google/server/google-auth";
+import { TASKS_BASE, cuerpoTarea, dueDesdeFecha } from "@/features/google/server/google-tasks-api";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 
 function getIp(req: NextRequest): string {
@@ -35,27 +36,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid fechaLimite" }, { status: 400 });
   }
 
-  const accessToken = await getGoogleAccessToken(supabaseToken);
-  if (!accessToken) {
-    return NextResponse.json({ ok: false, motivo: "no_token" });
-  }
-
-  const BASE = "https://tasks.googleapis.com/tasks/v1/lists/@default/tasks";
+  const sinToken = () => NextResponse.json({ ok: false, motivo: "no_token" });
 
   if (action === "crear") {
     if (!titulo?.trim()) return NextResponse.json({ error: "titulo required" }, { status: 400 });
-    const taskBody: Record<string, string> = { title: titulo };
-    if (descripcion) taskBody.notes = descripcion;
-    if (fechaLimite) taskBody.due = `${fechaLimite}T00:00:00.000Z`;
-
-    const res = await fetch(BASE, {
+    const res = await googleFetch(supabaseToken, TASKS_BASE, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(taskBody),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cuerpoTarea(titulo, descripcion, fechaLimite)),
     });
+    if (!res) return sinToken();
 
     if (!res.ok) {
       const err = await res.json();
@@ -76,16 +66,14 @@ export async function POST(req: NextRequest) {
     if (completado !== undefined) patch.status = completado ? "completed" : "needsAction";
     if (titulo) patch.title = titulo;
     if (descripcion !== undefined) patch.notes = descripcion ?? "";
-    if (fechaLimite !== undefined) patch.due = fechaLimite ? `${fechaLimite}T00:00:00.000Z` : "";
+    if (fechaLimite !== undefined) patch.due = fechaLimite ? dueDesdeFecha(fechaLimite) : "";
 
-    const patchRes = await fetch(`${BASE}/${encodeURIComponent(taskId)}`, {
+    const patchRes = await googleFetch(supabaseToken, `${TASKS_BASE}/${encodeURIComponent(taskId)}`, {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
+    if (!patchRes) return sinToken();
     if (!patchRes.ok) {
       const err = await patchRes.json().catch(() => ({}));
       console.error("Google Tasks PATCH error:", err?.error?.code ?? patchRes.status);
@@ -95,10 +83,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "eliminar") {
-    await fetch(`${BASE}/${encodeURIComponent(taskId)}`, {
+    const delRes = await googleFetch(supabaseToken, `${TASKS_BASE}/${encodeURIComponent(taskId)}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
     });
+    if (!delRes) return sinToken();
     return NextResponse.json({ ok: true });
   }
 

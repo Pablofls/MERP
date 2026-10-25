@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { sincronizarGoogleTasks } from "@/features/google/lib/google-tasks";
 
 function GoogleCallbackPageContenido() {
   const router = useRouter();
@@ -63,7 +64,10 @@ function GoogleCallbackPageContenido() {
         return;
       }
 
-      router.replace("/perfil?google=conectado");
+      // Ponerse al día con lo que se hizo en MERP mientras Google estaba desconectado
+      const sync = await sincronizarGoogleTasks();
+      const extra = sync ? `&creadas=${sync.creadas}&actualizadas=${sync.actualizadas}` : "";
+      router.replace(`/perfil?google=conectado${extra}`);
     }
 
     handleCallback();

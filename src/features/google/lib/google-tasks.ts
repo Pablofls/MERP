@@ -1,11 +1,12 @@
 "use client";
 import { supabase } from "@/lib/supabase";
+import { avisarGoogleDesconectado } from "@/features/google/hooks/useGoogleStatus";
 
 async function callTasksAPI(body: Record<string, unknown>): Promise<Response | null> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) return null;
 
-  return fetch("/api/google/tasks", {
+  const res = await fetch("/api/google/tasks", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -13,6 +14,9 @@ async function callTasksAPI(body: Record<string, unknown>): Promise<Response | n
     },
     body: JSON.stringify(body),
   });
+  // Si Google ya no acepta el token, que el indicador de conexión se actualice al momento
+  res.clone().json().then((d) => { if (d?.motivo === "no_token") avisarGoogleDesconectado(); }).catch(() => {});
+  return res;
 }
 
 export async function crearGoogleTask(
@@ -41,4 +45,21 @@ export async function editarContenidoGoogleTask(
 
 export async function eliminarGoogleTask(taskId: string): Promise<void> {
   await callTasksAPI({ action: "eliminar", taskId });
+}
+
+export type ResultadoSync = { creadas: number; actualizadas: number };
+
+/** Publica en Google los pendientes que faltan y alinea su estado con MERP. */
+export async function sincronizarGoogleTasks(): Promise<ResultadoSync | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) return null;
+
+  const res = await fetch("/api/google/tasks/sync", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  const data = await res.json().catch(() => null);
+  if (data?.motivo === "no_token") avisarGoogleDesconectado();
+  if (!res.ok || !data?.ok) return null;
+  return { creadas: data.creadas, actualizadas: data.actualizadas };
 }

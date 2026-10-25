@@ -2,7 +2,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/context/AuthContext";
-import { useGoogleStatus } from "./useGoogleStatus";
+import { avisarGoogleDesconectado, useGoogleStatus } from "./useGoogleStatus";
 
 export interface GoogleEventoHoy {
   id: string;
@@ -28,6 +28,7 @@ export async function fetchEventosGoogle(timeMin: Date, timeMax: Date) {
     body: JSON.stringify({ timeMin: timeMin.toISOString(), timeMax: timeMax.toISOString() }),
   });
   const data = await res.json();
+  if (data.motivo === "no_token") avisarGoogleDesconectado();
   if (!data.ok) throw new Error("calendar");
   return data.eventos as any[];
 }

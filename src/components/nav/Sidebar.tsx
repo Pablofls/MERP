@@ -78,8 +78,8 @@ export default function Sidebar() {
             Perfil
           </p>
           {conectado !== null && (
-            <p className="text-[10px] text-gray-400 truncate">
-              {conectado ? "Google conectado" : "Google no conectado"}
+            <p className={cn("text-[10px] truncate", conectado ? "text-gray-400" : "text-amber-600")}>
+              {conectado ? "Google conectado" : "Google desconectado · reconectar"}
             </p>
           )}
         </div>
