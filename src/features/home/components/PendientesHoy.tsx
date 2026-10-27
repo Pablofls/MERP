@@ -20,7 +20,7 @@ interface Props {
   materias: Materia[];
   categorias: CategoriaPersonal[];
   onToggle: (id: string) => void;
-  onAgregar: (datos: Omit<Pendiente, "id" | "completado">) => void;
+  onAgregar: (datos: Omit<Pendiente, "id" | "completado">, subtareas: string[]) => void;
   onEditar: (id: string, datos: Partial<Pick<Pendiente, "titulo" | "descripcion" | "fechaLimite" | "materiaId">>) => void;
   onEliminar: (id: string) => void;
 }
@@ -168,8 +168,8 @@ export default function PendientesHoy({ pendientes, materias, categorias, onTogg
         <FormPendiente
           materias={materias}
           categorias={categorias}
-          onSubmit={(datos) => {
-            onAgregar(datos);
+          onSubmit={(datos, subtareas) => {
+            onAgregar(datos, subtareas);
             setModalOpen(false);
           }}
           onCancel={() => setModalOpen(false)}

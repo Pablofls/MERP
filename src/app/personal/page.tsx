@@ -280,7 +280,7 @@ export default function PersonalPage() {
           materias={[]}
           categorias={categorias}
           tipoPredeterminado="personal"
-          onSubmit={(datos) => { agregar(datos); setModalOpen(false); }}
+          onSubmit={(datos, subtareas) => { agregar(datos, subtareas); setModalOpen(false); }}
           onCancel={() => setModalOpen(false)}
         />
       </Modal>

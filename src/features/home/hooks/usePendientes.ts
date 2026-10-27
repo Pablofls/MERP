@@ -54,7 +54,7 @@ export function usePendientes() {
   const user = useUser();
   const [pendientes, setPendientes, cargando] = useCachedList<Pendiente>("pendientes", fetchPendientes);
 
-  async function agregar(datos: Omit<Pendiente, "id" | "completado">) {
+  async function agregar(datos: Omit<Pendiente, "id" | "completado">, subtareas: string[] = []) {
     if (!user) return;
 
     // Crear en Supabase primero
@@ -78,6 +78,12 @@ export function usePendientes() {
 
     const pendiente = fromDB(data as PendienteDB);
     setPendientes((prev) => [pendiente, ...prev]);
+
+    if (subtareas.length > 0) {
+      await supabase
+        .from("subtareas")
+        .insert(subtareas.map((titulo) => ({ pendiente_id: pendiente.id, titulo, user_id: user.id })));
+    }
 
     // Sincronizar con Google Tasks en segundo plano
     const googleTaskId = await crearGoogleTask(

@@ -24,15 +24,20 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
   const [fechaLimite, setFechaLimite] = useState("");
   const [categoria, setCategoria] = useState("");
   const [nuevaSubtarea, setNuevaSubtarea] = useState("");
+  const [editandoSubId, setEditandoSubId] = useState<string | null>(null);
+  const [textoSub, setTextoSub] = useState("");
+  // Evita que el blur al desmontar el input guarde de nuevo (o tras cancelar con Esc)
+  const cancelandoSubRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const completarBtnRef = useRef<HTMLButtonElement>(null);
 
-  const { subtareas, agregar, toggleCompletar, eliminar: eliminarSub } = useSubtareas(pendiente?.id ?? null);
+  const { subtareas, agregar, toggleCompletar, editar: editarSub, eliminar: eliminarSub } = useSubtareas(pendiente?.id ?? null);
 
   // Reset editing state when pendiente changes
   useEffect(() => {
     setEditando(false);
     setNuevaSubtarea("");
+    setEditandoSubId(null);
   }, [pendiente?.id]);
 
   function abrirEdicion() {
@@ -78,6 +83,19 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
     await agregar(nuevaSubtarea);
     setNuevaSubtarea("");
     inputRef.current?.focus();
+  }
+
+  function empezarEdicionSub(id: string, titulo: string) {
+    cancelandoSubRef.current = false;
+    setEditandoSubId(id);
+    setTextoSub(titulo);
+  }
+
+  function guardarEdicionSub() {
+    if (!editandoSubId || cancelandoSubRef.current) return;
+    cancelandoSubRef.current = true;
+    if (textoSub.trim()) editarSub(editandoSubId, textoSub);
+    setEditandoSubId(null);
   }
 
   if (!pendiente) return null;
@@ -133,7 +151,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
             {subtareas.length > 0 && (
               <ul className="space-y-1 mb-2">
                 {subtareas.map((sub) => (
-                  <li key={sub.id} className="flex items-center gap-2 group py-1">
+                  <li key={sub.id} className="flex items-center gap-2 group py-1 px-2 -mx-2 rounded-md hover:bg-gray-50 transition-colors">
                     <button
                       type="button"
                       onClick={() => toggleCompletar(sub.id)}
@@ -150,23 +168,57 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
                         </svg>
                       )}
                     </button>
-                    <span
-                      className={cn(
-                        "flex-1 text-sm transition-all duration-300",
-                        sub.completado ? "line-through text-gray-400" : "text-gray-700"
-                      )}
-                    >
-                      {sub.titulo}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => eliminarSub(sub.id)}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-400 transition-all"
-                    >
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    {editandoSubId === sub.id ? (
+                      <input
+                        type="text"
+                        value={textoSub}
+                        onChange={(e) => setTextoSub(e.target.value)}
+                        onBlur={guardarEdicionSub}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); guardarEdicionSub(); }
+                          // Que Esc cancele la edición sin cerrar el modal
+                          if (e.key === "Escape") { e.stopPropagation(); cancelandoSubRef.current = true; setEditandoSubId(null); }
+                        }}
+                        className="flex-1 min-w-0 text-sm text-gray-700 border border-gray-200 rounded-md px-2 py-0.5 -my-0.5 focus:outline-none focus:border-blue-900"
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        <span
+                          onDoubleClick={() => empezarEdicionSub(sub.id, sub.titulo)}
+                          className={cn(
+                            "flex-1 text-sm transition-all duration-300",
+                            sub.completado ? "line-through text-gray-400" : "text-gray-700"
+                          )}
+                        >
+                          {sub.titulo}
+                        </span>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => empezarEdicionSub(sub.id, sub.titulo)}
+                            title="Editar subtarea"
+                            aria-label="Editar subtarea"
+                            className="p-1 rounded-md text-gray-400 hover:text-blue-900 hover:bg-blue-50 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => eliminarSub(sub.id)}
+                            title="Eliminar subtarea"
+                            aria-label="Eliminar subtarea"
+                            className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>

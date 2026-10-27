@@ -209,7 +209,7 @@ export default function EscolarPage() {
           materias={materias}
           categorias={[]}
           tipoPredeterminado="escolar"
-          onSubmit={(datos) => { agregar({ ...datos, tipo: "escolar" }); setModalPendiente(false); }}
+          onSubmit={(datos, subtareas) => { agregar({ ...datos, tipo: "escolar" }, subtareas); setModalPendiente(false); }}
           onCancel={() => setModalPendiente(false)}
         />
       </Modal>

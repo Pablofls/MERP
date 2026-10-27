@@ -7,7 +7,7 @@ interface Props {
   materias: Materia[];
   categorias: CategoriaPersonal[];
   tipoPredeterminado?: "escolar" | "personal";
-  onSubmit: (datos: Omit<Pendiente, "id" | "completado">) => void;
+  onSubmit: (datos: Omit<Pendiente, "id" | "completado">, subtareas: string[]) => void;
   onCancel: () => void;
 }
 
@@ -25,6 +25,14 @@ export default function FormPendiente({ materias, categorias, tipoPredeterminado
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fechaLimite, setFechaLimite] = useState("");
+  const [subtareas, setSubtareas] = useState<string[]>([]);
+  const [nuevaSub, setNuevaSub] = useState("");
+
+  function agregarSub() {
+    if (!nuevaSub.trim()) return;
+    setSubtareas((prev) => [...prev, nuevaSub.trim()]);
+    setNuevaSub("");
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,7 +57,7 @@ export default function FormPendiente({ materias, categorias, tipoPredeterminado
       tipo,
       materiaId,
       categoriaPersonalId,
-    });
+    }, nuevaSub.trim() ? [...subtareas, nuevaSub.trim()] : subtareas);
   }
 
   const soloEscolar = tipoPredeterminado === "escolar";
@@ -115,6 +123,55 @@ export default function FormPendiente({ materias, categorias, tipoPredeterminado
           rows={2}
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 resize-none"
         />
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Subtareas</label>
+        {subtareas.length > 0 && (
+          <ul className="space-y-1 mb-2">
+            {subtareas.map((sub, i) => (
+              <li key={i} className="flex items-center gap-2 group py-1 px-2 -mx-2 rounded-md hover:bg-gray-50 transition-colors">
+                <span className="w-4 h-4 rounded border border-gray-300 flex-shrink-0" />
+                <span className="flex-1 text-sm text-gray-700">{sub}</span>
+                <button
+                  type="button"
+                  onClick={() => setSubtareas((prev) => prev.filter((_, j) => j !== i))}
+                  title="Quitar subtarea"
+                  aria-label="Quitar subtarea"
+                  className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={nuevaSub}
+            onChange={(e) => setNuevaSub(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter agrega la subtarea en lugar de enviar el formulario
+              if (e.key === "Enter") { e.preventDefault(); agregarSub(); }
+            }}
+            placeholder="Agregar subtarea…"
+            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-900 placeholder:text-gray-300"
+          />
+          <button
+            type="button"
+            onClick={agregarSub}
+            disabled={!nuevaSub.trim()}
+            aria-label="Agregar subtarea"
+            className="p-2 rounded-lg bg-blue-900 text-white hover:bg-blue-800 disabled:opacity-30 transition-colors flex-shrink-0"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div>
