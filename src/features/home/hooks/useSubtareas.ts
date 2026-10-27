@@ -48,10 +48,20 @@ export function useSubtareas(pendienteId: string | null) {
     await supabase.from("subtareas").update({ completado }).eq("id", id);
   }
 
+  async function editar(id: string, titulo: string) {
+    const actual = subtareas.find((s) => s.id === id);
+    const limpio = titulo.trim();
+    if (!actual || !limpio || limpio === actual.titulo) return;
+    setSubtareas((prev) => prev.map((s) => s.id === id ? { ...s, titulo: limpio } : s));
+    const { error } = await supabase.from("subtareas").update({ titulo: limpio }).eq("id", id);
+    // Rollback si falla la llamada a Supabase
+    if (error) setSubtareas((prev) => prev.map((s) => s.id === id ? actual : s));
+  }
+
   async function eliminar(id: string) {
     const { error } = await supabase.from("subtareas").delete().eq("id", id);
     if (!error) setSubtareas((prev) => prev.filter((s) => s.id !== id));
   }
 
-  return { subtareas, agregar, toggleCompletar, eliminar };
+  return { subtareas, agregar, toggleCompletar, editar, eliminar };
 }
