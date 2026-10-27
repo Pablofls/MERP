@@ -26,6 +26,9 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
   const [nuevaSubtarea, setNuevaSubtarea] = useState("");
   const [editandoSubId, setEditandoSubId] = useState<string | null>(null);
   const [textoSub, setTextoSub] = useState("");
+  // Borrador de subtareas del modo edición: se aplica al guardar, se descarta al cancelar
+  const [borradorSubs, setBorradorSubs] = useState<{ id: string | null; titulo: string; completado: boolean }[]>([]);
+  const [nuevaSubBorrador, setNuevaSubBorrador] = useState("");
   // Evita que el blur al desmontar el input guarde de nuevo (o tras cancelar con Esc)
   const cancelandoSubRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,7 +52,33 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
       ? `m:${pendiente.materiaId ?? materias[0]?.id ?? ""}`
       : `p:${pendiente.categoriaPersonalId ?? categorias[0]?.id ?? ""}`;
     setCategoria(cat);
+    setBorradorSubs(subtareas.map((s) => ({ id: s.id, titulo: s.titulo, completado: s.completado })));
+    setNuevaSubBorrador("");
     setEditando(true);
+  }
+
+  function agregarSubBorrador() {
+    if (!nuevaSubBorrador.trim()) return;
+    setBorradorSubs((prev) => [...prev, { id: null, titulo: nuevaSubBorrador.trim(), completado: false }]);
+    setNuevaSubBorrador("");
+  }
+
+  async function aplicarBorradorSubs() {
+    const finales = nuevaSubBorrador.trim()
+      ? [...borradorSubs, { id: null, titulo: nuevaSubBorrador.trim(), completado: false }]
+      : borradorSubs;
+    // Una subtarea existente que se dejó vacía cuenta como eliminada
+    const conservadas = new Set(finales.filter((b) => b.id && b.titulo.trim()).map((b) => b.id));
+    for (const s of subtareas) {
+      if (!conservadas.has(s.id)) eliminarSub(s.id);
+    }
+    for (const b of finales) {
+      if (b.id && b.titulo.trim()) editarSub(b.id, b.titulo);
+    }
+    // En secuencia para respetar el orden en que se escribieron
+    for (const b of finales) {
+      if (!b.id && b.titulo.trim()) await agregar(b.titulo);
+    }
   }
 
   function cancelarEdicion() {
@@ -67,6 +96,7 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
       materiaId: esEscolar ? categoria.slice(2) : undefined,
       categoriaPersonalId: esEscolar ? undefined : categoria.slice(2),
     });
+    aplicarBorradorSubs();
     setEditando(false);
     onClose();
   }
@@ -328,6 +358,80 @@ export default function DetallePendiente({ pendiente, materias, categorias, onCl
               rows={3}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 resize-none"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Subtareas</label>
+            {borradorSubs.length > 0 && (
+              <ul className="space-y-1 mb-2">
+                {borradorSubs.map((sub, i) => (
+                  <li key={sub.id ?? `nueva-${i}`} className="flex items-center gap-2 group py-1 px-2 -mx-2 rounded-md hover:bg-gray-50 transition-colors">
+                    <span
+                      className={cn(
+                        "w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center",
+                        sub.completado ? "bg-blue-900 border-blue-900" : "border-gray-300"
+                      )}
+                    >
+                      {sub.completado && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      )}
+                    </span>
+                    <input
+                      type="text"
+                      value={sub.titulo}
+                      onChange={(e) => {
+                        const titulo = e.target.value;
+                        setBorradorSubs((prev) => prev.map((b, j) => j === i ? { ...b, titulo } : b));
+                      }}
+                      // Enter no debe enviar el formulario completo
+                      onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                      aria-label="Título de la subtarea"
+                      className={cn(
+                        "flex-1 min-w-0 text-sm bg-transparent border border-transparent rounded-md px-2 py-0.5 -my-0.5 -ml-2 focus:outline-none focus:border-blue-900 focus:bg-white",
+                        sub.completado ? "line-through text-gray-400" : "text-gray-700"
+                      )}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBorradorSubs((prev) => prev.filter((_, j) => j !== i))}
+                      title="Quitar subtarea"
+                      aria-label="Quitar subtarea"
+                      className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nuevaSubBorrador}
+                onChange={(e) => setNuevaSubBorrador(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter agrega la subtarea en lugar de enviar el formulario
+                  if (e.key === "Enter") { e.preventDefault(); agregarSubBorrador(); }
+                }}
+                placeholder="Agregar subtarea…"
+                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-900 placeholder:text-gray-300"
+              />
+              <button
+                type="button"
+                onClick={agregarSubBorrador}
+                disabled={!nuevaSubBorrador.trim()}
+                aria-label="Agregar subtarea"
+                className="p-2 rounded-lg bg-blue-900 text-white hover:bg-blue-800 disabled:opacity-30 transition-colors flex-shrink-0"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div>
