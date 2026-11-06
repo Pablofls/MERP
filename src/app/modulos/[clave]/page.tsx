@@ -64,7 +64,7 @@ export default function FichaModuloPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-6 pb-10 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 pt-6 pb-10 space-y-8">
       <Link href="/modulos" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors">
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -137,11 +137,11 @@ export default function FichaModuloPage() {
       )}
 
       <Seccion titulo="Acerca de">
-        <p className="text-sm text-gray-600 leading-relaxed">{ficha.acercaDe}</p>
+        <p className="text-sm text-gray-600 leading-relaxed max-w-3xl">{ficha.acercaDe}</p>
       </Seccion>
 
       <Seccion titulo="Qué incluye">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {ficha.funciones.map((f) => (
             <div key={f.titulo} className="bg-white border border-gray-200 rounded-xl p-4 flex gap-3">
               <span

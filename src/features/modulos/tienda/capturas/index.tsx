@@ -6,11 +6,11 @@ import { ALTO_PANTALLA, ANCHO_PANTALLA } from "../../components/PantallaPreview"
 function Cargando() {
   return (
     <div className="flex gap-4 overflow-hidden pb-3">
-      {[0, 1, 2].map((i) => (
+      {[0, 1].map((i) => (
         <div
           key={i}
-          className="flex-shrink-0 rounded-[22px] bg-gray-100 animate-pulse"
-          style={{ width: ANCHO_PANTALLA * 0.6, height: ALTO_PANTALLA * 0.6 }}
+          className="flex-shrink-0 rounded-xl bg-gray-100 animate-pulse max-w-[85%]"
+          style={{ width: ANCHO_PANTALLA * 0.45, aspectRatio: `${ANCHO_PANTALLA} / ${ALTO_PANTALLA}` }}
         />
       ))}
     </div>

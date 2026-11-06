@@ -8,6 +8,7 @@ interface Props {
   registros: RegistroHabito[];
   selectedDate: string;
   onDayClick: (fecha: string) => void;
+  vistaInicial?: "mensual" | "semanal";
 }
 
 const DIAS_HEADER = ["L", "M", "X", "J", "V", "S", "D"];
@@ -30,8 +31,8 @@ function inicioSemana(date: Date): Date {
   return d;
 }
 
-export default function CalendarioHabitos({ habitos, registros, selectedDate, onDayClick }: Props) {
-  const [vista, setVista] = useState<"mensual" | "semanal">("semanal");
+export default function CalendarioHabitos({ habitos, registros, selectedDate, onDayClick, vistaInicial = "semanal" }: Props) {
+  const [vista, setVista] = useState<"mensual" | "semanal">(vistaInicial);
   const [referencia, setReferencia] = useState(new Date());
   const hoyStr = hoyMonterrey();
 
