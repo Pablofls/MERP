@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTutorial } from "@/features/tutorial/context/TutorialContext";
+import { useModulos } from "@/features/modulos/hooks/useModulos";
+import { moduloDeRuta } from "@/features/modulos/registro";
 
 type StepClick = { id: string; delay?: number };
 
@@ -190,7 +192,16 @@ const PASOS: TutorialStep[] = [
     targetId: "modal-content",
     padding: 0,
   },
-  // 21 — Perfil / Google Calendar
+  // 21 — Módulos
+  {
+    ruta: "/modulos",
+    titulo: "Módulos — Arma tu MERP",
+    descripcion: "Activa o desactiva plantillas como Escolar y Personal, y aplicaciones como Habitos. Al desactivar una, su seccion se oculta pero tus datos se conservan.",
+    icono: "🧩",
+    targetId: "modulos-section",
+    setupClicks: [{ id: "modal-close", delay: 0 }],
+  },
+  // 22 — Perfil / Google Calendar
   {
     ruta: "/perfil",
     titulo: "Perfil — Google Calendar",
@@ -199,7 +210,7 @@ const PASOS: TutorialStep[] = [
     targetId: "google-calendar-section",
     setupClicks: [{ id: "modal-close", delay: 0 }],
   },
-  // 22 — Fin
+  // 23 — Fin
   {
     ruta: "/perfil",
     titulo: "¡Listo para empezar!",
@@ -207,6 +218,26 @@ const PASOS: TutorialStep[] = [
     icono: "🚀",
   },
 ];
+
+/**
+ * Quita los pasos de módulos desactivados. Si el paso anterior que queda abrió un modal
+ * (targetId "modal-content"), el siguiente lo cierra, como hacen los pasos originales.
+ */
+function pasosVisibles(estaActivo: (clave: string) => boolean): TutorialStep[] {
+  const visibles: TutorialStep[] = [];
+  for (const p of PASOS) {
+    const clave = moduloDeRuta(p.ruta);
+    if (clave && !estaActivo(clave)) continue;
+    const previo = visibles[visibles.length - 1];
+    const cierraModal = p.setupClicks?.some((c) => c.id === "modal-close");
+    visibles.push(
+      previo?.targetId === "modal-content" && !cierraModal
+        ? { ...p, setupClicks: [{ id: "modal-close", delay: 0 }, ...(p.setupClicks ?? [])] }
+        : p,
+    );
+  }
+  return visibles;
+}
 
 function flashElement(id: string) {
   const el = document.querySelector(`[data-tutorial-id="${id}"]`) as HTMLElement | null;
@@ -227,10 +258,12 @@ function clickTutorialEl(id: string) {
 export default function Tutorial() {
   const { activo, paso, terminar, siguiente, anterior } = useTutorial();
   const router = useRouter();
+  const { estaActivo } = useModulos();
+  const pasos = useMemo(() => pasosVisibles(estaActivo), [estaActivo]);
 
-  const pasoActual = PASOS[paso];
+  const pasoActual = pasos[paso];
   const esPrimero = paso === 0;
-  const esUltimo = paso === PASOS.length - 1;
+  const esUltimo = paso === pasos.length - 1;
 
   // Posicion del spotlight
   const [spotRect, setSpotRect] = useState<DOMRect | null>(null);
@@ -372,7 +405,7 @@ export default function Tutorial() {
           <div className="h-1 bg-gray-100">
             <div
               className="h-full bg-blue-900 transition-all duration-300 ease-out"
-              style={{ width: `${((paso + 1) / PASOS.length) * 100}%` }}
+              style={{ width: `${((paso + 1) / pasos.length) * 100}%` }}
             />
           </div>
 
@@ -383,7 +416,7 @@ export default function Tutorial() {
                 {pasoActual.icono}
               </span>
               <span className="text-xs text-gray-400 font-medium tabular-nums">
-                {paso + 1} / {PASOS.length}
+                {paso + 1} / {pasos.length}
               </span>
             </div>
 

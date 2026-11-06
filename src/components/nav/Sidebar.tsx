@@ -6,13 +6,11 @@ import { useGoogleStatus } from "@/features/google/hooks/useGoogleStatus";
 import { useUser } from "@/lib/context/AuthContext";
 import { useHotkey } from "@/lib/hooks/useHotkey";
 import { usePrefetchRutas } from "@/lib/cache/prefetch";
+import { useModulos } from "@/features/modulos/hooks/useModulos";
+import { REGISTRO_MODULOS } from "@/features/modulos/registro";
 
-const TABS = [
-  { href: "/",        label: "Inicio"   },
-  { href: "/escolar", label: "Escolar"  },
-  { href: "/personal",label: "Personal" },
-  { href: "/habitos", label: "Habitos"  },
-];
+const INICIO = { href: "/", label: "Inicio" };
+const MODULOS = { href: "/modulos", label: "Módulos" };
 
 function TabLink({ href, label, active, onPrefetch }: { href: string; label: string; active: boolean; onPrefetch: (href: string) => void }) {
   const hotkeyRef = useHotkey<HTMLAnchorElement>(label);
@@ -40,11 +38,19 @@ export default function Sidebar() {
   const { conectado } = useGoogleStatus();
   const prefetchRuta = usePrefetchRutas(true);
   const perfilHotkeyRef = useHotkey<HTMLAnchorElement>("Perfil");
+  const { catalogo, estaActivo } = useModulos();
 
   if (pathname === "/login" || pathname === "/reset-password") return null;
 
   const inicial = user?.email?.[0]?.toUpperCase() ?? "U";
   const perfilActive = pathname.startsWith("/perfil");
+  // Inicio + una pestaña por módulo activo, en el orden del catálogo
+  const tabs = [
+    INICIO,
+    ...catalogo
+      .filter((m) => estaActivo(m.clave))
+      .map((m) => ({ href: REGISTRO_MODULOS[m.clave].ruta, label: REGISTRO_MODULOS[m.clave].etiqueta })),
+  ];
 
   return (
     <aside className="hidden lg:flex flex-col w-52 min-h-screen bg-gray-50 p-5 fixed top-0 left-0 z-40">
@@ -55,11 +61,19 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex flex-col gap-0.5 flex-1">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
           return <TabLink key={tab.href} href={tab.href} label={tab.label} active={active} onPrefetch={prefetchRuta} />;
         })}
       </nav>
+
+      {/* Módulos: activar/desactivar plantillas y aplicaciones */}
+      <TabLink
+        href={MODULOS.href}
+        label={MODULOS.label}
+        active={pathname.startsWith(MODULOS.href)}
+        onPrefetch={prefetchRuta}
+      />
 
       {/* Perfil al fondo */}
       <Link

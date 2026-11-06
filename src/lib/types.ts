@@ -83,6 +83,17 @@ export interface Subtarea {
   completado: boolean;
 }
 
+// Catálogo de módulos (tabla `modulos`): plantillas de pendientes (Escolar, Personal) y aplicaciones (Hábitos)
+export type ClaseModulo = "plantilla_pendientes" | "aplicacion";
+
+export interface Modulo {
+  clave: string;
+  clase: ClaseModulo;
+  nombre: string;
+  descripcion: string;
+  orden: number;
+}
+
 export interface RegistroHabito {
   id: string;
   habitoId: string;
