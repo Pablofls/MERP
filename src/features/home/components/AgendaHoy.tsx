@@ -2,153 +2,40 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { ClaseHorario, Materia } from "@/lib/types";
-import { useGoogleCalendar } from "@/features/google/hooks/useGoogleCalendar";
-import { getDiaSemanaActual, minutosDesdeMedianoche, fechaHoy } from "@/lib/utils";
 import EmptyState from "@/components/ui/EmptyState";
 import type { EventoCalendario } from "@/features/home/components/EventoCalendarioModal";
+import { construirAgendaDia, eventosDelDia, fechaDeIso, sumarDias, type EventoGoogle } from "@/features/home/lib/agendaDia";
 const EventoCalendarioModal = dynamic(() => import("@/features/home/components/EventoCalendarioModal"), { ssr: false });
 const CrearEventoModal = dynamic(() => import("@/features/home/components/CrearEventoModal"), { ssr: false });
 
 interface Props {
+  fecha: string; // YYYY-MM-DD
+  hoy: string;
+  onCambiarFecha: (fecha: string) => void;
   clases: ClaseHorario[];
   materias: Materia[];
+  eventosGoogle: EventoGoogle[]; // eventos del mes; aquí se filtran por día
+  onRefetch: () => void;
 }
 
-interface ItemAgenda {
-  id: string;
-  titulo: string;
-  horaInicio: string;
-  horaFin: string;
-  minutosInicio: number;
-  color: string;
-  estado: "activa" | "pasada" | "futura";
-  origen: "app" | "google";
-  salon?: string;
-  zoomUrl?: string | null;
-  todoElDia?: boolean;
-  eventoOriginal?: { id: string; titulo: string; descripcion?: string | null; hangoutLink?: string | null; inicio: string | null; fin: string | null; todoElDia: boolean; recurringEventId?: string | null };
+function getLabelDia(fecha: string, hoy: string): string {
+  if (fecha === hoy) return "Hoy";
+  if (fecha === sumarDias(hoy, -1)) return "Ayer";
+  if (fecha === sumarDias(hoy, 1)) return "Mañana";
+  return fechaDeIso(fecha).toLocaleDateString("es-MX", { weekday: "long" });
 }
 
-function formatHora(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-MX", {
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  });
-}
-
-function extractZoomUrl(descripcion?: string | null, hangoutLink?: string | null): string | null {
-  if (hangoutLink?.includes("zoom.us")) return hangoutLink;
-  const match = descripcion?.match(/https?:\/\/[^\s]*zoom\.us\/[^\s]*/);
-  return match?.[0] ?? null;
-}
-
-function getFechaConOffset(offset: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return d;
-}
-
-function getLabelDia(offset: number): string {
-  if (offset === 0) return "Hoy";
-  if (offset === -1) return "Ayer";
-  if (offset === 1) return "Mañana";
-  const d = getFechaConOffset(offset);
-  return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "short" });
-}
-
-function getIsoFecha(offset: number): string {
-  return getFechaConOffset(offset).toISOString().split("T")[0];
-}
-
-function getDiaSemanaConOffset(offset: number) {
-  const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
-  const d = getFechaConOffset(offset);
-  return dias[d.getDay()];
-}
-
-export default function AgendaHoy({ clases, materias }: Props) {
-  const [diaOffset, setDiaOffset] = useState(0);
+export default function AgendaHoy({ fecha, hoy, onCambiarFecha, clases, materias, eventosGoogle, onRefetch }: Props) {
   const [modalCrear, setModalCrear] = useState(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoCalendario | null>(null);
 
-  const { eventos: googleEventos, refetch } = useGoogleCalendar(diaOffset);
-
-  const diaActual = getDiaSemanaConOffset(diaOffset);
-  const horaActual = new Date().getHours() * 60 + new Date().getMinutes();
-  const esMismaFecha = diaOffset === 0;
-
-  function getEstado(inicioMin: number, finMin: number): ItemAgenda["estado"] {
-    if (!esMismaFecha) return finMin < horaActual ? "pasada" : "futura";
-    if (horaActual >= inicioMin && horaActual < finMin) return "activa";
-    if (horaActual >= finMin) return "pasada";
-    return "futura";
-  }
-
-  const fechaISO = getIsoFecha(diaOffset);
-
-  const itemsApp: ItemAgenda[] = clases
-    .filter((c) => {
-      if (c.dia !== diaActual) return false;
-      if (c.fechaInicio && fechaISO < c.fechaInicio) return false;
-      if (c.fechaFin && fechaISO > c.fechaFin) return false;
-      return true;
-    })
-    .map((c) => {
-      const mat = materias.find((m) => m.id === c.materiaId);
-      const ini = minutosDesdeMedianoche(c.horaInicio);
-      const fin = minutosDesdeMedianoche(c.horaFin);
-      // Buscar el evento Google duplicado (ya filtrado de la lista) para obtener su Zoom link
-      const googleMatch = googleEventos.find(
-        (e) => e.titulo.toLowerCase() === (mat?.nombre ?? "").toLowerCase() && Math.abs(minutosDesdeMedianoche(formatHora(e.inicio!)) - ini) <= 5
-      );
-      return {
-        id: c.id,
-        titulo: mat?.nombre ?? "Clase",
-        horaInicio: c.horaInicio,
-        horaFin: c.horaFin,
-        minutosInicio: ini,
-        color: mat?.color ?? "#94a3b8",
-        estado: getEstado(ini, fin),
-        origen: "app" as const,
-        salon: c.salon,
-        zoomUrl: extractZoomUrl(googleMatch?.descripcion, googleMatch?.hangoutLink),
-      };
-    });
-
-  const itemsGoogle: ItemAgenda[] = googleEventos
-    .filter((e) => {
-      if (e.todoElDia || !e.inicio || !e.fin) return false;
-      const horaIni = formatHora(e.inicio);
-      const iniMin = minutosDesdeMedianoche(horaIni);
-      // Skip Google events that duplicate an app class (same title + start time within 5 min)
-      return !itemsApp.some(
-        (a) => a.titulo.toLowerCase() === e.titulo.toLowerCase() && Math.abs(a.minutosInicio - iniMin) <= 5
-      );
-    })
-    .map((e) => {
-      const horaIni = formatHora(e.inicio!);
-      const horaFin = formatHora(e.fin!);
-      const ini = minutosDesdeMedianoche(horaIni);
-      const fin = minutosDesdeMedianoche(horaFin);
-      return {
-        id: e.id,
-        titulo: e.titulo,
-        horaInicio: horaIni,
-        horaFin: horaFin,
-        minutosInicio: ini,
-        color: "#475569",
-        estado: getEstado(ini, fin),
-        origen: "google" as const,
-        eventoOriginal: e,
-        zoomUrl: extractZoomUrl(e.descripcion, e.hangoutLink),
-      };
-    });
-
-  const todoDiaGoogle = googleEventos.filter((e) => e.todoElDia);
-  const items = [...itemsApp, ...itemsGoogle].sort((a, b) => a.minutosInicio - b.minutosInicio);
+  const { items, todoElDia: todoDiaGoogle } = construirAgendaDia(
+    fecha, clases, materias, eventosDelDia(eventosGoogle, fecha)
+  );
   const sinEventos = items.length === 0 && todoDiaGoogle.length === 0;
 
-  const labelDia = getLabelDia(diaOffset);
-  const fechaStr = getFechaConOffset(diaOffset).toLocaleDateString("es-MX", {
+  const labelDia = getLabelDia(fecha, hoy);
+  const fechaStr = fechaDeIso(fecha).toLocaleDateString("es-MX", {
     weekday: "long", day: "numeric", month: "long",
   });
 
@@ -162,7 +49,8 @@ export default function AgendaHoy({ clases, materias }: Props) {
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setDiaOffset((o) => o - 1)}
+            onClick={() => onCambiarFecha(sumarDias(fecha, -1))}
+            aria-label="Día anterior"
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -170,7 +58,8 @@ export default function AgendaHoy({ clases, materias }: Props) {
             </svg>
           </button>
           <button
-            onClick={() => setDiaOffset((o) => o + 1)}
+            onClick={() => onCambiarFecha(sumarDias(fecha, 1))}
+            aria-label="Día siguiente"
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -264,14 +153,14 @@ export default function AgendaHoy({ clases, materias }: Props) {
       <EventoCalendarioModal
         evento={eventoSeleccionado}
         onClose={() => setEventoSeleccionado(null)}
-        onRefetch={() => { refetch(); setEventoSeleccionado(null); }}
+        onRefetch={() => { onRefetch(); setEventoSeleccionado(null); }}
       />
 
       <CrearEventoModal
         open={modalCrear}
-        fechaDefault={getIsoFecha(diaOffset)}
+        fechaDefault={fecha}
         onClose={() => setModalCrear(false)}
-        onCreado={() => { refetch(); }}
+        onCreado={onRefetch}
       />
     </section>
   );

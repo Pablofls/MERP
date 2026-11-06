@@ -260,7 +260,7 @@ export async function POST(req: NextRequest) {
     timeMax,
     singleEvents: "true",
     orderBy: "startTime",
-    maxResults: "50",
+    maxResults: "250",
     fields: "items(id,summary,description,hangoutLink,start,end,status,colorId,recurringEventId)",
   });
 
