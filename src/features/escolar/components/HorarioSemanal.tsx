@@ -11,6 +11,8 @@ const CrearEventoModal = dynamic(() => import("@/features/home/components/CrearE
 interface Props {
   clases: ClaseHorario[];
   materias: Materia[];
+  /** Vista previa de la ficha del módulo: sin Google Calendar ni preferencias guardadas, lunes a viernes. */
+  vistaPrevia?: boolean;
 }
 
 const PX_POR_MIN  = 1.0;
@@ -38,9 +40,10 @@ function getMinutosAhora() {
   return now.getHours() * 60 + now.getMinutes();
 }
 
-export default function HorarioSemanal({ clases, materias }: Props) {
+export default function HorarioSemanal({ clases, materias, vistaPrevia = false }: Props) {
   const [semanaOffset, setSemanaOffset] = useState(0);
   const [diasVisibles, setDiasVisibles] = useState<number>(() => {
+    if (vistaPrevia) return 5;
     if (typeof window === "undefined") return 3;
     const saved = localStorage.getItem("escolar_diasVisibles");
     const n = saved ? parseInt(saved, 10) : 3;
@@ -51,12 +54,13 @@ export default function HorarioSemanal({ clases, materias }: Props) {
   const [minutosAhora, setMinutosAhora] = useState(getMinutosAhora);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { eventos: googleEventos, refetch } = useGoogleCalendarSemana(semanaOffset);
+  const { eventos: googleEventos, refetch } = useGoogleCalendarSemana(semanaOffset, !vistaPrevia);
 
-  // Persist view preference
+  // Persist view preference (la vista previa no pisa la preferencia del usuario)
   useEffect(() => {
+    if (vistaPrevia) return;
     localStorage.setItem("escolar_diasVisibles", String(diasVisibles));
-  }, [diasVisibles]);
+  }, [diasVisibles, vistaPrevia]);
 
   // Update current time line every minute
   useEffect(() => {
@@ -79,7 +83,7 @@ export default function HorarioSemanal({ clases, materias }: Props) {
 
   // For <7 days: on current week start from today, on other weeks start from Monday
   const todayWeekIdx = (new Date().getDay() + 6) % 7;
-  const startIdx = diasVisibles < 7
+  const startIdx = diasVisibles < 7 && !vistaPrevia
     ? (semanaOffset === 0 ? Math.min(todayWeekIdx, 7 - diasVisibles) : 0)
     : 0;
   const diasSlice = DIAS_SEMANA.slice(startIdx, startIdx + diasVisibles);
@@ -327,18 +331,22 @@ export default function HorarioSemanal({ clases, materias }: Props) {
         </div>
       </div>
 
-      <EventoCalendarioModal
-        evento={eventoSeleccionado}
-        onClose={() => setEventoSeleccionado(null)}
-        onRefetch={() => { refetch(); setEventoSeleccionado(null); }}
-      />
+      {!vistaPrevia && (
+        <>
+          <EventoCalendarioModal
+            evento={eventoSeleccionado}
+            onClose={() => setEventoSeleccionado(null)}
+            onRefetch={() => { refetch(); setEventoSeleccionado(null); }}
+          />
 
-      <CrearEventoModal
-        open={modalCrear}
-        fechaDefault={fechaDefault}
-        onClose={() => setModalCrear(false)}
-        onCreado={() => { refetch(); }}
-      />
+          <CrearEventoModal
+            open={modalCrear}
+            fechaDefault={fechaDefault}
+            onClose={() => setModalCrear(false)}
+            onCreado={() => { refetch(); }}
+          />
+        </>
+      )}
     </div>
   );
 }

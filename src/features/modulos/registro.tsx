@@ -9,6 +9,8 @@ import type { Modulo } from "@/lib/types";
  *  1. Migración: insert en `modulos` (y en `plantillas_pendientes` si es plantilla de pendientes).
  *  2. Entrada en REGISTRO_MODULOS con su ruta e ícono, y en CATALOGO_RESPALDO.
  *  3. `src/app/<ruta>/layout.tsx` que envuelva la página en <ModuloGuard clave="…">.
+ *  4. Ficha de la tienda: textos en `fichas.ts` y capturas en `tienda/capturas/<clave>.tsx`
+ *     (componentes reales con datos de `tienda/demo.ts`), registradas en `tienda/capturas/index.tsx`.
  * Un módulo del catálogo sin entrada aquí no aparece en la app.
  */
 export interface ModuloUI {

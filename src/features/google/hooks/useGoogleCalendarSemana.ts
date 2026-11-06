@@ -36,7 +36,7 @@ function formatHora(iso: string): string {
   });
 }
 
-export function useGoogleCalendarSemana(semanaOffset: number = 0) {
+export function useGoogleCalendarSemana(semanaOffset: number = 0, habilitado: boolean = true) {
   const user = useUser();
   const { conectado } = useGoogleStatus();
   const refetch = useCalendarioRefetch();
@@ -76,7 +76,7 @@ export function useGoogleCalendarSemana(semanaOffset: number = 0) {
       }
       return mapped;
     },
-    enabled: !!user && !!conectado,
+    enabled: habilitado && !!user && !!conectado,
   });
 
   return { eventos: data ?? [], refetch };

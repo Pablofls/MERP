@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Modulo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { REGISTRO_MODULOS } from "../registro";
+import { FICHAS } from "../fichas";
 
 interface Props {
   modulo: Modulo;
@@ -13,6 +14,8 @@ interface Props {
 
 export default function TarjetaModulo({ modulo, activo, deshabilitado, onCambiar }: Props) {
   const ui = REGISTRO_MODULOS[modulo.clave];
+  const ficha = FICHAS[modulo.clave];
+  const hrefFicha = `/modulos/${modulo.clave}`;
 
   return (
     <div
@@ -22,18 +25,24 @@ export default function TarjetaModulo({ modulo, activo, deshabilitado, onCambiar
       )}
     >
       <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-            activo ? "bg-blue-50 text-blue-900" : "bg-gray-100 text-gray-400",
-          )}
-        >
-          {ui?.icono(activo)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className={cn("text-sm font-semibold", activo ? "text-gray-900" : "text-gray-500")}>{modulo.nombre}</p>
-          <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{modulo.descripcion}</p>
-        </div>
+        {/* Ícono, nombre y descripción llevan a la ficha */}
+        <Link href={hrefFicha} className="flex items-start gap-3 flex-1 min-w-0 group">
+          <div
+            className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white transition-opacity",
+              !activo && "opacity-50",
+            )}
+            style={{ backgroundColor: ficha?.color ?? "#1e3a8a" }}
+          >
+            {ui?.icono(true)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={cn("text-sm font-semibold group-hover:underline", activo ? "text-gray-900" : "text-gray-500")}>
+              {modulo.nombre}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{ficha?.subtitulo ?? modulo.descripcion}</p>
+          </div>
+        </Link>
         <button
           type="button"
           role="switch"
@@ -59,11 +68,16 @@ export default function TarjetaModulo({ modulo, activo, deshabilitado, onCambiar
         <span className={activo ? "text-emerald-600 font-medium" : "text-gray-400"}>
           {activo ? "Activo" : "Desactivado · tus datos se conservan"}
         </span>
-        {activo && ui && (
-          <Link href={ui.ruta} className="font-medium text-blue-900 hover:text-blue-700 transition-colors">
-            Abrir →
+        <div className="flex items-center gap-3">
+          <Link href={hrefFicha} className="font-medium text-gray-500 hover:text-gray-800 transition-colors">
+            Ver detalles
           </Link>
-        )}
+          {activo && ui && (
+            <Link href={ui.ruta} className="font-medium text-blue-900 hover:text-blue-700 transition-colors">
+              Abrir →
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

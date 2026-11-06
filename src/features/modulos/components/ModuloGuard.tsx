@@ -44,11 +44,11 @@ export default function ModuloGuard({ clave, children }: { clave: string; childr
           {activando ? "Activando…" : `Activar ${nombre}`}
         </button>
         <Link
-          href="/modulos"
+          href={`/modulos/${clave}`}
           className="flex items-center gap-1.5 text-sm font-medium text-gray-600 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
         >
           <IconoModulos className="w-4 h-4" />
-          Ver módulos
+          Ver qué incluye
         </Link>
       </div>
       {error && <p className="text-xs text-red-600 mt-3">No se pudo activar. Intenta de nuevo.</p>}
