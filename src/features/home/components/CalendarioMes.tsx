@@ -13,15 +13,15 @@ interface Props {
   fechaSel: string;
   hoy: string;
   onSeleccionar: (fecha: string) => void;
-  conteoEventos: Map<string, number>;
+  coloresEventos: Map<string, string[]>; // color de cada evento del día
   conteoPendientes: Map<string, ConteoPendientes>;
 }
 
 const DIAS_HEADER = ["L", "M", "M", "J", "V", "S", "D"];
-const MAX_PUNTOS = 3;
+const MAX_PUNTOS = 4;
 
 export default function CalendarioMes({
-  mesRef, onCambiarMes, fechaSel, hoy, onSeleccionar, conteoEventos, conteoPendientes,
+  mesRef, onCambiarMes, fechaSel, hoy, onSeleccionar, coloresEventos, conteoPendientes,
 }: Props) {
   const año = mesRef.getFullYear();
   const mes = mesRef.getMonth();
@@ -42,7 +42,10 @@ export default function CalendarioMes({
   }
 
   return (
-    <section data-tutorial-id="calendario-mes" className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4">
+    <section
+      data-tutorial-id="calendario-mes"
+      className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 flex flex-col lg:h-[calc(100dvh-6.5rem)]"
+    >
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base sm:text-lg font-semibold text-gray-900 capitalize">{nombreMes}</h2>
         <div className="flex items-center gap-1">
@@ -73,18 +76,22 @@ export default function CalendarioMes({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 mb-1">
+      <div className="grid grid-cols-7 mb-1 flex-shrink-0">
         {DIAS_HEADER.map((d, i) => (
           <div key={i} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-y-0.5 lg:gap-y-1">
+      <div
+        className="grid grid-cols-7 flex-1 min-h-0 border-t border-l border-gray-200 rounded-lg overflow-hidden"
+        style={{ gridTemplateRows: `repeat(${celdas.length / 7}, minmax(0, 1fr))` }}
+      >
         {celdas.map((fecha, i) => {
-          if (!fecha) return <div key={`v-${i}`} />;
+          if (!fecha) return <div key={`v-${i}`} className="border-r border-b border-gray-200 bg-gray-50/60" />;
           const esHoy = fecha === hoy;
           const esSel = fecha === fechaSel;
-          const eventos = conteoEventos.get(fecha) ?? 0;
+          const colores = coloresEventos.get(fecha) ?? [];
+          const eventos = colores.length;
           const pend = conteoPendientes.get(fecha);
           const dia = Number(fecha.slice(8));
 
@@ -95,8 +102,8 @@ export default function CalendarioMes({
               aria-label={`${dia}: ${eventos} eventos, ${pend?.total ?? 0} pendientes`}
               aria-pressed={esSel}
               className={cn(
-                "flex flex-col items-center gap-1 pt-1.5 pb-1 h-16 sm:h-20 lg:h-24 rounded-lg transition-colors",
-                esSel && !esHoy ? "bg-blue-50" : "hover:bg-gray-50"
+                "flex flex-col items-center gap-1 pt-1.5 pb-1 min-h-16 sm:min-h-20 lg:min-h-0 overflow-hidden border-r border-b border-gray-200 transition-colors",
+                esSel && !esHoy ? "bg-blue-50" : "bg-white hover:bg-gray-50"
               )}
             >
               <span
@@ -110,11 +117,11 @@ export default function CalendarioMes({
 
               {/* Eventos: puntitos */}
               <span className="flex items-center gap-[3px] h-2">
-                {Array.from({ length: Math.min(eventos, MAX_PUNTOS) }).map((_, j) => (
-                  <span key={j} className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+                {colores.slice(0, MAX_PUNTOS).map((color, j) => (
+                  <span key={j} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
                 ))}
                 {eventos > MAX_PUNTOS && (
-                  <span className="text-[10px] leading-none font-semibold text-sky-600">+</span>
+                  <span className="text-[10px] leading-none font-semibold text-gray-500">+</span>
                 )}
               </span>
 
@@ -134,9 +141,13 @@ export default function CalendarioMes({
         })}
       </div>
 
-      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-gray-500 flex-shrink-0">
         <span className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-sky-500" /> Eventos
+          <span className="flex gap-[2px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          </span>
+          Eventos (color de la materia)
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-3.5 h-3.5 rounded-full bg-amber-400 text-amber-950 text-[9px] font-semibold flex items-center justify-center">n</span>

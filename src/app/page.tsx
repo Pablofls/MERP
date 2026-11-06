@@ -14,6 +14,8 @@ import { SkeletonLista } from "@/components/ui/Skeleton";
 import { estaEnSieteDias, fechaImportanteAPendiente } from "@/lib/utils";
 import { construirAgendaDia, eventosDelDia, fechaDeIso, isoLocal } from "@/features/home/lib/agendaDia";
 
+const COLOR_TODO_EL_DIA = "#94a3b8";
+
 function primerDiaMes(fecha: string): Date {
   const d = fechaDeIso(fecha);
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -57,14 +59,15 @@ export default function HomePage() {
     return mapa;
   }, [pendientesConFecha, hoy]);
 
-  const conteoEventos = useMemo(() => {
-    const mapa = new Map<string, number>();
+  // Color de cada evento por día (clases con el color de su materia)
+  const coloresEventos = useMemo(() => {
+    const mapa = new Map<string, string[]>();
     const dias = new Date(mesRef.getFullYear(), mesRef.getMonth() + 1, 0).getDate();
     for (let d = 1; d <= dias; d++) {
       const fecha = isoLocal(new Date(mesRef.getFullYear(), mesRef.getMonth(), d));
       const { items, todoElDia } = construirAgendaDia(fecha, clases, materias, eventosDelDia(eventosMes, fecha));
-      const n = items.length + todoElDia.length;
-      if (n > 0) mapa.set(fecha, n);
+      const colores = [...todoElDia.map(() => COLOR_TODO_EL_DIA), ...items.map((it) => it.color)];
+      if (colores.length > 0) mapa.set(fecha, colores);
     }
     return mapa;
   }, [mesRef, clases, materias, eventosMes]);
@@ -97,14 +100,14 @@ export default function HomePage() {
     <div className="max-w-7xl mx-auto px-4 pt-6 pb-6">
       <h1 className="text-xl font-bold text-gray-900 mb-6">MERP</h1>
       <div className="grid gap-6 lg:gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] items-start">
-        <div className="lg:sticky lg:top-6">
+        <div>
           <CalendarioMes
             mesRef={mesRef}
             onCambiarMes={cambiarMes}
             fechaSel={fechaSel}
             hoy={hoy}
             onSeleccionar={seleccionarFecha}
-            conteoEventos={conteoEventos}
+            coloresEventos={coloresEventos}
             conteoPendientes={conteoPendientes}
           />
         </div>
@@ -128,8 +131,12 @@ export default function HomePage() {
             onEditar={editar}
             onEliminar={eliminar}
           />
-          <div className="border-t border-gray-100" />
-          {cargando ? <SkeletonLista /> : (
+        </div>
+      </div>
+
+      {/* Lista completa a todo el ancho: el timeline necesita espacio horizontal */}
+      <div className="mt-8 pt-6 border-t border-gray-100">
+        {cargando ? <SkeletonLista /> : (
           <PendientesHoy
             pendientes={todosPendientes}
             materias={materias}
@@ -139,8 +146,7 @@ export default function HomePage() {
             onEditar={editar}
             onEliminar={eliminar}
           />
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
