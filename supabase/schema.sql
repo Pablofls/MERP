@@ -2,7 +2,7 @@
 -- Las migraciones en supabase/migrations/ son el historial; este archivo es el resultado de aplicarlas todas.
 -- Actualizar en el mismo commit que cada migración nueva.
 --
--- Refleja hasta: 20261007_unicidad_nombres.sql (aplicadas 20261005 y 20261006; 20261007 es opcional).
+-- Refleja hasta: 20261106_modulos.sql (aplicadas 20261005 y 20261006; 20261007 es opcional).
 -- Normalización: 4FN (clases + clase_dias), FKs compuestas (fk, user_id) para consistencia con RLS.
 --
 -- Las tablas base (materias, pendientes, habitos, registros_habito, eventos) se crearon antes de que el repo
@@ -10,6 +10,39 @@
 -- Los nombres de constraints/políticas de la BD original se conservan; los cambios de M1–M3 se marcan con su migración.
 --
 -- Convención RLS: toda tabla tiene user_id y política "auth.uid() = user_id" (FOR ALL).
+-- Excepción: el catálogo de módulos (modulos, plantillas_pendientes) es global y de solo lectura.
+
+-- ── módulos (20261106, 4FN) ─────────────────────────────────────────────────────────────────────
+-- Catálogo de plantillas de pendientes y aplicaciones; cada usuario activa los suyos en usuario_modulos.
+create table modulos (
+  clave               text     primary key,                  -- 'escolar' | 'personal' | 'habitos'
+  clase               text     not null,
+  nombre              text     not null,
+  descripcion         text     not null,
+  orden               smallint not null,
+  activo_por_defecto  boolean  not null default false,       -- se activa al crear la cuenta
+  constraint modulos_clave_clase_key unique (clave, clase),
+  constraint modulos_clave_ck check (clave ~ '^[a-z][a-z_]*$'),
+  constraint modulos_clase_ck check (clase in ('plantilla_pendientes', 'aplicacion'))
+);
+
+create table plantillas_pendientes (                        -- subtipo: lo que referencia pendientes.tipo
+  modulo_clave  text primary key,
+  clase         text not null default 'plantilla_pendientes',
+  constraint plantillas_pendientes_clase_ck check (clase = 'plantilla_pendientes'),
+  constraint plantillas_pendientes_modulo_fk foreign key (modulo_clave, clase)
+    references modulos (clave, clase)
+);
+
+create table usuario_modulos (                              -- fila presente = módulo activo
+  user_id       uuid        not null references auth.users(id) on delete cascade,
+  modulo_clave  text        not null references modulos(clave) on delete cascade,
+  activado_at   timestamptz not null default now(),
+  primary key (user_id, modulo_clave)
+);
+
+-- Trigger usuario_modulos_iniciales (after insert on auth.users) → public.activar_modulos_iniciales():
+-- security definer, inserta los módulos con activo_por_defecto. Definición en 20261106_modulos.sql.
 
 -- ── materias ────────────────────────────────────────────────────────────────────────────────────
 create table materias (
@@ -89,7 +122,9 @@ create table pendientes (
   constraint pendientes_categoria_fk foreign key (categoria_personal_id, user_id)
     references categorias_personales (id, user_id) on delete set null (categoria_personal_id),
   constraint pendientes_tipo_ck check (
-    (tipo = 'escolar' and categoria_personal_id is null) or (tipo = 'personal' and materia_id is null))
+    (tipo = 'escolar' and categoria_personal_id is null) or (tipo = 'personal' and materia_id is null)),
+  constraint pendientes_plantilla_fk foreign key (tipo)                                       -- 20261106
+    references plantillas_pendientes (modulo_clave)
 );
 create index idx_pendientes_user_created on pendientes (user_id, created_at desc);
 create index idx_pendientes_user_pendiente on pendientes (user_id) where completado = false;
@@ -194,6 +229,9 @@ alter table habitos               enable row level security;
 alter table registros_habito      enable row level security;
 alter table google_tokens         enable row level security;
 alter table eventos               enable row level security;
+alter table modulos               enable row level security;
+alter table plantillas_pendientes enable row level security;
+alter table usuario_modulos       enable row level security;
 
 create policy "clases: own rows"      on clases      for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "clase_dias: own rows"  on clase_dias  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -206,3 +244,7 @@ create policy "own_pendientes" on pendientes       for all using (auth.uid() = u
 create policy "own_habitos"    on habitos          for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own_registros"  on registros_habito for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own_eventos"    on eventos          for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "modulos: lectura"               on modulos               for select to authenticated using (true);
+create policy "plantillas_pendientes: lectura" on plantillas_pendientes for select to authenticated using (true);
+create policy "usuario_modulos: own rows"      on usuario_modulos       for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- modulos y plantillas_pendientes: revoke insert, update, delete, truncate from anon, authenticated.
