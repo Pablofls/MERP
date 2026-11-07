@@ -2,7 +2,7 @@
 -- Las migraciones en supabase/migrations/ son el historial; este archivo es el resultado de aplicarlas todas.
 -- Actualizar en el mismo commit que cada migración nueva.
 --
--- Refleja hasta: 20261106_modulos.sql (aplicadas 20261005 y 20261006; 20261007 es opcional).
+-- Refleja hasta: 20261107_closet.sql (aplicadas 20261005 y 20261006; 20261007 es opcional).
 -- Normalización: 4FN (clases + clase_dias), FKs compuestas (fk, user_id) para consistencia con RLS.
 --
 -- Las tablas base (materias, pendientes, habitos, registros_habito, eventos) se crearon antes de que el repo
@@ -10,7 +10,8 @@
 -- Los nombres de constraints/políticas de la BD original se conservan; los cambios de M1–M3 se marcan con su migración.
 --
 -- Convención RLS: toda tabla tiene user_id y política "auth.uid() = user_id" (FOR ALL).
--- Excepción: el catálogo de módulos (modulos, plantillas_pendientes) es global y de solo lectura.
+-- Excepción: los catálogos globales (modulos, plantillas_pendientes, closet_grupos, closet_categorias,
+-- closet_categorias_top) son de solo lectura.
 
 -- ── módulos (20261106, 4FN) ─────────────────────────────────────────────────────────────────────
 -- Catálogo de plantillas de pendientes y aplicaciones; cada usuario activa los suyos en usuario_modulos.
@@ -196,6 +197,54 @@ create table registros_habito (
 );
 create index idx_registros_habito_user_fecha on registros_habito (user_id, fecha desc);
 
+-- ── closet (20261107, 4FN) ──────────────────────────────────────────────────────────────────────
+-- Catálogo global de dos niveles (grupo → categoría); solo los tops tienen capa (subtipo con FK compuesta).
+create table closet_grupos (
+  clave   text     primary key,                            -- 'gorras' | 'tops' | 'bottoms' | 'calzado' | 'accesorios'
+  nombre  text     not null,
+  orden   smallint not null,
+  constraint closet_grupos_clave_ck check (clave ~ '^[a-z][a-z_]*$')
+);
+
+create table closet_categorias (
+  clave        text     primary key,                       -- 'gorras', 'camisas', 'sueteres', 'chamarras', …
+  grupo_clave  text     not null references closet_grupos (clave),
+  nombre       text     not null,
+  orden        smallint not null,
+  constraint closet_categorias_clave_grupo_key unique (clave, grupo_clave),
+  constraint closet_categorias_clave_ck check (clave ~ '^[a-z][a-z_]*$')
+);
+
+create table closet_categorias_top (                       -- subtipo: capa de cada categoría de tops
+  categoria_clave  text     primary key,
+  grupo_clave      text     not null default 'tops',
+  capa             smallint not null,                       -- 1 camisas, 2 suéteres, 3 chamarras
+  constraint closet_categorias_top_grupo_ck check (grupo_clave = 'tops'),
+  constraint closet_categorias_top_capa_ck check (capa between 1 and 3),
+  constraint closet_categorias_top_categoria_fk foreign key (categoria_clave, grupo_clave)
+    references closet_categorias (clave, grupo_clave)
+);
+
+create table closet_prendas (
+  id               uuid        primary key default gen_random_uuid(),
+  user_id          uuid        not null references auth.users (id) on delete cascade,
+  categoria_clave  text        not null references closet_categorias (clave),
+  nombre           text,
+  imagen_path      text        not null,                   -- objeto en el bucket `closet`: <user_id>/<id>.<ext>
+  ancho            integer     not null,
+  alto             integer     not null,
+  created_at       timestamptz not null default now(),
+  constraint closet_prendas_id_user_key unique (id, user_id),
+  constraint closet_prendas_imagen_key unique (imagen_path),
+  constraint closet_prendas_imagen_ck check (imagen_path like user_id::text || '/%'),
+  constraint closet_prendas_dims_ck check (ancho between 1 and 4096 and alto between 1 and 4096),
+  constraint closet_prendas_nombre_ck check (nombre is null or char_length(btrim(nombre)) between 1 and 80)
+);
+create index idx_closet_prendas_user_created on closet_prendas (user_id, created_at desc);
+
+-- Storage: bucket público `closet` (3 MB, image/png | image/webp). Políticas en storage.objects:
+-- insert/select/delete solo con bucket_id = 'closet' y primera carpeta = auth.uid(). Ver 20261107_closet.sql.
+
 -- ── eventos (SIN USO en la app; tabla heredada de la fase 1, pendiente de decidir si se elimina) ──
 create table eventos (
   id              uuid primary key default gen_random_uuid(),
@@ -248,3 +297,13 @@ create policy "modulos: lectura"               on modulos               for sele
 create policy "plantillas_pendientes: lectura" on plantillas_pendientes for select to authenticated using (true);
 create policy "usuario_modulos: own rows"      on usuario_modulos       for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 -- modulos y plantillas_pendientes: revoke insert, update, delete, truncate from anon, authenticated.
+
+alter table closet_grupos         enable row level security;
+alter table closet_categorias     enable row level security;
+alter table closet_categorias_top enable row level security;
+alter table closet_prendas        enable row level security;
+create policy "closet_grupos: lectura"         on closet_grupos         for select to authenticated using (true);
+create policy "closet_categorias: lectura"     on closet_categorias     for select to authenticated using (true);
+create policy "closet_categorias_top: lectura" on closet_categorias_top for select to authenticated using (true);
+create policy "closet_prendas: own rows"       on closet_prendas        for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- closet_grupos, closet_categorias y closet_categorias_top: revoke insert, update, delete, truncate from anon, authenticated.
