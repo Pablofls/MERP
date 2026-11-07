@@ -18,7 +18,8 @@ const CSP = [
     "https://www.googleapis.com",
     "https://tasks.googleapis.com",
   ].join(" "),
-  "img-src 'self' data:",
+  // blob: foto local en el recortador del Closet; supabase.co: recortes del bucket público `closet`
+  "img-src 'self' data: blob: https://*.supabase.co",
   "font-src 'self'",
   "frame-ancestors 'none'",
   "form-action 'self'",

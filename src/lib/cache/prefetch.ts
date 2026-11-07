@@ -10,6 +10,7 @@ import { fetchFechas } from "@/features/escolar/hooks/useFechasImportantes";
 import { fetchCategorias } from "@/features/personal/hooks/useCategorias";
 import { fetchHabitos, fetchRegistros } from "@/features/habitos/hooks/useHabitos";
 import { fetchCatalogoModulos, fetchModulosActivos } from "@/features/modulos/hooks/useModulos";
+import { fetchPrendas } from "@/features/closet/hooks/usePrendas";
 
 type Consulta = { key: string; fetcher: (u: User) => Promise<unknown> };
 
@@ -28,6 +29,7 @@ const POR_RUTA: Record<string, Consulta[]> = {
     { key: "habitos", fetcher: fetchHabitos },
     { key: "registros_habito", fetcher: fetchRegistros },
   ],
+  "/closet": [{ key: "closet_prendas", fetcher: fetchPrendas }],
   "/modulos": [
     { key: "modulos", fetcher: fetchCatalogoModulos },
     { key: "usuario_modulos", fetcher: fetchModulosActivos },

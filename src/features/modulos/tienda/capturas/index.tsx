@@ -22,4 +22,5 @@ export const CAPTURAS: Record<string, ComponentType> = {
   escolar: dynamic(() => import("./escolar"), { ssr: false, loading: Cargando }),
   personal: dynamic(() => import("./personal"), { ssr: false, loading: Cargando }),
   habitos: dynamic(() => import("./habitos"), { ssr: false, loading: Cargando }),
+  closet: dynamic(() => import("./closet"), { ssr: false, loading: Cargando }),
 };

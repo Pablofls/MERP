@@ -94,6 +94,17 @@ export interface Modulo {
   orden: number;
 }
 
+// Closet: prenda recortada (PNG/WebP con fondo transparente en el bucket `closet`)
+export interface Prenda {
+  id: string;
+  categoria: string; // clave de closet_categorias; el grupo se obtiene del catálogo
+  nombre?: string;
+  imagenPath: string;
+  imagenUrl: string;
+  ancho: number; // px del recorte
+  alto: number;
+}
+
 export interface RegistroHabito {
   id: string;
   habitoId: string;

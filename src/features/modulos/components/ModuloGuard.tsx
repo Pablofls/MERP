@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useModulos } from "../hooks/useModulos";
+import Skeleton from "@/components/ui/Skeleton";
 import { REGISTRO_MODULOS, IconoModulos } from "../registro";
 
 /**
@@ -9,11 +10,21 @@ import { REGISTRO_MODULOS, IconoModulos } from "../registro";
  * Se usa en el layout de cada ruta de módulo, así las páginas no cambian.
  */
 export default function ModuloGuard({ clave, children }: { clave: string; children: React.ReactNode }) {
-  const { catalogo, estaActivo, activar, sincronizado } = useModulos();
+  const { catalogo, estaActivo, activar, sincronizado, cargando } = useModulos();
   const [activando, setActivando] = useState(false);
   const [error, setError] = useState(false);
 
   if (estaActivo(clave)) return <>{children}</>;
+  // Módulos que no están en los activos de respaldo (p. ej. Closet): esperar a la BD en vez de
+  // mostrar "desactivado" un instante
+  if (cargando) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 pt-6 space-y-4" role="status" aria-label="Cargando">
+        <Skeleton className="h-7 w-40" />
+        <Skeleton className="h-40 w-full rounded-xl" />
+      </div>
+    );
+  }
 
   const nombre = catalogo.find((m) => m.clave === clave)?.nombre ?? clave;
   const icono = REGISTRO_MODULOS[clave]?.icono(false);

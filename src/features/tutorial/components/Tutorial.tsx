@@ -192,7 +192,16 @@ const PASOS: TutorialStep[] = [
     targetId: "modal-content",
     padding: 0,
   },
-  // 21 — Módulos
+  // 21 — Closet (solo si está activo)
+  {
+    ruta: "/closet",
+    titulo: "Closet — Tu ropa en un solo lugar",
+    descripcion: "Sube fotos de tus prendas y recorta su contorno tocando alrededor de cada una. Luego toca Generar outfit para armar combinaciones al azar.",
+    icono: "👕",
+    targetId: "btn-agregar-prenda",
+    setupClicks: [{ id: "modal-close", delay: 0 }],
+  },
+  // 22 — Módulos
   {
     ruta: "/modulos",
     titulo: "Módulos — Arma tu MERP",
@@ -201,7 +210,7 @@ const PASOS: TutorialStep[] = [
     targetId: "modulos-section",
     setupClicks: [{ id: "modal-close", delay: 0 }],
   },
-  // 22 — Perfil / Google Calendar
+  // 23 — Perfil / Google Calendar
   {
     ruta: "/perfil",
     titulo: "Perfil — Google Calendar",
@@ -210,7 +219,7 @@ const PASOS: TutorialStep[] = [
     targetId: "google-calendar-section",
     setupClicks: [{ id: "modal-close", delay: 0 }],
   },
-  // 23 — Fin
+  // 24 — Fin
   {
     ruta: "/perfil",
     titulo: "¡Listo para empezar!",

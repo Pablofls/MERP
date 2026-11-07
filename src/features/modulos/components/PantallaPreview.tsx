@@ -1,5 +1,6 @@
 "use client";
 import { useUser } from "@/lib/context/AuthContext";
+import { REGISTRO_MODULOS, moduloDeRuta } from "../registro";
 
 /** Tamaño lógico de una pantalla de vista previa (ventana de escritorio). Se dibuja a escala. */
 export const ANCHO_PANTALLA = 1280;
@@ -15,6 +16,12 @@ const MENU = [
 /** Copia estática del Sidebar (mismas clases), sin atajos ni consultas. */
 function BarraLateral({ ruta }: { ruta: string }) {
   const user = useUser();
+  // Módulos fuera del menú base (p. ej. Closet) se agregan al final, como al activarlos
+  const clave = moduloDeRuta(ruta);
+  const menu =
+    clave && !MENU.some((m) => m.ruta === ruta)
+      ? [...MENU, { ruta, etiqueta: REGISTRO_MODULOS[clave].etiqueta }]
+      : MENU;
   const inicial = user?.email?.[0]?.toUpperCase() ?? "U";
   const tab = (activo: boolean) =>
     `px-3 py-2.5 rounded-lg text-base font-medium ${activo ? "text-gray-50" : "text-gray-900"}`;
@@ -25,7 +32,7 @@ function BarraLateral({ ruta }: { ruta: string }) {
         <span className="text-2xl font-bold tracking-tight text-slate-900">MERP</span>
       </div>
       <nav className="flex flex-col gap-0.5 flex-1">
-        {MENU.map((m) => (
+        {menu.map((m) => (
           <span key={m.ruta} className={tab(m.ruta === ruta)}>{m.etiqueta}</span>
         ))}
       </nav>

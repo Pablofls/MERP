@@ -14,7 +14,7 @@ function BotonAgregar({ texto }: { texto: string }) {
   );
 }
 
-export function Encabezado({ titulo, detalle, accion }: { titulo: string; detalle: string; accion?: "configurar" | "nuevo" }) {
+export function Encabezado({ titulo, detalle, accion }: { titulo: string; detalle: string; accion?: "configurar" | "nuevo" | "agregar" }) {
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -30,6 +30,7 @@ export function Encabezado({ titulo, detalle, accion }: { titulo: string; detall
         </span>
       )}
       {accion === "nuevo" && <BotonAgregar texto="Nuevo" />}
+      {accion === "agregar" && <BotonAgregar texto="Agregar" />}
     </div>
   );
 }

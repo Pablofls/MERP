@@ -65,4 +65,18 @@ export const FICHAS: Record<string, FichaModulo> = {
     ],
     integraciones: ["Funciona por su cuenta: no agrega pendientes ni eventos a Inicio."],
   },
+  closet: {
+    subtitulo: "Tu ropa digitalizada y outfits en un toque",
+    color: "#7a4b3a",
+    enInicio: "No, es independiente",
+    acercaDe:
+      "Sube una foto de cada prenda y recorta su contorno tocando alrededor de ella, como con unas tijeras: la prenda queda sin fondo, lista para combinarse. Organiza tu closet en gorras, tops por capas, bottoms, calzado y accesorios, y deja que MERP te arme outfits al azar.",
+    funciones: [
+      { titulo: "Recorte a mano", descripcion: "Marca el contorno con toques; arrastra los puntos y usa la lupa para afinar." },
+      { titulo: "Tops por capas", descripcion: "Camisas (capa 1), suéteres (capa 2) y chamarras (capa 3) se combinan con sentido." },
+      { titulo: "Generar outfit", descripcion: "Un toque arma una combinación al azar con lo que tienes." },
+      { titulo: "Fija lo que te gusta", descripcion: "Ponle candado a una prenda y genera el resto alrededor de ella." },
+    ],
+    integraciones: ["Funciona por su cuenta: no agrega pendientes ni eventos a Inicio."],
+  },
 };

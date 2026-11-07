@@ -47,6 +47,15 @@ export const REGISTRO_MODULOS: Record<string, ModuloUI> = {
       </svg>
     ),
   },
+  closet: {
+    ruta: "/closet",
+    etiqueta: "Closet",
+    icono: (active) => (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2 : 1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 6.75a2.25 2.25 0 1 1 3 2.122c-.44.155-.75.56-.75 1.027V10.5m0 0 8.4 5.6a1.5 1.5 0 0 1-.83 2.75H4.43a1.5 1.5 0 0 1-.83-2.75L12 10.5Z" />
+      </svg>
+    ),
+  },
 };
 
 /** Ícono de la sección Módulos (cuadrícula). */
@@ -59,7 +68,7 @@ export function IconoModulos({ active = false, className = "w-5 h-5" }: { active
 }
 
 /**
- * Copia del catálogo sembrado en 20261106_modulos.sql. Se usa mientras carga el de la BD o si la
+ * Copia del catálogo sembrado en 20261106_modulos.sql y 20261107_closet.sql. Se usa mientras carga el de la BD o si la
  * consulta falla (p. ej. migración aún no aplicada), para que el menú se vea igual que antes.
  */
 export const CATALOGO_RESPALDO: Modulo[] = [
@@ -69,9 +78,11 @@ export const CATALOGO_RESPALDO: Modulo[] = [
     descripcion: "Pendientes personales organizados en las categorías que tú crees." },
   { clave: "habitos", clase: "aplicacion", nombre: "Hábitos", orden: 3,
     descripcion: "Da seguimiento a tus hábitos diarios y semanales con metas y registros." },
+  { clave: "closet", clase: "aplicacion", nombre: "Closet", orden: 4,
+    descripcion: "Digitaliza tu ropa recortando cada prenda y genera outfits al azar." },
 ];
 
-/** Módulos activos por defecto (activo_por_defecto en la BD): lo que todos ven hoy. */
+/** Módulos activos por defecto (activo_por_defecto en la BD). Closet no: se activa desde Módulos. */
 export const ACTIVOS_RESPALDO = ["escolar", "personal", "habitos"];
 
 /** Clave del módulo dueño de una ruta ("/escolar/x" → "escolar"), o null si la ruta no es de un módulo. */
