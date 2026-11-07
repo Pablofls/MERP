@@ -6,7 +6,7 @@ import type { Prenda } from "@/lib/types";
 import type { Recorte } from "../lib/recorte";
 
 const BUCKET = "closet";
-const COLUMNAS = "id,categoria_clave,nombre,imagen_path,ancho,alto";
+const COLUMNAS = "id,categoria_clave,nombre,imagen_path,ancho,alto,alto_cm";
 
 type PrendaDB = {
   id: string;
@@ -15,6 +15,7 @@ type PrendaDB = {
   imagen_path: string;
   ancho: number;
   alto: number;
+  alto_cm: number | string; // numeric
 };
 
 /** URL pública del recorte (el bucket es público; la ruta lleva el UUID de la prenda, no se puede adivinar). */
@@ -31,6 +32,7 @@ function prendaFromDB(r: PrendaDB): Prenda {
     imagenUrl: urlPublica(r.imagen_path),
     ancho: r.ancho,
     alto: r.alto,
+    altoCm: Number(r.alto_cm),
   };
 }
 
@@ -42,6 +44,22 @@ export const fetchPrendas = async (): Promise<Prenda[]> =>
 export interface DatosPrenda {
   categoria: string;
   nombre?: string;
+  altoCm: number;
+}
+
+/** Cambios al editar: datos y, si se volvió a recortar la foto, el recorte nuevo. */
+export interface CambiosPrenda extends DatosPrenda {
+  recorte?: Recorte;
+}
+
+const extension = (blob: Blob) => (blob.type === "image/webp" ? "webp" : "png");
+
+async function subir(path: string, blob: Blob) {
+  return supabase.storage.from(BUCKET).upload(path, blob, {
+    contentType: blob.type,
+    cacheControl: "31536000", // la ruta nunca se reutiliza: caché inmutable
+    upsert: false,
+  });
 }
 
 export function usePrendas() {
@@ -52,14 +70,9 @@ export function usePrendas() {
   async function agregarPrenda(recorte: Recorte, datos: DatosPrenda): Promise<string | null> {
     if (!user) return "Tu sesión expiró. Vuelve a iniciar sesión.";
     const id = crypto.randomUUID();
-    const ext = recorte.blob.type === "image/webp" ? "webp" : "png";
-    const path = `${user.id}/${id}.${ext}`;
+    const path = `${user.id}/${id}.${extension(recorte.blob)}`;
 
-    const subida = await supabase.storage.from(BUCKET).upload(path, recorte.blob, {
-      contentType: recorte.blob.type,
-      cacheControl: "31536000", // la ruta nunca se reutiliza: caché inmutable
-      upsert: false,
-    });
+    const subida = await subir(path, recorte.blob);
     if (subida.error) return "No se pudo subir la imagen. Revisa tu conexión e intenta de nuevo.";
 
     const { data, error } = await supabase
@@ -72,6 +85,7 @@ export function usePrendas() {
         imagen_path: path,
         ancho: recorte.ancho,
         alto: recorte.alto,
+        alto_cm: datos.altoCm,
       })
       .select(COLUMNAS)
       .single();
@@ -84,15 +98,37 @@ export function usePrendas() {
     return null;
   }
 
-  async function editarPrenda(id: string, datos: DatosPrenda): Promise<boolean> {
+  /**
+   * Guarda categoría, nombre y tamaño; si hay recorte nuevo lo sube con otra ruta (la URL cambia y no se sirve
+   * la versión en caché) y al final borra el archivo anterior.
+   */
+  async function editarPrenda(prenda: Prenda, cambios: CambiosPrenda): Promise<boolean> {
+    if (!user) return false;
+    const patch: Record<string, unknown> = {
+      categoria_clave: cambios.categoria,
+      nombre: cambios.nombre?.trim() || null,
+      alto_cm: cambios.altoCm,
+    };
+    let rutaNueva: string | null = null;
+    if (cambios.recorte) {
+      rutaNueva = `${user.id}/${prenda.id}-${Date.now().toString(36)}.${extension(cambios.recorte.blob)}`;
+      const subida = await subir(rutaNueva, cambios.recorte.blob);
+      if (subida.error) return false;
+      Object.assign(patch, { imagen_path: rutaNueva, ancho: cambios.recorte.ancho, alto: cambios.recorte.alto });
+    }
+
     const { data, error } = await supabase
       .from("closet_prendas")
-      .update({ categoria_clave: datos.categoria, nombre: datos.nombre?.trim() || null })
-      .eq("id", id)
+      .update(patch)
+      .eq("id", prenda.id)
       .select(COLUMNAS)
       .single();
-    if (error || !data) return false;
-    setPrendas((prev) => prev.map((p) => (p.id === id ? prendaFromDB(data as PrendaDB) : p)));
+    if (error || !data) {
+      if (rutaNueva) await supabase.storage.from(BUCKET).remove([rutaNueva]);
+      return false;
+    }
+    setPrendas((prev) => prev.map((p) => (p.id === prenda.id ? prendaFromDB(data as PrendaDB) : p)));
+    if (rutaNueva) await supabase.storage.from(BUCKET).remove([prenda.imagenPath]); // best-effort
     return true;
   }
 

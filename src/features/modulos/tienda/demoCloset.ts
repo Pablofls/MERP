@@ -2,6 +2,7 @@
 import type { Prenda } from "@/lib/types";
 import type { Outfit } from "@/features/closet/lib/generarOutfit";
 import type { Contorno } from "@/features/closet/components/Recortador";
+import { altoCmAjustado } from "@/features/closet/lib/catalogo";
 
 const svg = (ancho: number, alto: number, cuerpo: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -10,7 +11,9 @@ const svg = (ancho: number, alto: number, cuerpo: string) =>
   )}`;
 
 function prenda(id: string, categoria: string, nombre: string, ancho: number, alto: number, cuerpo: string): Prenda {
-  return { id: `demo-${id}`, categoria, nombre, imagenPath: "", imagenUrl: svg(ancho, alto, cuerpo), ancho, alto };
+  // Tamaño = encajada en el marco de su categoría, como el ajuste automático al recortar
+  const altoCm = altoCmAjustado(categoria, ancho, alto);
+  return { id: `demo-${id}`, categoria, nombre, imagenPath: "", imagenUrl: svg(ancho, alto, cuerpo), ancho, alto, altoCm };
 }
 
 // Playera (capa 1): también se usa en la "foto" del recortador

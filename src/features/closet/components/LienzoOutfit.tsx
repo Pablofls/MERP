@@ -11,6 +11,69 @@ interface Props {
   className?: string;
 }
 
+// Composición en cm: cada prenda se dibuja a su tamaño real (altoCm), así todas quedan a la misma escala.
+const SEPARACION_GORRA = 3; // entre la gorra y los tops
+const TRASLAPE_TOPS = 0.12; // fracción del alto de los tops que cubre el pantalón
+const TRASLAPE_TOPS_MAX = 9;
+const TRASLAPE_CALZADO = 4; // el bajo del pantalón cubre un poco el calzado
+const PASO_CAPA = 15; // desplazamiento horizontal entre capas de tops
+const SEPARACION_ACCESORIO = 5;
+const MARGEN = 0.06; // del lado mayor
+const PROPORCION = 3 / 4; // ancho / alto del lienzo
+
+interface Pieza {
+  prenda: Prenda;
+  x: number; // cm, borde izquierdo (0 = eje del cuerpo)
+  y: number; // cm, borde superior
+  w: number;
+  h: number;
+  z: number;
+}
+
+const medidas = (p: Prenda) => ({ h: p.altoCm, w: (p.altoCm * p.ancho) / p.alto });
+
+/** Acomoda el outfit en cm: gorra, tops por capas (alineados por los hombros), bottom, calzado y accesorio a un lado. */
+function componer(o: Outfit): Pieza[] {
+  const piezas: Pieza[] = [];
+  let y = 0;
+
+  if (o.gorra) {
+    const { w, h } = medidas(o.gorra);
+    piezas.push({ prenda: o.gorra, x: -w / 2, y, w, h, z: 6 });
+    y += h + SEPARACION_GORRA;
+  }
+
+  // Capas: la exterior atrás a la izquierda, la base al frente a la derecha
+  const capas = [o.capa3, o.capa2, o.capa1].filter((p): p is Prenda => !!p);
+  const yTops = y;
+  let altoTops = 0;
+  capas.forEach((p, i) => {
+    const { w, h } = medidas(p);
+    const centro = (i - (capas.length - 1) / 2) * PASO_CAPA;
+    piezas.push({ prenda: p, x: centro - w / 2, y: yTops, w, h, z: 3 + i });
+    altoTops = Math.max(altoTops, h);
+  });
+  if (capas.length) y = yTops + altoTops - Math.min(TRASLAPE_TOPS_MAX, altoTops * TRASLAPE_TOPS);
+
+  if (o.bottom) {
+    const { w, h } = medidas(o.bottom);
+    piezas.push({ prenda: o.bottom, x: -w / 2, y, w, h, z: 2 });
+    y += h - TRASLAPE_CALZADO;
+  }
+  if (o.calzado) {
+    const { w, h } = medidas(o.calzado);
+    piezas.push({ prenda: o.calzado, x: -w / 2, y, w, h, z: 1 });
+  }
+
+  if (o.accesorio) {
+    const { w, h } = medidas(o.accesorio);
+    const derecha = Math.max(0, ...piezas.map((p) => p.x + p.w));
+    const centroY = capas.length ? yTops + altoTops * 0.65 : y / 2;
+    piezas.push({ prenda: o.accesorio, x: derecha + SEPARACION_ACCESORIO, y: centroY - h / 2, w, h, z: 7 });
+  }
+  return piezas;
+}
+
 function Candado({ fija, onClick }: { fija: boolean; onClick: () => void }) {
   return (
     <button
@@ -37,43 +100,46 @@ function Candado({ fija, onClick }: { fija: boolean; onClick: () => void }) {
   );
 }
 
-/**
- * Outfit armado como collage sobre un lienzo neutro: gorra, tops por capas (la exterior atrás a la izquierda,
- * la base al frente), bottom y calzado de arriba a abajo; el accesorio a un costado.
- */
+/** Outfit armado como collage sobre un lienzo neutro, con cada prenda a su tamaño real. */
 export default function LienzoOutfit({ outfit, fijas, onAlternarFija, className }: Props) {
-  const pieza = (p: Prenda, extra?: string, estilo?: React.CSSProperties) => (
-    <div key={p.id} className={cn("relative h-full max-w-full flex items-center justify-center group/pieza", extra)} style={estilo}>
-      <ImagenPrenda prenda={p} className="h-full w-auto max-w-full" />
-      {onAlternarFija && <Candado fija={!!fijas?.has(p.id)} onClick={() => onAlternarFija(p)} />}
-    </div>
-  );
-  const fila = (flex: number, contenido: React.ReactNode, extra?: string) => (
-    <div className={cn("w-full min-h-0 flex items-center justify-center", extra)} style={{ flex: `${flex} 1 0%` }}>
-      {contenido}
-    </div>
-  );
+  const piezas = componer(outfit);
 
-  const capas = [outfit.capa3, outfit.capa2, outfit.capa1].filter((p): p is Prenda => !!p);
-  const anchoCapa = capas.length === 1 ? "100%" : capas.length === 2 ? "62%" : "48%";
+  // Caja del conjunto + margen, encajada en un lienzo 3:4
+  let W = 1, H = 1, ox = 0, oy = 0;
+  if (piezas.length) {
+    const minX = Math.min(...piezas.map((p) => p.x));
+    const maxX = Math.max(...piezas.map((p) => p.x + p.w));
+    const minY = Math.min(...piezas.map((p) => p.y));
+    const maxY = Math.max(...piezas.map((p) => p.y + p.h));
+    const m = Math.max(maxX - minX, maxY - minY) * MARGEN;
+    const w0 = maxX - minX + 2 * m;
+    const h0 = maxY - minY + 2 * m;
+    if (w0 / h0 > PROPORCION) {
+      W = w0;
+      H = w0 / PROPORCION;
+    } else {
+      H = h0;
+      W = h0 * PROPORCION;
+    }
+    ox = (W - (maxX - minX)) / 2 - minX;
+    oy = (H - (maxY - minY)) / 2 - minY;
+  }
+  const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 
   return (
     <div className={cn("relative w-full aspect-[3/4] rounded-2xl bg-stone-100 overflow-hidden", className)}>
-      <div key={firmaOutfit(outfit)} className="absolute inset-0 flex flex-col items-center px-[10%] py-[5%] gap-[1.5%] animate-[outfit-in_.35s_ease-out]">
-        {outfit.gorra && fila(1.5, pieza(outfit.gorra))}
-        {capas.length > 0 &&
-          fila(
-            4,
-            capas.map((p, i) => pieza(p, i > 0 ? "-ml-[16%]" : undefined, { maxWidth: anchoCapa, zIndex: i + 1 })),
-          )}
-        {outfit.bottom && fila(4.6, pieza(outfit.bottom))}
-        {outfit.calzado && fila(1.4, pieza(outfit.calzado))}
+      <div key={firmaOutfit(outfit)} className="absolute inset-0 animate-[outfit-in_.35s_ease-out]">
+        {piezas.map((p) => (
+          <div
+            key={p.prenda.id}
+            className="absolute group/pieza"
+            style={{ left: pct(p.x + ox, W), top: pct(p.y + oy, H), width: pct(p.w, W), height: pct(p.h, H), zIndex: p.z }}
+          >
+            <ImagenPrenda prenda={p.prenda} className="w-full h-full" />
+            {onAlternarFija && <Candado fija={!!fijas?.has(p.prenda.id)} onClick={() => onAlternarFija(p.prenda)} />}
+          </div>
+        ))}
       </div>
-      {outfit.accesorio && (
-        <div key={`acc-${outfit.accesorio.id}`} className="absolute right-[4%] top-[42%] w-[24%] h-[17%] z-10 flex justify-center animate-[outfit-in_.35s_ease-out]">
-          {pieza(outfit.accesorio)}
-        </div>
-      )}
     </div>
   );
 }

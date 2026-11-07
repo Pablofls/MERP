@@ -4,7 +4,7 @@ import GridPrendas from "@/features/closet/components/GridPrendas";
 import LienzoOutfit from "@/features/closet/components/LienzoOutfit";
 import Recortador from "@/features/closet/components/Recortador";
 import { IconoShuffle } from "@/features/closet/components/GeneradorOutfit";
-import { GRUPOS, type ClaveGrupo } from "@/features/closet/lib/catalogo";
+import { GRUPOS, marcoDe, type ClaveGrupo } from "@/features/closet/lib/catalogo";
 import type { Outfit } from "@/features/closet/lib/generarOutfit";
 import CarruselCapturas from "../../components/CarruselCapturas";
 import { Encabezado, nada } from "../Pantalla";
@@ -46,10 +46,21 @@ function PaginaRecorte() {
             <h2 className="text-base font-semibold text-gray-900">Agregar prenda</h2>
           </div>
           <div className="px-5 py-4 space-y-3">
+            <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-lg max-w-xs mx-auto">
+              <span className="py-1.5 rounded-md text-sm font-medium text-gray-500 text-center">Contorno</span>
+              <span className="py-1.5 rounded-md text-sm font-medium bg-white text-gray-900 shadow-sm text-center">Tamaño</span>
+            </div>
             <p className="text-xs text-gray-500 text-center">
-              Arrastra los puntos para ajustar. Arrastra el punto medio de un lado para agregar otro.
+              Ajusta el marco a la prenda: debe quedar dentro de la silueta.
             </p>
-            <Recortador src={FOTO_RECORTE_DEMO} inicial={CONTORNO_DEMO} altoMax="400px" vistaPrevia />
+            <Recortador
+              src={FOTO_RECORTE_DEMO}
+              inicial={CONTORNO_DEMO}
+              altoMax="360px"
+              marco={marcoDe("camisas")}
+              modoInicial="tamano"
+              vistaPrevia
+            />
             <div className="flex gap-2 pt-1">
               <span className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 text-center">Otra foto</span>
               <span className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium text-center">Siguiente</span>

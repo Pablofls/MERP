@@ -103,6 +103,7 @@ export interface Prenda {
   imagenUrl: string;
   ancho: number; // px del recorte
   alto: number;
+  altoCm: number; // tamaño real: el ancho en cm es altoCm * ancho / alto
 }
 
 export interface RegistroHabito {
