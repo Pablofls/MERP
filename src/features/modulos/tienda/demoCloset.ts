@@ -5,7 +5,8 @@ import type { Contorno } from "@/features/closet/components/Recortador";
 
 const svg = (ancho: number, alto: number, cuerpo: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ancho} ${alto}" stroke-linejoin="round" stroke-linecap="round">${cuerpo}</svg>`,
+    // width/height explícitos: sin ellos el navegador reporta 300×150 como tamaño natural del SVG
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${ancho}" height="${alto}" viewBox="0 0 ${ancho} ${alto}" stroke-linejoin="round" stroke-linecap="round">${cuerpo}</svg>`,
   )}`;
 
 function prenda(id: string, categoria: string, nombre: string, ancho: number, alto: number, cuerpo: string): Prenda {
