@@ -2,7 +2,7 @@
 -- Las migraciones en supabase/migrations/ son el historial; este archivo es el resultado de aplicarlas todas.
 -- Actualizar en el mismo commit que cada migración nueva.
 --
--- Refleja hasta: 20261107_closet.sql (aplicadas 20261005 y 20261006; 20261007 es opcional).
+-- Refleja hasta: 20261108_closet_tamano.sql (aplicadas 20261005 y 20261006; 20261007 es opcional).
 -- Normalización: 4FN (clases + clase_dias), FKs compuestas (fk, user_id) para consistencia con RLS.
 --
 -- Las tablas base (materias, pendientes, habitos, registros_habito, eventos) se crearon antes de que el repo
@@ -233,12 +233,14 @@ create table closet_prendas (
   imagen_path      text        not null,                   -- objeto en el bucket `closet`: <user_id>/<id>.<ext>
   ancho            integer     not null,
   alto             integer     not null,
+  alto_cm          numeric(5,1) not null,                  -- 20261108: alto real del recorte; ancho_cm = alto_cm * ancho / alto
   created_at       timestamptz not null default now(),
   constraint closet_prendas_id_user_key unique (id, user_id),
   constraint closet_prendas_imagen_key unique (imagen_path),
   constraint closet_prendas_imagen_ck check (imagen_path like user_id::text || '/%'),
   constraint closet_prendas_dims_ck check (ancho between 1 and 4096 and alto between 1 and 4096),
-  constraint closet_prendas_nombre_ck check (nombre is null or char_length(btrim(nombre)) between 1 and 80)
+  constraint closet_prendas_nombre_ck check (nombre is null or char_length(btrim(nombre)) between 1 and 80),
+  constraint closet_prendas_alto_cm_ck check (alto_cm between 1 and 300)                     -- 20261108
 );
 create index idx_closet_prendas_user_created on closet_prendas (user_id, created_at desc);
 
