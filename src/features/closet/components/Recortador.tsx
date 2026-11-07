@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { cajaDe, puntosRectangulo, type Punto } from "../lib/recorte";
-import type { MarcoCategoria } from "../lib/catalogo";
+import { puntosRectangulo, type Punto } from "../lib/recorte";
 
 export interface Contorno {
   puntos: Punto[]; // px de la imagen original
@@ -10,17 +9,6 @@ export interface Contorno {
 }
 
 export const CONTORNO_VACIO: Contorno = { puntos: [], cerrado: false };
-
-/** Escala de la foto: cuántos px de la imagen son 1 cm, y dónde está el centro del marco (px de imagen). */
-export interface Escala {
-  pxPorCm: number;
-  cx: number;
-  cy: number;
-  /** true si el usuario movió el marco; si no, el marco se ajusta solo al contorno */
-  manual: boolean;
-}
-
-export type Modo = "contorno" | "tamano";
 
 interface Props {
   src: string;
@@ -32,13 +20,6 @@ interface Props {
   altoMax?: string;
   /** Solo muestra el contorno, sin interacción (vista previa de la tienda) */
   vistaPrevia?: boolean;
-  /** Marco de tamaño de la categoría: silueta de guía que define la escala real de la prenda */
-  marco?: MarcoCategoria;
-  escalaInicial?: Escala | null;
-  onEscala?: (e: Escala) => void;
-  modoInicial?: Modo;
-  /** Zona de la imagen con contenido (al editar una prenda con margen): las medidas no cuentan el margen */
-  limites?: Caja;
 }
 
 interface Arrastre {
@@ -50,11 +31,7 @@ interface Arrastre {
   previo: Contorno; // contorno antes de este toque (para cancelarlo si resulta ser un pellizco)
 }
 
-type AjusteMarco =
-  | { tipo: "mover"; inicio: Punto; escala0: Escala }
-  | { tipo: "escalar"; opuesta: Punto };
-
-/** Zoom y desplazamiento de la foto dentro de la ventana: translate(tx, ty) scale(z), en px de la ventana. */
+/** Zoom y desplazamiento de la foto dentro del marco: translate(tx, ty) scale(z), en px del marco. */
 interface Vista {
   z: number;
   tx: number;
@@ -69,83 +46,39 @@ const ZOOM_MAX = 8;
 const PASO_ZOOM = 1.5; // botones +/− y teclas
 const MAX_HISTORIAL = 60;
 const VISTA_INICIAL: Vista = { z: 1, tx: 0, ty: 0 };
-const COLOR_MARCO = "#f59e0b";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 const ruta = (ps: Punto[]) => ps.map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`).join("");
 const distancia = (a: Pos, b: Pos) => Math.hypot(a.x - b.x, a.y - b.y);
 const medio = (a: Pos, b: Pos): Pos => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
-type Caja = { x: number; y: number; ancho: number; alto: number };
-
-/** Caja del contorno, recortada a `limites` (al editar, la zona de la imagen que tiene la prenda). */
-function cajaUtil(puntos: Punto[], limites?: Caja): Caja {
-  const c = cajaDe(puntos);
-  if (!limites) return c;
-  const x = Math.max(c.x, limites.x);
-  const y = Math.max(c.y, limites.y);
-  const ancho = Math.max(0, Math.min(c.x + c.ancho, limites.x + limites.ancho) - x);
-  const alto = Math.max(0, Math.min(c.y + c.alto, limites.y + limites.alto) - y);
-  return { x, y, ancho, alto };
-}
-
-/** Escala que encaja la caja del contorno dentro del marco (sin salirse), centrada en la prenda. */
-function escalaAjustada(c: Caja, marco: MarcoCategoria): Escala {
-  const pxPorCm = Math.max(c.ancho / marco.ancho, c.alto / marco.alto, 1e-3);
-  return { pxPorCm, cx: c.x + c.ancho / 2, cy: c.y + c.alto / 2, manual: false };
-}
-
-/** Sin contorno todavía: el marco ocupa 80 % de la foto, centrado. */
-function escalaPorDefecto(dims: { w: number; h: number }, marco: MarcoCategoria): Escala {
-  const pxPorCm = Math.min((dims.w * 0.8) / marco.ancho, (dims.h * 0.8) / marco.alto);
-  return { pxPorCm, cx: dims.w / 2, cy: dims.h / 2, manual: false };
-}
-
 /**
  * Editor de contorno poligonal: se toca alrededor de la prenda para ir marcando puntos y se cierra tocando
  * el primero. Los puntos se arrastran para ajustar y el punto medio de cada lado inserta uno nuevo.
- *
- * Tamaño: con `marco`, se dibuja la silueta de la categoría (p. ej. una playera de 72 × 76 cm). Se ajusta sola al
- * contorno; en el modo Tamaño se mueve y escala para corregirla. Su escala da el tamaño real de la prenda.
  *
  * Precisión: zoom con dos dedos, ⌘/Ctrl + rueda (o pellizco del trackpad) y los botones +/−; la foto se mueve
  * con dos dedos, la rueda, Espacio + arrastrar o el modo mano. Mientras se coloca o arrastra un punto aparece
  * una lupa para que el dedo no tape lo que se marca.
  */
-export default function Recortador({
-  src,
-  inicial,
-  onCambio,
-  onErrorImagen,
-  altoMax = "55dvh",
-  vistaPrevia = false,
-  marco,
-  escalaInicial,
-  onEscala,
-  modoInicial = "contorno",
-  limites,
-}: Props) {
-  const ventanaRef = useRef<HTMLDivElement>(null);
+export default function Recortador({ src, inicial, onCambio, onErrorImagen, altoMax = "55dvh", vistaPrevia = false }: Props) {
+  const marcoRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const lupaRef = useRef<HTMLCanvasElement>(null);
   const arrastre = useRef<Arrastre | null>(null);
-  const ajusteMarco = useRef<AjusteMarco | null>(null);
-  const punteros = useRef(new Map<number, Pos>()); // dedos/punteros presionados (px de la ventana)
+  const punteros = useRef(new Map<number, Pos>()); // dedos/punteros presionados (px del marco)
   const pellizco = useRef<{ dist0: number; medio0: Pos; vista0: Vista } | null>(null);
   const paneo = useRef<{ inicio: Pos; vista0: Vista } | null>(null);
   const multitoque = useRef(false); // tras un pellizco no se dibuja hasta levantar todos los dedos
   const espacio = useRef(false);
 
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
-  const [tam, setTam] = useState({ w: 0, h: 0 }); // px de la ventana
+  const [tam, setTam] = useState({ w: 0, h: 0 }); // px del marco
   const [vista, setVista] = useState<Vista>(VISTA_INICIAL);
-  const [modo, setModo] = useState<Modo>(marco ? modoInicial : "contorno");
   const [modoMano, setModoMano] = useState(false);
   const [moviendo, setMoviendo] = useState(false); // paneo en curso o Espacio presionado (cursor)
   const [contorno, setContorno] = useState<Contorno>(inicial ?? CONTORNO_VACIO);
   const [historial, setHistorial] = useState<Contorno[]>([]);
-  const [escala, setEscala] = useState<Escala | null>(escalaInicial ?? null);
   const [puntero, setPuntero] = useState<Punto | null>(null); // punto bajo el dedo (lupa)
   const [cursor, setCursor] = useState<Punto | null>(null); // mouse sin presionar (línea guía)
 
@@ -157,29 +90,10 @@ export default function Recortador({
   tamRef.current = tam;
   const onCambioRef = useRef(onCambio);
   onCambioRef.current = onCambio;
-  const onEscalaRef = useRef(onEscala);
-  onEscalaRef.current = onEscala;
-
-  const { puntos, cerrado } = contorno;
 
   useEffect(() => {
     onCambioRef.current?.(contorno);
   }, [contorno]);
-
-  useEffect(() => {
-    if (escala) onEscalaRef.current?.(escala);
-  }, [escala]);
-
-  // Mientras el usuario no mueva el marco, se encaja solo en el contorno cerrado
-  useEffect(() => {
-    if (!marco || !dims) return;
-    setEscala((prev) => {
-      if (prev?.manual) return prev;
-      if (cerrado && puntos.length >= 3) return escalaAjustada(cajaUtil(puntos, limites), marco);
-      return prev ?? escalaPorDefecto(dims, marco);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marco, dims, cerrado, puntos]);
 
   // Si la imagen ya estaba cargada al hidratar (p. ej. data: o caché), onLoad no se dispara
   useEffect(() => {
@@ -188,7 +102,7 @@ export default function Recortador({
   }, [src]);
 
   useLayoutEffect(() => {
-    const el = ventanaRef.current;
+    const el = marcoRef.current;
     if (!el) return;
     const ro = new ResizeObserver(([e]) => setTam({ w: e.contentRect.width, h: e.contentRect.height }));
     ro.observe(el);
@@ -196,14 +110,14 @@ export default function Recortador({
   }, []);
 
   // ── Zoom ──────────────────────────────────────────────────────────────────────────────────────
-  /** Mantiene la foto cubriendo la ventana (sin bordes vacíos) y el zoom entre 1× y ZOOM_MAX. */
+  /** Mantiene la foto cubriendo el marco (sin bordes vacíos) y el zoom entre 1× y ZOOM_MAX. */
   function limitar(v: Vista): Vista {
     const { w, h } = tamRef.current;
     const z = clamp(v.z, 1, ZOOM_MAX);
     return { z, tx: clamp(v.tx, w - w * z, 0), ty: clamp(v.ty, h - h * z, 0) };
   }
 
-  /** Zoom a `z` dejando fijo el punto (fx, fy) de la ventana, partiendo de `base`. */
+  /** Zoom a `z` dejando fijo el punto (fx, fy) del marco, partiendo de `base`. */
   function zoomA(base: Vista, z: number, fx: number, fy: number): Vista {
     const z2 = clamp(z, 1, ZOOM_MAX);
     const r = z2 / base.z;
@@ -215,7 +129,7 @@ export default function Recortador({
     setVista((v) => zoomA(v, v.z * factor, w / 2, h / 2));
   }
 
-  // Si la ventana cambia de tamaño (rotar el teléfono), la vista se vuelve a acomodar
+  // Si el marco cambia de tamaño (rotar el teléfono), la vista se vuelve a acomodar
   useEffect(() => {
     setVista((v) => limitar(v));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -225,7 +139,7 @@ export default function Recortador({
   // Safari en Mac reporta el pellizco del trackpad como gesture*; en iPhone/iPad lo maneja el pellizco
   // con punteros, así que gesture* solo se usa si no hay dedos registrados.
   useEffect(() => {
-    const el = ventanaRef.current;
+    const el = marcoRef.current;
     if (!el || vistaPrevia || !dims) return;
     const rel = (e: { clientX: number; clientY: number }) => {
       const r = el.getBoundingClientRect();
@@ -233,18 +147,18 @@ export default function Recortador({
     };
 
     const onWheel = (e: WheelEvent) => {
-      const factorDelta = e.deltaMode === 1 ? 16 : 1;
+      const escala = e.deltaMode === 1 ? 16 : 1;
       const p = rel(e);
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        const factor = Math.exp(-clamp(e.deltaY * factorDelta, -50, 50) * 0.01);
+        const factor = Math.exp(-clamp(e.deltaY * escala, -50, 50) * 0.01);
         setVista((v) => zoomA(v, v.z * factor, p.x, p.y));
         return;
       }
       if (vistaRef.current.z <= 1) return; // sin zoom, la rueda desplaza la ventana como siempre
       e.preventDefault();
-      let dx = e.deltaX * factorDelta;
-      let dy = e.deltaY * factorDelta;
+      let dx = e.deltaX * escala;
+      let dy = e.deltaY * escala;
       if (e.shiftKey && !dx) [dx, dy] = [dy, 0];
       setVista((v) => limitar({ ...v, tx: v.tx - dx, ty: v.ty - dy }));
     };
@@ -277,24 +191,7 @@ export default function Recortador({
   // Px de imagen por px de pantalla (tamaño de los controles y radios de toque), con el zoom incluido
   const k = dims && tam.w ? dims.w / (tam.w * vista.z) : 1;
 
-  // Marco de tamaño en px de imagen
-  const rectMarco =
-    marco && escala
-      ? {
-          x: escala.cx - (marco.ancho * escala.pxPorCm) / 2,
-          y: escala.cy - (marco.alto * escala.pxPorCm) / 2,
-          w: marco.ancho * escala.pxPorCm,
-          h: marco.alto * escala.pxPorCm,
-        }
-      : null;
-  const esquinasMarco = rectMarco
-    ? [
-        { x: rectMarco.x, y: rectMarco.y },
-        { x: rectMarco.x + rectMarco.w, y: rectMarco.y },
-        { x: rectMarco.x + rectMarco.w, y: rectMarco.y + rectMarco.h },
-        { x: rectMarco.x, y: rectMarco.y + rectMarco.h },
-      ]
-    : [];
+  const { puntos, cerrado } = contorno;
 
   // ── Historial ─────────────────────────────────────────────────────────────────────────────────
   function guardarHistorial() {
@@ -311,7 +208,6 @@ export default function Recortador({
 
   /** Revierte el punto que empezó a colocar el primer dedo cuando en realidad era un pellizco. */
   function cancelarArrastre() {
-    ajusteMarco.current = null;
     const a = arrastre.current;
     if (!a) return;
     arrastre.current = null;
@@ -336,10 +232,6 @@ export default function Recortador({
     if (!dims) return;
     guardarHistorial();
     setContorno({ puntos: puntosRectangulo(dims.w, dims.h), cerrado: true });
-  }
-
-  function ajustarMarco() {
-    if (marco && cerrado && puntos.length >= 3) setEscala(escalaAjustada(cajaUtil(puntos, limites), marco));
   }
 
   // Teclado: ⌘/Ctrl+Z deshace, Enter cierra, +/− zoom, 0 ajusta, Espacio sostenido mueve la foto
@@ -389,17 +281,17 @@ export default function Recortador({
   }, [vistaPrevia]);
 
   // ── Punteros ──────────────────────────────────────────────────────────────────────────────────
-  function enVentana(e: React.PointerEvent): Pos {
-    const r = ventanaRef.current!.getBoundingClientRect();
+  function enMarco(e: React.PointerEvent): Pos {
+    const r = marcoRef.current!.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
-  /** Px de imagen bajo el puntero (dentro de la foto, salvo `libre` para el marco, que puede salirse). */
-  function aImagen(e: React.PointerEvent, libre = false): Punto {
+  function aImagen(e: React.PointerEvent): Punto {
     const r = svgRef.current!.getBoundingClientRect(); // ya incluye el zoom
-    const x = ((e.clientX - r.left) / r.width) * dims!.w;
-    const y = ((e.clientY - r.top) / r.height) * dims!.h;
-    return libre ? { x, y } : { x: clamp(x, 0, dims!.w), y: clamp(y, 0, dims!.h) };
+    return {
+      x: clamp(((e.clientX - r.left) / r.width) * dims!.w, 0, dims!.w),
+      y: clamp(((e.clientY - r.top) / r.height) * dims!.h, 0, dims!.h),
+    };
   }
 
   /** Índice del punto más cercano dentro del radio (px de pantalla), o -1. */
@@ -418,11 +310,6 @@ export default function Recortador({
 
   const medios = cerrado ? puntos.map((p, i) => medio(p, puntos[(i + 1) % puntos.length])) : [];
 
-  function empezarPaneo(e: React.PointerEvent) {
-    paneo.current = { inicio: enVentana(e), vista0: vistaRef.current };
-    setMoviendo(true);
-  }
-
   function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
     if (vistaPrevia || !dims) return;
     e.preventDefault();
@@ -431,7 +318,7 @@ export default function Recortador({
     } catch {
       // puntero ya liberado: se sigue sin captura
     }
-    punteros.current.set(e.pointerId, enVentana(e));
+    punteros.current.set(e.pointerId, enMarco(e));
     setCursor(null);
 
     // Segundo dedo: es un pellizco (zoom + mover), no un punto
@@ -447,30 +334,14 @@ export default function Recortador({
 
     // Mover la foto: modo mano, Espacio sostenido o botón central del mouse
     if (modoMano || espacio.current || (e.pointerType === "mouse" && e.button === 1)) {
-      empezarPaneo(e);
+      paneo.current = { inicio: enMarco(e), vista0: vistaRef.current };
+      setMoviendo(true);
       return;
     }
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    const radio = e.pointerType === "mouse" ? 10 : 22;
-
-    // Modo Tamaño: esquinas escalan el marco, dentro se mueve, fuera se mueve la foto
-    if (modo === "tamano" && rectMarco && escala) {
-      const p = aImagen(e, true);
-      const c = cercano(p, esquinasMarco, radio);
-      if (c >= 0) {
-        ajusteMarco.current = { tipo: "escalar", opuesta: esquinasMarco[(c + 2) % 4] };
-        return;
-      }
-      const r = rectMarco;
-      if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) {
-        ajusteMarco.current = { tipo: "mover", inicio: p, escala0: escala };
-        return;
-      }
-      empezarPaneo(e);
-      return;
-    }
 
     const p = aImagen(e);
+    const radio = e.pointerType === "mouse" ? 10 : 22;
     const origen = { x: e.clientX, y: e.clientY };
     const previo = contornoRef.current;
 
@@ -506,10 +377,10 @@ export default function Recortador({
 
     if (!punteros.current.has(e.pointerId)) {
       // Mouse sin presionar: línea guía del último punto al cursor
-      if (e.pointerType === "mouse" && modo === "contorno" && !cerrado && !modoMano && !espacio.current) setCursor(aImagen(e));
+      if (e.pointerType === "mouse" && !cerrado && !modoMano && !espacio.current) setCursor(aImagen(e));
       return;
     }
-    punteros.current.set(e.pointerId, enVentana(e));
+    punteros.current.set(e.pointerId, enMarco(e));
 
     if (pellizco.current) {
       if (punteros.current.size < 2) return;
@@ -527,30 +398,8 @@ export default function Recortador({
 
     if (paneo.current) {
       const { inicio, vista0 } = paneo.current;
-      const p = enVentana(e);
+      const p = enMarco(e);
       setVista(limitar({ ...vista0, tx: vista0.tx + p.x - inicio.x, ty: vista0.ty + p.y - inicio.y }));
-      return;
-    }
-
-    const ajuste = ajusteMarco.current;
-    if (ajuste && marco) {
-      const p = aImagen(e, true);
-      if (ajuste.tipo === "mover") {
-        const { escala0, inicio } = ajuste;
-        setEscala({ ...escala0, cx: escala0.cx + p.x - inicio.x, cy: escala0.cy + p.y - inicio.y, manual: true });
-      } else {
-        // Escala uniforme dejando fija la esquina opuesta (mínimo ~24 px en pantalla)
-        const o = ajuste.opuesta;
-        const pxPorCm = Math.max(Math.abs(p.x - o.x) / marco.ancho, Math.abs(p.y - o.y) / marco.alto, (24 * k) / Math.min(marco.ancho, marco.alto));
-        const w = marco.ancho * pxPorCm;
-        const h = marco.alto * pxPorCm;
-        setEscala({
-          pxPorCm,
-          cx: o.x + ((p.x >= o.x ? 1 : -1) * w) / 2,
-          cy: o.y + ((p.y >= o.y ? 1 : -1) * h) / 2,
-          manual: true,
-        });
-      }
       return;
     }
 
@@ -565,7 +414,6 @@ export default function Recortador({
 
   function onPointerUp(e: React.PointerEvent<SVGSVGElement>) {
     punteros.current.delete(e.pointerId);
-    ajusteMarco.current = null;
 
     if (pellizco.current || multitoque.current) {
       if (punteros.current.size < 2) pellizco.current = null;
@@ -643,63 +491,30 @@ export default function Recortador({
     ctx.stroke();
   }, [puntero, puntos, cerrado, dims, k]);
 
-  // La lupa va arriba a la izquierda, o a la derecha si el dedo está en esa esquina de la ventana
+  // La lupa va arriba a la izquierda, o a la derecha si el dedo está en esa esquina del marco
   const lupaDerecha =
     !!puntero && puntero.x / k + vista.tx < LUPA + 24 && puntero.y / k + vista.ty < LUPA + 24;
 
-  // Medidas de la prenda (caja del contorno) según la escala del marco
-  const medidas =
-    escala && cerrado && puntos.length >= 3
-      ? (() => {
-          const c = cajaUtil(puntos, limites);
-          return { ancho: Math.round(c.ancho / escala.pxPorCm), alto: Math.round(c.alto / escala.pxPorCm) };
-        })()
-      : null;
-
-  const ayuda =
-    modo === "tamano"
-      ? "Ajusta el marco a la prenda: debe quedar dentro de la silueta. Arrastra el marco para moverlo y sus esquinas para cambiar el tamaño."
-      : cerrado
-        ? marco
-          ? "Contorno listo. Arrastra los puntos para afinarlo o revisa el tamaño en «Tamaño»."
-          : "Arrastra los puntos para ajustar. Arrastra el punto medio de un lado para agregar otro."
-        : puntos.length === 0
-          ? "Toca alrededor de la prenda para ir marcando su contorno."
-          : puntos.length < 3
-            ? "Sigue marcando puntos alrededor de la prenda."
-            : "Toca el primer punto (verde) para cerrar el contorno.";
+  const ayuda = cerrado
+    ? "Arrastra los puntos para ajustar. Arrastra el punto medio de un lado para agregar otro."
+    : puntos.length === 0
+      ? "Toca alrededor de la prenda para ir marcando su contorno."
+      : puntos.length < 3
+        ? "Sigue marcando puntos alrededor de la prenda."
+        : "Toca el primer punto (verde) para cerrar el contorno.";
 
   // Tamaños en px de imagen equivalentes a px de pantalla (constantes con cualquier zoom)
   const r = 6 * k;
   const trazo = (px: number) => px * k;
   const ultimo = puntos[puntos.length - 1];
   const mano = modoMano || moviendo;
-  const enTamano = modo === "tamano";
 
   return (
     <div className="space-y-3">
-      {marco && !vistaPrevia && (
-        <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-lg max-w-xs mx-auto">
-          {(["contorno", "tamano"] as Modo[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setModo(m)}
-              className={cn(
-                "py-1.5 rounded-md text-sm font-medium transition-colors",
-                modo === m ? "bg-white text-gray-900 shadow-sm" : "text-gray-500",
-              )}
-            >
-              {m === "contorno" ? "Contorno" : "Tamaño"}
-            </button>
-          ))}
-        </div>
-      )}
-
       {!vistaPrevia && <p className="text-xs text-gray-500 text-center min-h-[2rem] flex items-center justify-center">{ayuda}</p>}
 
       <div
-        ref={ventanaRef}
+        ref={marcoRef}
         className="relative mx-auto select-none overflow-hidden rounded-lg bg-gray-100"
         style={
           dims
@@ -728,8 +543,7 @@ export default function Recortador({
               viewBox={`0 0 ${dims.w} ${dims.h}`}
               className={cn(
                 "absolute inset-0 w-full h-full",
-                !vistaPrevia &&
-                  (mano ? (paneo.current ? "cursor-grabbing" : "cursor-grab") : enTamano ? "cursor-move" : cerrado ? "cursor-default" : "cursor-crosshair"),
+                !vistaPrevia && (mano ? (paneo.current ? "cursor-grabbing" : "cursor-grab") : cerrado ? "cursor-default" : "cursor-crosshair"),
               )}
               style={{ touchAction: "none" }}
               onPointerDown={onPointerDown}
@@ -743,35 +557,6 @@ export default function Recortador({
                 <path d={`M0 0H${dims.w}V${dims.h}H0Z${ruta(puntos)}Z`} fillRule="evenodd" fill="rgba(17,24,39,0.6)" />
               )}
 
-              {/* Marco de tamaño: silueta de la categoría */}
-              {marco && rectMarco && (
-                <g pointerEvents="none">
-                  {enTamano && (
-                    <rect
-                      x={rectMarco.x} y={rectMarco.y} width={rectMarco.w} height={rectMarco.h}
-                      fill="none" stroke={COLOR_MARCO} strokeWidth={trazo(1)} strokeDasharray={`${trazo(3)} ${trazo(3)}`} opacity={0.8}
-                    />
-                  )}
-                  <path
-                    d={ruta(marco.silueta.map(([u, v]) => ({ x: rectMarco.x + u * rectMarco.w, y: rectMarco.y + v * rectMarco.h }))) + "Z"}
-                    fill={enTamano ? "rgba(245,158,11,0.12)" : "none"}
-                    stroke={COLOR_MARCO}
-                    strokeWidth={trazo(enTamano ? 2.25 : 1.5)}
-                    strokeDasharray={`${trazo(7)} ${trazo(4)}`}
-                    strokeLinejoin="round"
-                    opacity={enTamano ? 1 : 0.75}
-                  />
-                  {enTamano &&
-                    esquinasMarco.map((q, i) => (
-                      <rect
-                        key={i}
-                        x={q.x - trazo(6)} y={q.y - trazo(6)} width={trazo(12)} height={trazo(12)} rx={trazo(2)}
-                        fill="#fff" stroke={COLOR_MARCO} strokeWidth={trazo(2)}
-                      />
-                    ))}
-                </g>
-              )}
-
               {/* Línea guía del último punto al mouse */}
               {!cerrado && ultimo && cursor && (
                 <line
@@ -781,32 +566,31 @@ export default function Recortador({
               )}
 
               {puntos.length > 1 && (
-                <g fill="none" strokeLinejoin="round" opacity={enTamano ? 0.6 : 1}>
+                <g fill="none" strokeLinejoin="round">
                   <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="rgba(0,0,0,0.45)" strokeWidth={trazo(3.5)} />
                   <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="#fff" strokeWidth={trazo(1.75)} />
                 </g>
               )}
 
-              {!vistaPrevia && !enTamano &&
+              {!vistaPrevia &&
                 medios.map((m, i) => (
                   <circle key={`m${i}`} cx={m.x} cy={m.y} r={r * 0.7} fill="rgba(255,255,255,0.75)" stroke="#1e3a8a" strokeWidth={trazo(1)} />
                 ))}
 
-              {!enTamano &&
-                puntos.map((p, i) => {
-                  const cierre = !cerrado && i === 0 && puntos.length >= 3;
-                  return (
-                    <circle
-                      key={i}
-                      cx={p.x}
-                      cy={p.y}
-                      r={cierre ? r * 1.5 : r}
-                      fill={cierre ? "#10b981" : "#fff"}
-                      stroke={cierre ? "#fff" : "#1e3a8a"}
-                      strokeWidth={trazo(2)}
-                    />
-                  );
-                })}
+              {puntos.map((p, i) => {
+                const cierre = !cerrado && i === 0 && puntos.length >= 3;
+                return (
+                  <circle
+                    key={i}
+                    cx={p.x}
+                    cy={p.y}
+                    r={cierre ? r * 1.5 : r}
+                    fill={cierre ? "#10b981" : "#fff"}
+                    stroke={cierre ? "#fff" : "#1e3a8a"}
+                    strokeWidth={trazo(2)}
+                  />
+                );
+              })}
             </svg>
           )}
         </div>
@@ -855,39 +639,20 @@ export default function Recortador({
 
       {!vistaPrevia && (
         <>
-          {enTamano ? (
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <BotonHerramienta
-                onClick={ajustarMarco}
-                disabled={!cerrado}
-                titulo="Encajar el marco en el contorno de la prenda"
-                icono="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-                texto="Ajustar a la prenda"
-              />
-              {medidas ? (
-                <span className="text-xs text-gray-500">
-                  La prenda mide aprox. <span className="font-semibold text-gray-700">{medidas.ancho} × {medidas.alto} cm</span>
-                </span>
-              ) : (
-                <span className="text-xs text-gray-400">Cierra el contorno para ver su tamaño.</span>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <BotonHerramienta onClick={deshacer} disabled={!historial.length} titulo="Deshacer (⌘Z)" icono="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" texto="Deshacer" />
-              <BotonHerramienta onClick={reiniciar} disabled={!puntos.length} titulo="Borrar el contorno" icono="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" texto="Reiniciar" />
-              <BotonHerramienta onClick={fotoCompleta} disabled={!dims} titulo="Usar la foto completa, sin recortar" icono="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" texto="Foto completa" />
-              {!cerrado && puntos.length >= 3 && (
-                <button
-                  type="button"
-                  onClick={cerrar}
-                  className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors"
-                >
-                  Cerrar contorno
-                </button>
-              )}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <BotonHerramienta onClick={deshacer} disabled={!historial.length} titulo="Deshacer (⌘Z)" icono="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" texto="Deshacer" />
+            <BotonHerramienta onClick={reiniciar} disabled={!puntos.length} titulo="Borrar el contorno" icono="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" texto="Reiniciar" />
+            <BotonHerramienta onClick={fotoCompleta} disabled={!dims} titulo="Usar la foto completa, sin recortar" icono="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" texto="Foto completa" />
+            {!cerrado && puntos.length >= 3 && (
+              <button
+                type="button"
+                onClick={cerrar}
+                className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors"
+              >
+                Cerrar contorno
+              </button>
+            )}
+          </div>
           <p className="text-[11px] text-gray-400 text-center leading-relaxed">
             Zoom: pellizca con dos dedos, usa +/− o ⌘/Ctrl + rueda. Para moverte: dos dedos, la rueda, Espacio + arrastrar o la mano.
           </p>

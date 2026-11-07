@@ -3,8 +3,9 @@ import FiltroChips from "@/components/ui/FiltroChips";
 import GridPrendas from "@/features/closet/components/GridPrendas";
 import LienzoOutfit from "@/features/closet/components/LienzoOutfit";
 import Recortador from "@/features/closet/components/Recortador";
+import AjusteTamano from "@/features/closet/components/AjusteTamano";
 import { IconoShuffle } from "@/features/closet/components/GeneradorOutfit";
-import { GRUPOS, marcoDe, type ClaveGrupo } from "@/features/closet/lib/catalogo";
+import { GRUPOS, type ClaveGrupo } from "@/features/closet/lib/catalogo";
 import type { Outfit } from "@/features/closet/lib/generarOutfit";
 import CarruselCapturas from "../../components/CarruselCapturas";
 import { Encabezado, nada } from "../Pantalla";
@@ -36,7 +37,8 @@ function PaginaCloset({ grupo, outfit, fijas }: { grupo: ClaveGrupo | null; outf
   );
 }
 
-function PaginaRecorte() {
+/** Página del closet con el modal de agregar prenda encima. */
+function ConModal({ ayuda, children }: { ayuda: string; children: React.ReactNode }) {
   return (
     <div className="relative h-full">
       <PaginaCloset grupo={null} outfit={OUTFIT_DEMO} />
@@ -46,23 +48,10 @@ function PaginaRecorte() {
             <h2 className="text-base font-semibold text-gray-900">Agregar prenda</h2>
           </div>
           <div className="px-5 py-4 space-y-3">
-            <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-lg max-w-xs mx-auto">
-              <span className="py-1.5 rounded-md text-sm font-medium text-gray-500 text-center">Contorno</span>
-              <span className="py-1.5 rounded-md text-sm font-medium bg-white text-gray-900 shadow-sm text-center">Tamaño</span>
-            </div>
-            <p className="text-xs text-gray-500 text-center">
-              Ajusta el marco a la prenda: debe quedar dentro de la silueta.
-            </p>
-            <Recortador
-              src={FOTO_RECORTE_DEMO}
-              inicial={CONTORNO_DEMO}
-              altoMax="360px"
-              marco={marcoDe("camisas")}
-              modoInicial="tamano"
-              vistaPrevia
-            />
+            <p className="text-xs text-gray-500 text-center">{ayuda}</p>
+            {children}
             <div className="flex gap-2 pt-1">
-              <span className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 text-center">Otra foto</span>
+              <span className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 text-center">Atrás</span>
               <span className="flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium text-center">Siguiente</span>
             </div>
           </div>
@@ -72,12 +61,39 @@ function PaginaRecorte() {
   );
 }
 
+const JEANS = PRENDAS_DEMO.find((p) => p.id === "demo-jeans")!;
+
 export default function CapturasCloset() {
   return (
     <CarruselCapturas
       capturas={[
         { titulo: "Tu closet y un outfit al azar", ruta: "/closet", contenido: <PaginaCloset grupo={null} outfit={OUTFIT_DEMO} /> },
-        { titulo: "Recorta cada prenda a mano", ruta: "/closet", contenido: <PaginaRecorte /> },
+        {
+          titulo: "Recorta cada prenda a mano",
+          ruta: "/closet",
+          contenido: (
+            <ConModal ayuda="Arrastra los puntos para ajustar. Arrastra el punto medio de un lado para agregar otro.">
+              <Recortador src={FOTO_RECORTE_DEMO} inicial={CONTORNO_DEMO} altoMax="380px" vistaPrevia />
+            </ConModal>
+          ),
+        },
+        {
+          titulo: "Ajusta su tamaño a la silueta",
+          ruta: "/closet",
+          contenido: (
+            <ConModal ayuda="Ajusta tu prenda a la silueta de referencia: arrástrala y cambia su tamaño.">
+              <AjusteTamano
+                categoria="pantalones"
+                src={JEANS.imagenUrl}
+                ancho={JEANS.ancho}
+                alto={JEANS.alto}
+                altoCm={JEANS.altoCm * 0.92}
+                altoMax="400px"
+                soloLectura
+              />
+            </ConModal>
+          ),
+        },
         {
           titulo: "Tops por capas y candados",
           ruta: "/closet",

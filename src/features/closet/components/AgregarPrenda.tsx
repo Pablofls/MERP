@@ -3,18 +3,18 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import type { DatosPrenda } from "../hooks/usePrendas";
-import { marcoDe, normalizarAltoCm } from "../lib/catalogo";
+import { altoCmAjustado, normalizarAltoCm } from "../lib/catalogo";
 import { cargarImagen, recortarPoligono, type Recorte } from "../lib/recorte";
-import Recortador, { CONTORNO_VACIO, type Contorno, type Escala } from "./Recortador";
+import AjusteTamano from "./AjusteTamano";
+import Recortador, { CONTORNO_VACIO, type Contorno } from "./Recortador";
 import SelectorCategoria from "./SelectorCategoria";
-import VistaEnMarco from "./VistaEnMarco";
 
-type Paso = "foto" | "tipo" | "recorte" | "guardar";
+type Paso = "foto" | "tipo" | "recorte" | "tamano";
 const PASOS: { clave: Paso; titulo: string }[] = [
   { clave: "foto", titulo: "Foto" },
   { clave: "tipo", titulo: "Tipo" },
   { clave: "recorte", titulo: "Recorte" },
-  { clave: "guardar", titulo: "Guardar" },
+  { clave: "tamano", titulo: "Tamaño" },
 ];
 
 type Guardar = (recorte: Recorte, datos: DatosPrenda) => Promise<string | null>;
@@ -24,8 +24,8 @@ const BOTON_SECUNDARIO =
 const BOTON_PRIMARIO = "flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium disabled:opacity-40 transition-colors";
 
 /**
- * Foto → tipo de prenda → contorno a mano y marco de tamaño → nombre. El tipo va antes del recorte porque define
- * el marco (la silueta de su tamaño real). Al guardar vuelve al inicio para cargar otra.
+ * Foto → tipo de prenda → contorno a mano → tamaño (la prenda recortada se ajusta sobre la silueta fija de su
+ * categoría) y nombre. Al guardar vuelve al inicio para cargar otra.
  */
 export default function AgregarPrenda({ open, onClose, onGuardar }: { open: boolean; onClose: () => void; onGuardar: Guardar }) {
   return (
@@ -40,8 +40,8 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
   const [foto, setFoto] = useState<string | null>(null); // object URL de la foto elegida
   const [categoria, setCategoria] = useState<string | null>(null);
   const [contorno, setContorno] = useState<Contorno>(CONTORNO_VACIO);
-  const [escala, setEscala] = useState<Escala | null>(null);
-  const [recorte, setRecorte] = useState<(Recorte & { url: string; altoCm: number }) | null>(null);
+  const [recorte, setRecorte] = useState<(Recorte & { url: string }) | null>(null);
+  const [altoCm, setAltoCm] = useState(0);
   const [nombre, setNombre] = useState("");
   const [guardadas, setGuardadas] = useState(0);
   const [ocupado, setOcupado] = useState(false);
@@ -60,7 +60,7 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
     }
     setError(null);
     setContorno(CONTORNO_VACIO);
-    setEscala(null);
+    setRecorte(null);
     setFoto(URL.createObjectURL(file));
     setPaso("tipo");
   }
@@ -72,14 +72,21 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
   }
 
   async function siguiente() {
-    if (!foto || !contorno.cerrado || !escala) return;
+    if (!foto || !contorno.cerrado || !categoria) return;
     setOcupado(true);
     setError(null);
     try {
       const img = await cargarImagen(foto);
       const r = await recortarPoligono(img, contorno.puntos);
-      setRecorte({ ...r, url: URL.createObjectURL(r.blob), altoCm: normalizarAltoCm(r.altoFuente / escala.pxPorCm) });
-      setPaso("guardar");
+      // Si ya se había ajustado el tamaño y se volvió a recortar, se conserva la escala de la foto;
+      // si no, la prenda empieza encajada en la silueta
+      setAltoCm(
+        recorte && altoCm
+          ? normalizarAltoCm((r.altoFuente * altoCm) / recorte.altoFuente)
+          : altoCmAjustado(categoria, r.ancho, r.alto),
+      );
+      setRecorte({ ...r, url: URL.createObjectURL(r.blob) });
+      setPaso("tamano");
     } catch {
       setError("No se pudo recortar la imagen. Intenta de nuevo.");
     } finally {
@@ -91,7 +98,7 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
     if (!recorte || !categoria) return;
     setOcupado(true);
     setError(null);
-    const fallo = await onGuardar(recorte, { categoria, nombre, altoCm: recorte.altoCm });
+    const fallo = await onGuardar(recorte, { categoria, nombre, altoCm });
     setOcupado(false);
     if (fallo) {
       setError(fallo);
@@ -102,7 +109,6 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
     setFoto(null);
     setRecorte(null);
     setContorno(CONTORNO_VACIO);
-    setEscala(null);
     setNombre("");
     setPaso("foto");
   }
@@ -190,7 +196,7 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
           </div>
           <SelectorCategoria valor={categoria} onChange={setCategoria} />
           <p className="text-[11px] text-gray-400 text-center">
-            El tipo define el marco de tamaño que verás al recortar, para que todas tus prendas queden a escala.
+            El tipo define la silueta de referencia con la que ajustarás su tamaño, para que todo quede a escala.
           </p>
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={() => { setFoto(null); setPaso("foto"); }} className={BOTON_SECUNDARIO}>
@@ -205,38 +211,29 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
 
       {paso === "recorte" && foto && categoria && (
         <>
-          <Recortador
-            key={foto}
-            src={foto}
-            inicial={contorno}
-            onCambio={setContorno}
-            onErrorImagen={fotoIlegible}
-            marco={marcoDe(categoria)}
-            escalaInicial={escala}
-            onEscala={setEscala}
-          />
+          <Recortador key={foto} src={foto} inicial={contorno} onCambio={setContorno} onErrorImagen={fotoIlegible} />
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={() => setPaso("tipo")} className={BOTON_SECUNDARIO}>
               Atrás
             </button>
-            <button type="button" onClick={siguiente} disabled={!contorno.cerrado || !escala || ocupado} className={BOTON_PRIMARIO}>
+            <button type="button" onClick={siguiente} disabled={!contorno.cerrado || ocupado} className={BOTON_PRIMARIO}>
               {ocupado ? "Recortando…" : "Siguiente"}
             </button>
           </div>
         </>
       )}
 
-      {paso === "guardar" && recorte && categoria && (
+      {paso === "tamano" && recorte && categoria && (
         <>
-          <div className="h-60 rounded-xl bg-stone-100 p-3">
-            <VistaEnMarco categoria={categoria} src={recorte.url} ancho={recorte.ancho} alto={recorte.alto} altoCm={recorte.altoCm} />
-          </div>
-          <p className="text-xs text-gray-500 text-center">
-            Tamaño aprox.{" "}
-            <span className="font-semibold text-gray-700">
-              {Math.round((recorte.altoCm * recorte.ancho) / recorte.alto)} × {Math.round(recorte.altoCm)} cm
-            </span>
-          </p>
+          <AjusteTamano
+            key={recorte.url}
+            categoria={categoria}
+            src={recorte.url}
+            ancho={recorte.ancho}
+            alto={recorte.alto}
+            altoCm={altoCm}
+            onCambio={setAltoCm}
+          />
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nombre (opcional)</label>
             <input
