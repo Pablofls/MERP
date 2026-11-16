@@ -5,6 +5,7 @@ import type { Prenda } from "@/lib/types";
 import type { CambiosPrenda } from "../hooks/usePrendas";
 import { normalizarAltoCm } from "../lib/catalogo";
 import { cargarImagen, prepararParaEditar, puntosRectangulo, recortarPoligono, type ImagenEditable, type Recorte } from "../lib/recorte";
+import { CUERPO_AMPLIO, MODAL_AMPLIO } from "./AgregarPrenda";
 import AjusteTamano from "./AjusteTamano";
 import Recortador, { type Contorno } from "./Recortador";
 import SelectorCategoria from "./SelectorCategoria";
@@ -24,7 +25,7 @@ const BOTON_PRIMARIO = "flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm 
 
 export default function DetallePrenda({ prenda, onClose, onGuardar, onEliminar }: Props) {
   return (
-    <Modal open={!!prenda} onClose={onClose} title="Prenda" className="sm:max-w-2xl">
+    <Modal open={!!prenda} onClose={onClose} title="Prenda" className={MODAL_AMPLIO} bodyClassName={CUERPO_AMPLIO}>
       {prenda && <Form key={prenda.id} prenda={prenda} onClose={onClose} onGuardar={onGuardar} onEliminar={onEliminar} />}
     </Modal>
   );
@@ -88,7 +89,7 @@ function Form({ prenda, onClose, onGuardar, onEliminar }: Omit<Props, "prenda"> 
   }
 
   return (
-    <form onSubmit={guardar} className="space-y-4">
+    <form onSubmit={guardar} className="lg:flex-1 lg:min-h-0 lg:flex lg:flex-col">
       <AjusteTamano
         key={actual.src}
         categoria={categoria ?? prenda.categoria}
@@ -98,66 +99,70 @@ function Form({ prenda, onClose, onGuardar, onEliminar }: Omit<Props, "prenda"> 
         altoCm={altoCm}
         onCambio={setAltoCm}
         altoMax="38dvh"
-      />
-      <div className="flex justify-center">
-        <button
-          type="button"
-          onClick={() => setRecortando(true)}
-          className="flex items-center gap-1.5 text-xs font-medium text-gray-700 border border-gray-200 bg-white px-3 py-1.5 rounded-full hover:bg-gray-50 transition-colors"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m7.848 8.25 1.536.887M7.848 8.25a3 3 0 1 1-5.196-3 3 3 0 0 1 5.196 3Zm1.536.887a2.165 2.165 0 0 1 1.083 1.839c.005.351.054.695.14 1.024M9.384 9.137l2.077 1.199M7.848 15.75l1.536-.887m-1.536.887a3 3 0 1 1-5.196 3 3 3 0 0 1 5.196-3Zm1.536-.887a2.165 2.165 0 0 0 1.083-1.838c.005-.352.054-.695.14-1.025m-1.223 2.863 2.077-1.199m0-3.328a4.323 4.323 0 0 1 2.068-1.379l5.325-1.628a4.5 4.5 0 0 1 2.48-.044l.803.215-7.794 4.5m-2.882-1.664A4.33 4.33 0 0 0 10.607 12m3.736 0 7.794 4.5-.802.215a4.5 4.5 0 0 1-2.48-.043l-5.326-1.629a4.324 4.324 0 0 1-2.068-1.379M14.343 12l-2.882 1.664" />
-          </svg>
-          Recortar de nuevo
-        </button>
-      </div>
-      <SelectorCategoria valor={categoria} onChange={setCategoria} />
-      <div>
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nombre (opcional)</label>
-        <input
-          type="text"
-          value={nombre}
-          maxLength={80}
-          onChange={(e) => setNombre(e.target.value)}
-          placeholder="ej. Playera blanca básica"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
-        />
-      </div>
-      {error && <p className="text-xs text-red-600 text-center">{error}</p>}
-      <div className="flex gap-2 pt-1">
-        <button type="button" onClick={onClose} className={BOTON_SECUNDARIO}>
-          Cerrar
-        </button>
-        <button type="submit" disabled={!categoria || !cambio || ocupado} className={BOTON_PRIMARIO}>
-          {ocupado ? "Guardando…" : "Guardar"}
-        </button>
-      </div>
-      <div className="border-t border-gray-100 pt-3">
-        {confirmar ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 flex-1">¿Eliminar esta prenda? No se puede deshacer.</span>
-            <button type="button" onClick={() => setConfirmar(false)} className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 transition-colors">
-              No
-            </button>
+        amplio
+      >
+        <div className="space-y-4 pt-1">
+          <div className="flex justify-center lg:justify-start">
             <button
               type="button"
-              onClick={eliminar}
-              disabled={ocupado}
-              className="text-xs text-white bg-red-500 hover:bg-red-600 disabled:opacity-40 px-3 py-1 rounded-md transition-colors"
+              onClick={() => setRecortando(true)}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-700 border border-gray-200 bg-white px-3 py-1.5 rounded-full hover:bg-gray-50 transition-colors"
             >
-              Sí, eliminar
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m7.848 8.25 1.536.887M7.848 8.25a3 3 0 1 1-5.196-3 3 3 0 0 1 5.196 3Zm1.536.887a2.165 2.165 0 0 1 1.083 1.839c.005.351.054.695.14 1.024M9.384 9.137l2.077 1.199M7.848 15.75l1.536-.887m-1.536.887a3 3 0 1 1-5.196 3 3 3 0 0 1 5.196-3Zm1.536-.887a2.165 2.165 0 0 0 1.083-1.838c.005-.352.054-.695.14-1.025m-1.223 2.863 2.077-1.199m0-3.328a4.323 4.323 0 0 1 2.068-1.379l5.325-1.628a4.5 4.5 0 0 1 2.48-.044l.803.215-7.794 4.5m-2.882-1.664A4.33 4.33 0 0 0 10.607 12m3.736 0 7.794 4.5-.802.215a4.5 4.5 0 0 1-2.48-.043l-5.326-1.629a4.324 4.324 0 0 1-2.068-1.379M14.343 12l-2.882 1.664" />
+              </svg>
+              Recortar de nuevo
             </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmar(true)}
-            className="w-full text-xs text-red-400 hover:text-red-600 py-1 transition-colors text-center"
-          >
-            Eliminar prenda
-          </button>
-        )}
-      </div>
+          <SelectorCategoria valor={categoria} onChange={setCategoria} />
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nombre (opcional)</label>
+            <input
+              type="text"
+              value={nombre}
+              maxLength={80}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="ej. Playera blanca básica"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
+            />
+          </div>
+          {error && <p className="text-xs text-red-600 text-center">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose} className={BOTON_SECUNDARIO}>
+              Cerrar
+            </button>
+            <button type="submit" disabled={!categoria || !cambio || ocupado} className={BOTON_PRIMARIO}>
+              {ocupado ? "Guardando…" : "Guardar"}
+            </button>
+          </div>
+          <div className="border-t border-gray-100 pt-3">
+            {confirmar ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 flex-1">¿Eliminar esta prenda? No se puede deshacer.</span>
+                <button type="button" onClick={() => setConfirmar(false)} className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 transition-colors">
+                  No
+                </button>
+                <button
+                  type="button"
+                  onClick={eliminar}
+                  disabled={ocupado}
+                  className="text-xs text-white bg-red-500 hover:bg-red-600 disabled:opacity-40 px-3 py-1 rounded-md transition-colors"
+                >
+                  Sí, eliminar
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmar(true)}
+                className="w-full text-xs text-red-400 hover:text-red-600 py-1 transition-colors text-center"
+              >
+                Eliminar prenda
+              </button>
+            )}
+          </div>
+        </div>
+      </AjusteTamano>
     </form>
   );
 }
@@ -222,22 +227,30 @@ function EditorRecorte({
     }
   }
 
+  const acciones = (
+    <div className="flex gap-2 pt-1">
+      <button type="button" onClick={onCancelar} disabled={ocupado} className={BOTON_SECUNDARIO}>
+        Cancelar
+      </button>
+      <button type="button" onClick={listo} disabled={!contorno?.cerrado || ocupado} className={BOTON_PRIMARIO}>
+        {ocupado ? "Recortando…" : "Listo"}
+      </button>
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col">
       {trabajo && inicial ? (
-        <Recortador src={trabajo.url} inicial={inicial} onCambio={setContorno} />
+        <Recortador src={trabajo.url} inicial={inicial} onCambio={setContorno} amplio>
+          {acciones}
+        </Recortador>
       ) : (
-        !error && <div className="h-64 rounded-lg bg-gray-100 animate-pulse" role="status" aria-label="Cargando" />
+        <>
+          {!error && <div className="h-64 lg:h-auto lg:flex-1 rounded-lg bg-gray-100 animate-pulse" role="status" aria-label="Cargando" />}
+          {acciones}
+        </>
       )}
       {error && <p className="text-xs text-red-600 text-center">{error}</p>}
-      <div className="flex gap-2 pt-1">
-        <button type="button" onClick={onCancelar} disabled={ocupado} className={BOTON_SECUNDARIO}>
-          Cancelar
-        </button>
-        <button type="button" onClick={listo} disabled={!contorno?.cerrado || ocupado} className={BOTON_PRIMARIO}>
-          {ocupado ? "Recortando…" : "Listo"}
-        </button>
-      </div>
     </div>
   );
 }

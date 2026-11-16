@@ -20,6 +20,13 @@ interface Props {
   altoMax?: string;
   /** Solo muestra el contorno, sin interacción (vista previa de la tienda) */
   vistaPrevia?: boolean;
+  /**
+   * En escritorio (lg) la foto llena todo el espacio disponible del contenedor y los controles pasan a un panel
+   * lateral. El contenedor debe tener alto definido en lg.
+   */
+  amplio?: boolean;
+  /** Acciones del paso (botones), al final de los controles */
+  children?: React.ReactNode;
 }
 
 interface Arrastre {
@@ -60,7 +67,16 @@ const medio = (a: Pos, b: Pos): Pos => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2
  * con dos dedos, la rueda, Espacio + arrastrar o el modo mano. Mientras se coloca o arrastra un punto aparece
  * una lupa para que el dedo no tape lo que se marca.
  */
-export default function Recortador({ src, inicial, onCambio, onErrorImagen, altoMax = "55dvh", vistaPrevia = false }: Props) {
+export default function Recortador({
+  src,
+  inicial,
+  onCambio,
+  onErrorImagen,
+  altoMax = "55dvh",
+  vistaPrevia = false,
+  amplio = false,
+  children,
+}: Props) {
   const marcoRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -510,136 +526,157 @@ export default function Recortador({ src, inicial, onCambio, onErrorImagen, alto
   const mano = modoMano || moviendo;
 
   return (
-    <div className="space-y-3">
-      {!vistaPrevia && <p className="text-xs text-gray-500 text-center min-h-[2rem] flex items-center justify-center">{ayuda}</p>}
+    <div className={cn("space-y-3", amplio && "lg:flex lg:flex-1 lg:min-h-0 lg:h-full lg:gap-6 lg:space-y-0")}>
+      {!vistaPrevia && (
+        <p className={cn("text-xs text-gray-500 text-center min-h-[2rem] flex items-center justify-center", amplio && "lg:hidden")}>
+          {ayuda}
+        </p>
+      )}
 
-      <div
-        ref={marcoRef}
-        className="relative mx-auto select-none overflow-hidden rounded-lg bg-gray-100"
-        style={
-          dims
-            ? { aspectRatio: `${dims.w} / ${dims.h}`, width: `min(100%, calc(${altoMax} * ${dims.w / dims.h}))` }
-            : { width: "100%", minHeight: 160 }
-        }
-      >
+      {/* En escritorio el área es un contenedor de tamaño: la foto se encaja completa en él (unidades cq) */}
+      <div className={cn(amplio && "lg:flex-1 lg:min-w-0 lg:min-h-0 lg:flex lg:items-center lg:justify-center lg:[container-type:size]")}>
         <div
-          className="absolute inset-0 origin-top-left"
-          style={{ transform: `translate(${vista.tx}px, ${vista.ty}px) scale(${vista.z})` }}
+          ref={marcoRef}
+          className={cn(
+            "relative mx-auto select-none overflow-hidden rounded-lg bg-gray-100",
+            dims ? "w-[var(--ancho)]" : "w-full",
+            amplio && dims && "lg:w-[min(100cqw,calc(100cqh*var(--proporcion)))]",
+          )}
+          style={
+            dims
+              ? ({
+                  aspectRatio: `${dims.w} / ${dims.h}`,
+                  "--ancho": `min(100%, calc(${altoMax} * ${dims.w / dims.h}))`,
+                  "--proporcion": dims.w / dims.h,
+                } as React.CSSProperties)
+              : { minHeight: 160 }
+          }
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            ref={imgRef}
-            src={src}
-            alt="Foto de la prenda"
-            draggable={false}
-            onLoad={(e) => setDims({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
-            onError={onErrorImagen}
-            className="block w-full h-full pointer-events-none"
-          />
+          <div
+            className="absolute inset-0 origin-top-left"
+            style={{ transform: `translate(${vista.tx}px, ${vista.ty}px) scale(${vista.z})` }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              ref={imgRef}
+              src={src}
+              alt="Foto de la prenda"
+              draggable={false}
+              onLoad={(e) => setDims({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+              onError={onErrorImagen}
+              className="block w-full h-full pointer-events-none"
+            />
 
-          {dims && (
-            <svg
-              ref={svgRef}
-              viewBox={`0 0 ${dims.w} ${dims.h}`}
-              className={cn(
-                "absolute inset-0 w-full h-full",
-                !vistaPrevia && (mano ? (paneo.current ? "cursor-grabbing" : "cursor-grab") : cerrado ? "cursor-default" : "cursor-crosshair"),
-              )}
-              style={{ touchAction: "none" }}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-              onPointerLeave={() => setCursor(null)}
-            >
-              {/* Fuera del contorno se oscurece */}
-              {cerrado && puntos.length >= 3 && (
-                <path d={`M0 0H${dims.w}V${dims.h}H0Z${ruta(puntos)}Z`} fillRule="evenodd" fill="rgba(17,24,39,0.6)" />
-              )}
+            {dims && (
+              <svg
+                ref={svgRef}
+                viewBox={`0 0 ${dims.w} ${dims.h}`}
+                className={cn(
+                  "absolute inset-0 w-full h-full",
+                  !vistaPrevia && (mano ? (paneo.current ? "cursor-grabbing" : "cursor-grab") : cerrado ? "cursor-default" : "cursor-crosshair"),
+                )}
+                style={{ touchAction: "none" }}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerUp}
+                onPointerLeave={() => setCursor(null)}
+              >
+                {/* Fuera del contorno se oscurece */}
+                {cerrado && puntos.length >= 3 && (
+                  <path d={`M0 0H${dims.w}V${dims.h}H0Z${ruta(puntos)}Z`} fillRule="evenodd" fill="rgba(17,24,39,0.6)" />
+                )}
 
-              {/* Línea guía del último punto al mouse */}
-              {!cerrado && ultimo && cursor && (
-                <line
-                  x1={ultimo.x} y1={ultimo.y} x2={cursor.x} y2={cursor.y}
-                  stroke="#fff" strokeWidth={trazo(1.5)} strokeDasharray={`${trazo(4)} ${trazo(4)}`}
-                />
-              )}
-
-              {puntos.length > 1 && (
-                <g fill="none" strokeLinejoin="round">
-                  <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="rgba(0,0,0,0.45)" strokeWidth={trazo(3.5)} />
-                  <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="#fff" strokeWidth={trazo(1.75)} />
-                </g>
-              )}
-
-              {!vistaPrevia &&
-                medios.map((m, i) => (
-                  <circle key={`m${i}`} cx={m.x} cy={m.y} r={r * 0.7} fill="rgba(255,255,255,0.75)" stroke="#1e3a8a" strokeWidth={trazo(1)} />
-                ))}
-
-              {puntos.map((p, i) => {
-                const cierre = !cerrado && i === 0 && puntos.length >= 3;
-                return (
-                  <circle
-                    key={i}
-                    cx={p.x}
-                    cy={p.y}
-                    r={cierre ? r * 1.5 : r}
-                    fill={cierre ? "#10b981" : "#fff"}
-                    stroke={cierre ? "#fff" : "#1e3a8a"}
-                    strokeWidth={trazo(2)}
+                {/* Línea guía del último punto al mouse */}
+                {!cerrado && ultimo && cursor && (
+                  <line
+                    x1={ultimo.x} y1={ultimo.y} x2={cursor.x} y2={cursor.y}
+                    stroke="#fff" strokeWidth={trazo(1.5)} strokeDasharray={`${trazo(4)} ${trazo(4)}`}
                   />
-                );
-              })}
-            </svg>
+                )}
+
+                {puntos.length > 1 && (
+                  <g fill="none" strokeLinejoin="round">
+                    <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="rgba(0,0,0,0.45)" strokeWidth={trazo(3.5)} />
+                    <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="#fff" strokeWidth={trazo(1.75)} />
+                  </g>
+                )}
+
+                {!vistaPrevia &&
+                  medios.map((m, i) => (
+                    <circle key={`m${i}`} cx={m.x} cy={m.y} r={r * 0.7} fill="rgba(255,255,255,0.75)" stroke="#1e3a8a" strokeWidth={trazo(1)} />
+                  ))}
+
+                {puntos.map((p, i) => {
+                  const cierre = !cerrado && i === 0 && puntos.length >= 3;
+                  return (
+                    <circle
+                      key={i}
+                      cx={p.x}
+                      cy={p.y}
+                      r={cierre ? r * 1.5 : r}
+                      fill={cierre ? "#10b981" : "#fff"}
+                      stroke={cierre ? "#fff" : "#1e3a8a"}
+                      strokeWidth={trazo(2)}
+                    />
+                  );
+                })}
+              </svg>
+            )}
+          </div>
+
+          {puntero && (
+            <canvas
+              ref={lupaRef}
+              aria-hidden
+              className={cn(
+                "absolute top-2 z-10 rounded-full border-2 border-white shadow-lg pointer-events-none bg-gray-200",
+                lupaDerecha ? "right-2" : "left-2",
+              )}
+              style={{ width: LUPA, height: LUPA }}
+            />
+          )}
+
+          {/* Controles de zoom sobre la foto */}
+          {!vistaPrevia && dims && (
+            <div className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-full border border-gray-200 bg-white/90 p-0.5 shadow-sm backdrop-blur">
+              <BotonZoom onClick={() => zoomCentro(1 / PASO_ZOOM)} disabled={vista.z <= 1} titulo="Alejar (−)">
+                <path strokeLinecap="round" d="M5 12h14" />
+              </BotonZoom>
+              <button
+                type="button"
+                onClick={() => setVista(VISTA_INICIAL)}
+                disabled={vista.z <= 1}
+                title="Ajustar a la pantalla (0)"
+                className="h-8 min-w-[3rem] rounded-full px-1 text-[11px] font-semibold tabular-nums text-gray-700 hover:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-transparent"
+              >
+                {Math.round(vista.z * 100)}%
+              </button>
+              <BotonZoom onClick={() => zoomCentro(PASO_ZOOM)} disabled={vista.z >= ZOOM_MAX} titulo="Acercar (+)">
+                <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+              </BotonZoom>
+              <span className="mx-0.5 h-5 w-px bg-gray-200" />
+              <BotonZoom onClick={() => setModoMano((m) => !m)} activo={modoMano} titulo="Mover la foto (o mantén Espacio)">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M10.05 4.575a1.575 1.575 0 1 0-3.15 0v3m3.15-3v-1.5a1.575 1.575 0 0 1 3.15 0v1.5m-3.15 0 .075 5.925m3.075.75V4.575m0 0a1.575 1.575 0 0 1 3.15 0V15M6.9 7.575a1.575 1.575 0 1 0-3.15 0v8.175a6.75 6.75 0 0 0 6.75 6.75h2.018a5.25 5.25 0 0 0 3.712-1.538l1.732-1.732a5.25 5.25 0 0 0 1.538-3.712l.003-2.024a.668.668 0 0 1 .198-.471 1.575 1.575 0 1 0-2.228-2.228 3.818 3.818 0 0 0-1.12 2.687M6.9 7.575V12m6.27 4.318A4.49 4.49 0 0 1 16.35 15"
+                />
+              </BotonZoom>
+            </div>
           )}
         </div>
-
-        {puntero && (
-          <canvas
-            ref={lupaRef}
-            aria-hidden
-            className={cn(
-              "absolute top-2 z-10 rounded-full border-2 border-white shadow-lg pointer-events-none bg-gray-200",
-              lupaDerecha ? "right-2" : "left-2",
-            )}
-            style={{ width: LUPA, height: LUPA }}
-          />
-        )}
-
-        {/* Controles de zoom sobre la foto */}
-        {!vistaPrevia && dims && (
-          <div className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-full border border-gray-200 bg-white/90 p-0.5 shadow-sm backdrop-blur">
-            <BotonZoom onClick={() => zoomCentro(1 / PASO_ZOOM)} disabled={vista.z <= 1} titulo="Alejar (−)">
-              <path strokeLinecap="round" d="M5 12h14" />
-            </BotonZoom>
-            <button
-              type="button"
-              onClick={() => setVista(VISTA_INICIAL)}
-              disabled={vista.z <= 1}
-              title="Ajustar a la pantalla (0)"
-              className="h-8 min-w-[3rem] rounded-full px-1 text-[11px] font-semibold tabular-nums text-gray-700 hover:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-transparent"
-            >
-              {Math.round(vista.z * 100)}%
-            </button>
-            <BotonZoom onClick={() => zoomCentro(PASO_ZOOM)} disabled={vista.z >= ZOOM_MAX} titulo="Acercar (+)">
-              <path strokeLinecap="round" d="M12 5v14M5 12h14" />
-            </BotonZoom>
-            <span className="mx-0.5 h-5 w-px bg-gray-200" />
-            <BotonZoom onClick={() => setModoMano((m) => !m)} activo={modoMano} titulo="Mover la foto (o mantén Espacio)">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M10.05 4.575a1.575 1.575 0 1 0-3.15 0v3m3.15-3v-1.5a1.575 1.575 0 0 1 3.15 0v1.5m-3.15 0 .075 5.925m3.075.75V4.575m0 0a1.575 1.575 0 0 1 3.15 0V15M6.9 7.575a1.575 1.575 0 1 0-3.15 0v8.175a6.75 6.75 0 0 0 6.75 6.75h2.018a5.25 5.25 0 0 0 3.712-1.538l1.732-1.732a5.25 5.25 0 0 0 1.538-3.712l.003-2.024a.668.668 0 0 1 .198-.471 1.575 1.575 0 1 0-2.228-2.228 3.818 3.818 0 0 0-1.12 2.687M6.9 7.575V12m6.27 4.318A4.49 4.49 0 0 1 16.35 15"
-              />
-            </BotonZoom>
-          </div>
-        )}
       </div>
 
       {!vistaPrevia && (
-        <>
-          <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className={cn("space-y-3", amplio && "lg:w-72 lg:flex-shrink-0 lg:flex lg:flex-col lg:space-y-0 lg:gap-4 lg:overflow-y-auto")}>
+          {amplio && (
+            <div className="hidden lg:block space-y-1">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contorno</p>
+              <p className="text-sm text-gray-700 leading-relaxed min-h-[3rem]">{ayuda}</p>
+            </div>
+          )}
+          <div className={cn("flex flex-wrap items-center justify-center gap-2", amplio && "lg:justify-start")}>
             <BotonHerramienta onClick={deshacer} disabled={!historial.length} titulo="Deshacer (⌘Z)" icono="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" texto="Deshacer" />
             <BotonHerramienta onClick={reiniciar} disabled={!puntos.length} titulo="Borrar el contorno" icono="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" texto="Reiniciar" />
             <BotonHerramienta onClick={fotoCompleta} disabled={!dims} titulo="Usar la foto completa, sin recortar" icono="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" texto="Foto completa" />
@@ -653,10 +690,11 @@ export default function Recortador({ src, inicial, onCambio, onErrorImagen, alto
               </button>
             )}
           </div>
-          <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+          <p className={cn("text-[11px] text-gray-400 text-center leading-relaxed", amplio && "lg:text-left")}>
             Zoom: pellizca con dos dedos, usa +/− o ⌘/Ctrl + rueda. Para moverte: dos dedos, la rueda, Espacio + arrastrar o la mano.
           </p>
-        </>
+          {children && <div className={cn(amplio && "lg:!mt-auto")}>{children}</div>}
+        </div>
       )}
     </div>
   );

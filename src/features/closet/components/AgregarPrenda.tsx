@@ -23,20 +23,42 @@ const BOTON_SECUNDARIO =
   "flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors";
 const BOTON_PRIMARIO = "flex-1 py-2.5 rounded-lg bg-blue-900 text-white text-sm font-medium disabled:opacity-40 transition-colors";
 
+/** En escritorio, el modal casi a pantalla completa para trabajar sobre la foto con precisión */
+export const MODAL_AMPLIO = "sm:max-w-2xl lg:max-w-[min(1280px,94vw)] lg:h-[92dvh] lg:flex lg:flex-col";
+export const CUERPO_AMPLIO = "lg:flex-1 lg:min-h-0 lg:flex lg:flex-col";
+
 /**
  * Foto → tipo de prenda → contorno a mano → tamaño (la prenda recortada se ajusta sobre la silueta fija de su
  * categoría) y nombre. Al guardar vuelve al inicio para cargar otra.
  */
 export default function AgregarPrenda({ open, onClose, onGuardar }: { open: boolean; onClose: () => void; onGuardar: Guardar }) {
+  // Con foto elegida (tipo, recorte y tamaño) el modal se amplía en escritorio
+  const [amplio, setAmplio] = useState(false);
+
+  function cerrar() {
+    setAmplio(false);
+    onClose();
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title="Agregar prenda" className="sm:max-w-2xl">
-      <Flujo onListo={onClose} onGuardar={onGuardar} />
+    <Modal
+      open={open}
+      onClose={cerrar}
+      title="Agregar prenda"
+      className={amplio ? MODAL_AMPLIO : "sm:max-w-2xl"}
+      bodyClassName={amplio ? CUERPO_AMPLIO : undefined}
+    >
+      <Flujo onListo={cerrar} onGuardar={onGuardar} onAmplio={setAmplio} />
     </Modal>
   );
 }
 
-function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar }) {
+function Flujo({ onListo, onGuardar, onAmplio }: { onListo: () => void; onGuardar: Guardar; onAmplio: (amplio: boolean) => void }) {
   const [paso, setPaso] = useState<Paso>("foto");
+
+  useEffect(() => {
+    onAmplio(paso !== "foto");
+  }, [paso, onAmplio]);
   const [foto, setFoto] = useState<string | null>(null); // object URL de la foto elegida
   const [categoria, setCategoria] = useState<string | null>(null);
   const [contorno, setContorno] = useState<Contorno>(CONTORNO_VACIO);
@@ -116,7 +138,7 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
   const indice = PASOS.findIndex((p) => p.clave === paso);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col">
       {/* Pasos */}
       <ol className="flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] font-medium">
         {PASOS.map((p, i) => (
@@ -189,29 +211,35 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
       )}
 
       {paso === "tipo" && foto && (
-        <>
-          <div className="h-32 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
+        <div className="space-y-4 lg:space-y-0 lg:flex-1 lg:min-h-0 lg:flex lg:gap-6">
+          <div className="h-32 lg:h-auto lg:flex-1 lg:min-w-0 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={foto} alt="Foto elegida" onError={fotoIlegible} className="max-h-full max-w-full object-contain" />
+            <img
+              src={foto}
+              alt="Foto elegida"
+              onError={fotoIlegible}
+              className="max-h-full max-w-full object-contain lg:w-full lg:h-full"
+            />
           </div>
-          <SelectorCategoria valor={categoria} onChange={setCategoria} />
-          <p className="text-[11px] text-gray-400 text-center">
-            El tipo define la silueta de referencia con la que ajustarás su tamaño, para que todo quede a escala.
-          </p>
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={() => { setFoto(null); setPaso("foto"); }} className={BOTON_SECUNDARIO}>
-              Otra foto
-            </button>
-            <button type="button" onClick={() => setPaso("recorte")} disabled={!categoria} className={BOTON_PRIMARIO}>
-              Siguiente
-            </button>
+          <div className="space-y-4 lg:w-80 lg:flex-shrink-0 lg:flex lg:flex-col lg:overflow-y-auto">
+            <SelectorCategoria valor={categoria} onChange={setCategoria} />
+            <p className="text-[11px] text-gray-400 text-center lg:text-left">
+              El tipo define la silueta de referencia con la que ajustarás su tamaño, para que todo quede a escala.
+            </p>
+            <div className="flex gap-2 pt-1 lg:!mt-auto">
+              <button type="button" onClick={() => { setFoto(null); setPaso("foto"); }} className={BOTON_SECUNDARIO}>
+                Otra foto
+              </button>
+              <button type="button" onClick={() => setPaso("recorte")} disabled={!categoria} className={BOTON_PRIMARIO}>
+                Siguiente
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
 
       {paso === "recorte" && foto && categoria && (
-        <>
-          <Recortador key={foto} src={foto} inicial={contorno} onCambio={setContorno} onErrorImagen={fotoIlegible} />
+        <Recortador key={foto} src={foto} inicial={contorno} onCambio={setContorno} onErrorImagen={fotoIlegible} amplio>
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={() => setPaso("tipo")} className={BOTON_SECUNDARIO}>
               Atrás
@@ -220,40 +248,42 @@ function Flujo({ onListo, onGuardar }: { onListo: () => void; onGuardar: Guardar
               {ocupado ? "Recortando…" : "Siguiente"}
             </button>
           </div>
-        </>
+        </Recortador>
       )}
 
       {paso === "tamano" && recorte && categoria && (
-        <>
-          <AjusteTamano
-            key={recorte.url}
-            categoria={categoria}
-            src={recorte.url}
-            ancho={recorte.ancho}
-            alto={recorte.alto}
-            altoCm={altoCm}
-            onCambio={setAltoCm}
-          />
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nombre (opcional)</label>
-            <input
-              type="text"
-              value={nombre}
-              maxLength={80}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="ej. Playera blanca básica"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
-            />
+        <AjusteTamano
+          key={recorte.url}
+          categoria={categoria}
+          src={recorte.url}
+          ancho={recorte.ancho}
+          alto={recorte.alto}
+          altoCm={altoCm}
+          onCambio={setAltoCm}
+          amplio
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nombre (opcional)</label>
+              <input
+                type="text"
+                value={nombre}
+                maxLength={80}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="ej. Playera blanca básica"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button type="button" onClick={() => setPaso("recorte")} disabled={ocupado} className={BOTON_SECUNDARIO}>
+                Ajustar recorte
+              </button>
+              <button type="button" onClick={guardar} disabled={ocupado} className={BOTON_PRIMARIO}>
+                {ocupado ? "Guardando…" : "Guardar"}
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={() => setPaso("recorte")} disabled={ocupado} className={BOTON_SECUNDARIO}>
-              Ajustar recorte
-            </button>
-            <button type="button" onClick={guardar} disabled={ocupado} className={BOTON_PRIMARIO}>
-              {ocupado ? "Guardando…" : "Guardar"}
-            </button>
-          </div>
-        </>
+        </AjusteTamano>
       )}
 
       {error && <p className="text-xs text-red-600 text-center">{error}</p>}

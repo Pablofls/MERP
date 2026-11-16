@@ -16,6 +16,13 @@ interface Props {
   altoMax?: string;
   /** Solo muestra (vista previa de la tienda) */
   soloLectura?: boolean;
+  /**
+   * En escritorio (lg) el escenario llena todo el espacio disponible del contenedor y los controles pasan a un
+   * panel lateral. El contenedor debe tener alto definido en lg.
+   */
+  amplio?: boolean;
+  /** Contenido extra al final de los controles (campos y botones del paso) */
+  children?: React.ReactNode;
 }
 
 type Pos = { x: number; y: number };
@@ -37,7 +44,18 @@ const distancia = (a: Pos, b: Pos) => Math.hypot(a.x - b.x, a.y - b.y);
  * se mueve y escala encima hasta que coincide con ella. Todo el escenario está en cm, así que el alto de la
  * prenda en el escenario es su alto real.
  */
-export default function AjusteTamano({ categoria, src, ancho, alto, altoCm, onCambio, altoMax = "46dvh", soloLectura = false }: Props) {
+export default function AjusteTamano({
+  categoria,
+  src,
+  ancho,
+  alto,
+  altoCm,
+  onCambio,
+  altoMax = "46dvh",
+  soloLectura = false,
+  amplio = false,
+  children,
+}: Props) {
   const m = marcoDe(categoria);
   let W = m.ancho * HOLGURA;
   let H = m.alto * HOLGURA;
@@ -202,65 +220,81 @@ export default function AjusteTamano({ categoria, src, ancho, alto, altoCm, onCa
   const anchoCm = Math.round(w);
   const altoRedondo = Math.round(h);
 
-  return (
-    <div className="space-y-3">
-      {!soloLectura && (
-        <p className="text-xs text-gray-500 text-center">
-          Ajusta tu prenda a la silueta de referencia: arrástrala para moverla y cambia su tamaño con la barra, las esquinas o
-          pellizcando.
-        </p>
-      )}
+  const instruccion =
+    "Ajusta tu prenda a la silueta de referencia: arrástrala para moverla y cambia su tamaño con la barra, las esquinas o pellizcando.";
 
-      <div
-        ref={escenarioRef}
-        className="relative mx-auto select-none overflow-hidden rounded-xl bg-stone-100"
-        style={{ aspectRatio: `${W} / ${H}`, width: `min(100%, calc(${altoMax} * ${W / H}))` }}
-      >
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${W} ${H}`}
-          className={cn("absolute inset-0 w-full h-full", !soloLectura && "cursor-move")}
-          style={{ touchAction: soloLectura ? undefined : "none" }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-        >
-          {/* Silueta de referencia: relleno detrás de la prenda, contorno encima para verla siempre */}
-          <path d={silueta} fill="rgba(245,158,11,0.12)" />
-          <image href={src} x={caja.x} y={caja.y} width={w} height={h} preserveAspectRatio="none" className="drop-shadow-md" />
-          <path
-            d={silueta}
-            fill="none"
-            stroke={COLOR}
-            strokeWidth={2}
-            strokeDasharray="7 5"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-            opacity={0.95}
-            pointerEvents="none"
-          />
-          {!soloLectura && (
-            <g pointerEvents="none">
-              <rect
-                x={caja.x} y={caja.y} width={w} height={h}
-                fill="none" stroke="#1e3a8a" strokeWidth={1} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" opacity={0.6}
-              />
-              {esquinas.map((q, i) => (
-                <rect
-                  key={i}
-                  x={q.x - 6 * k} y={q.y - 6 * k} width={12 * k} height={12 * k} rx={2 * k}
-                  fill="#fff" stroke="#1e3a8a" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
-                />
-              ))}
-            </g>
+  return (
+    <div className={cn("space-y-3", amplio && "lg:flex lg:flex-1 lg:min-h-0 lg:h-full lg:gap-6 lg:space-y-0")}>
+      {!soloLectura && <p className={cn("text-xs text-gray-500 text-center", amplio && "lg:hidden")}>{instruccion}</p>}
+
+      {/* En escritorio el área es un contenedor de tamaño: el escenario se encaja completo en él (unidades cq) */}
+      <div className={cn(amplio && "lg:flex-1 lg:min-w-0 lg:min-h-0 lg:flex lg:items-center lg:justify-center lg:[container-type:size]")}>
+        <div
+          ref={escenarioRef}
+          className={cn(
+            "relative mx-auto select-none overflow-hidden rounded-xl bg-stone-100 w-[var(--ancho)]",
+            amplio && "lg:w-[min(100cqw,calc(100cqh*var(--proporcion)))]",
           )}
-        </svg>
+          style={
+            {
+              aspectRatio: `${W} / ${H}`,
+              "--ancho": `min(100%, calc(${altoMax} * ${W / H}))`,
+              "--proporcion": W / H,
+            } as React.CSSProperties
+          }
+        >
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${W} ${H}`}
+            className={cn("absolute inset-0 w-full h-full", !soloLectura && "cursor-move")}
+            style={{ touchAction: soloLectura ? undefined : "none" }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+          >
+            {/* Silueta de referencia: relleno detrás de la prenda, contorno encima para verla siempre */}
+            <path d={silueta} fill="rgba(245,158,11,0.12)" />
+            <image href={src} x={caja.x} y={caja.y} width={w} height={h} preserveAspectRatio="none" className="drop-shadow-md" />
+            <path
+              d={silueta}
+              fill="none"
+              stroke={COLOR}
+              strokeWidth={2}
+              strokeDasharray="7 5"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              opacity={0.95}
+              pointerEvents="none"
+            />
+            {!soloLectura && (
+              <g pointerEvents="none">
+                <rect
+                  x={caja.x} y={caja.y} width={w} height={h}
+                  fill="none" stroke="#1e3a8a" strokeWidth={1} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" opacity={0.6}
+                />
+                {esquinas.map((q, i) => (
+                  <rect
+                    key={i}
+                    x={q.x - 6 * k} y={q.y - 6 * k} width={12 * k} height={12 * k} rx={2 * k}
+                    fill="#fff" stroke="#1e3a8a" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
+                  />
+                ))}
+              </g>
+            )}
+          </svg>
+        </div>
       </div>
 
       {!soloLectura && (
-        <>
-          <div className="flex items-center gap-3 max-w-sm mx-auto">
+        <div className={cn("space-y-3", amplio && "lg:w-72 lg:flex-shrink-0 lg:flex lg:flex-col lg:space-y-0 lg:gap-4 lg:overflow-y-auto")}>
+          {amplio && (
+            <div className="hidden lg:block space-y-1">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tamaño</p>
+              <p className="text-sm text-gray-700 leading-relaxed">{instruccion}</p>
+            </div>
+          )}
+          <div className={cn("flex items-center gap-3 max-w-sm mx-auto", amplio && "lg:w-full lg:mx-0")}>
             <BotonTam etiqueta="Más chica" onClick={() => setTamCm((t) => limitarTam(t * 0.95))}>
               <path strokeLinecap="round" d="M5 12h14" />
             </BotonTam>
@@ -278,7 +312,7 @@ export default function AjusteTamano({ categoria, src, ancho, alto, altoCm, onCa
               <path strokeLinecap="round" d="M12 5v14M5 12h14" />
             </BotonTam>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+          <div className={cn("flex flex-wrap items-center justify-center gap-x-3 gap-y-2", amplio && "lg:justify-start")}>
             <span className="text-xs text-gray-500">
               Tu prenda: <span className="font-semibold text-gray-700">{anchoCm} × {altoRedondo} cm</span>
               <span className="text-gray-400"> · silueta {m.ancho} × {m.alto} cm</span>
@@ -291,7 +325,8 @@ export default function AjusteTamano({ categoria, src, ancho, alto, altoCm, onCa
               Encajar en la silueta
             </button>
           </div>
-        </>
+          {children && <div className={cn(amplio && "lg:!mt-auto")}>{children}</div>}
+        </div>
       )}
     </div>
   );

@@ -8,9 +8,11 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   className?: string;
+  /** Clases extra para el cuerpo (debajo del encabezado) */
+  bodyClassName?: string;
 }
 
-export default function Modal({ open, onClose, title, children, className }: ModalProps) {
+export default function Modal({ open, onClose, title, children, className, bodyClassName }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -45,7 +47,7 @@ export default function Modal({ open, onClose, title, children, className }: Mod
             </svg>
           </button>
         </div>
-        <div className="px-5 py-4">{children}</div>
+        <div className={cn("px-5 py-4", bodyClassName)}>{children}</div>
       </div>
     </div>
   );
