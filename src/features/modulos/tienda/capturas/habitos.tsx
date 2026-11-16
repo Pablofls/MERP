@@ -23,6 +23,7 @@ export default function CapturasHabitos() {
         selectedDate={r.hoy}
         onDayClick={nada}
         vistaInicial={vista}
+        periodos={r.periodos}
       />
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-1">
         {HABITOS_DEMO.map((h, idx) => (
@@ -40,9 +41,8 @@ export default function CapturasHabitos() {
             colorIndex={idx}
             fecha={r.hoy}
             registroDia={r.registroDia(h.id)}
-            racha={r.racha[h.id] ?? 0}
-            conteoSemana={h.frecuencia === "semanal" && !h.metaCantidadSemanal ? r.conteoSemana(h.id) : undefined}
-            sumaSemana={h.frecuencia === "semanal" && h.metaCantidadSemanal ? r.sumaSemana(h.id) : undefined}
+            racha={r.racha(h.id)}
+            periodo={r.periodos[h.id]}
             onRegistrar={nada}
             onEditar={nada}
           />

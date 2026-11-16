@@ -56,11 +56,11 @@ export const FICHAS: Record<string, FichaModulo> = {
     color: "#1a5c3e",
     enInicio: "No, es independiente",
     acercaDe:
-      "Da seguimiento a lo que quieres hacer seguido: leer, correr, tomar agua, ir al gimnasio. Registra cada día con un toque o con una cantidad, ponte metas semanales y mira tus rachas crecer.",
+      "Da seguimiento a lo que quieres hacer seguido: leer, correr, tomar agua, ir al gimnasio. Registra cada día con un toque o con una cantidad, ponte metas de X veces cada N días y mira tus rachas crecer.",
     funciones: [
       { titulo: "Sí/No o cantidad", descripcion: "Marca si lo hiciste o registra cuánto (km, páginas, vasos…)." },
-      { titulo: "Diarios o semanales", descripcion: "Metas de veces por semana o de cantidad acumulada." },
-      { titulo: "Rachas", descripcion: "Cuenta los días o semanas seguidas que cumples." },
+      { titulo: "Diarios o cada N días", descripcion: "Metas de veces o de cantidad acumulada; el periodo corre desde tu primer registro." },
+      { titulo: "Rachas", descripcion: "Cuenta los días o periodos seguidos que cumples." },
       { titulo: "Calendario", descripcion: "Vista semanal o mensual con el color de cada hábito." },
     ],
     integraciones: ["Funciona por su cuenta: no agrega pendientes ni eventos a Inicio."],

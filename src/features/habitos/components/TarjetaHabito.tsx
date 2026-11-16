@@ -2,6 +2,32 @@
 import { useState } from "react";
 import type { Habito, RegistroHabito } from "@/lib/types";
 import { fechaHoy, getHabitColorByIndex } from "@/lib/utils";
+import type { PeriodoHabito } from "@/features/habitos/periodo";
+
+/** "mié 11" */
+function diaCorto(iso: string): string {
+  const d = new Date(iso + "T12:00:00Z");
+  const dia = d.toLocaleDateString("es-MX", { weekday: "short", timeZone: "UTC" }).replace(".", "");
+  return `${dia} ${d.getUTCDate()}`;
+}
+
+/** Texto del rango y de lo que falta para cerrar el periodo. */
+function describirPeriodo(periodo: PeriodoHabito, hoy: string): { rango: string; estado: string | null } {
+  if (periodo.progreso === 0 && periodo.racha === 0) {
+    return { rango: `${periodo.dias} días desde tu primer registro`, estado: null };
+  }
+  const rango = `del ${diaCorto(periodo.inicio)} al ${diaCorto(periodo.fin)}`;
+  if (periodo.cumplido) return { rango, estado: "✓ cumplido" };
+  const quedan = Math.round((Date.parse(periodo.fin) - Date.parse(hoy)) / 86_400_000) + 1; // incluye hoy
+  return { rango, estado: quedan <= 1 ? "último día" : `quedan ${quedan} días` };
+}
+
+function etiquetaRacha(habito: Habito, racha: number, dias?: number): string {
+  const uno = racha === 1;
+  if (habito.frecuencia !== "semanal") return uno ? "día seguido" : "días seguidos";
+  if ((dias ?? 7) === 7) return uno ? "semana seguida" : "semanas seguidas";
+  return uno ? "periodo seguido" : "periodos seguidos";
+}
 
 interface Props {
   habito: Habito;
@@ -9,19 +35,20 @@ interface Props {
   fecha: string;
   registroDia?: RegistroHabito;
   racha: number;
-  conteoSemana?: number;
-  sumaSemana?: number;
+  periodo?: PeriodoHabito; // solo hábitos "cada N días"
   onRegistrar: (habitoId: string, fecha: string, valor: number) => void;
   onEditar: (habito: Habito) => void;
 }
 
-export default function TarjetaHabito({ habito, colorIndex, fecha, registroDia, racha, conteoSemana, sumaSemana, onRegistrar, onEditar }: Props) {
+export default function TarjetaHabito({ habito, colorIndex, fecha, registroDia, racha, periodo, onRegistrar, onEditar }: Props) {
   const [inputValor, setInputValor] = useState(registroDia?.valor?.toString() ?? "");
   const [editandoValor, setEditandoValor] = useState(false);
   const hoy = fechaHoy();
   const esFuturo = fecha > hoy;
   const completadoDia = registroDia && registroDia.valor > 0;
   const color = getHabitColorByIndex(colorIndex);
+  const info = periodo ? describirPeriodo(periodo, hoy) : null;
+  const unidad = habito.unidad ? ` ${habito.unidad}` : "";
 
   function toggleBooleano() {
     if (esFuturo) return;
@@ -67,51 +94,56 @@ export default function TarjetaHabito({ habito, colorIndex, fecha, registroDia, 
                         {racha > 99 ? "99+" : racha}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-400">
-                      {habito.frecuencia === "semanal"
-                        ? (racha === 1 ? "semana" : "semanas")
-                        : (racha === 1 ? "día" : "días")} seguidos
-                    </span>
+                    <span className="text-xs text-gray-400">{etiquetaRacha(habito, racha, periodo?.dias)}</span>
                   </>
                 ) : (
                   <span className="text-xs text-gray-300">Sin racha</span>
                 )}
               </div>
 
-              {/* Progreso semanal — modo frecuencia (dots) */}
-              {habito.frecuencia === "semanal" && habito.metaSemanal && conteoSemana !== undefined && (
+              {/* Progreso del periodo — modo frecuencia (puntos; los registros de más también se ven) */}
+              {periodo && info && !habito.metaCantidadSemanal && (
                 <div className="flex items-center gap-2 mt-1.5">
-                  <div className="flex gap-1">
-                    {Array.from({ length: habito.metaSemanal }, (_, i) => (
+                  <div className="flex flex-wrap gap-1">
+                    {Array.from({ length: Math.max(periodo.meta, periodo.progreso) }, (_, i) => (
                       <span
                         key={i}
                         className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: i < conteoSemana ? color : "#e5e7eb" }}
+                        style={{ backgroundColor: i < periodo.progreso ? color : "#e5e7eb" }}
                       />
                     ))}
                   </div>
                   <span className="text-[10px] text-gray-400">
-                    {conteoSemana}/{habito.metaSemanal} esta semana
+                    {periodo.progreso}/{periodo.meta} · {info.rango}
                   </span>
+                  {info.estado && (
+                    <span className="text-[10px] font-semibold ml-auto whitespace-nowrap" style={{ color }}>
+                      {info.estado}
+                    </span>
+                  )}
                 </div>
               )}
 
-              {/* Progreso semanal — modo acumulado (barra) */}
-              {habito.frecuencia === "semanal" && habito.metaCantidadSemanal && sumaSemana !== undefined && (
+              {/* Progreso del periodo — modo acumulado (barra) */}
+              {periodo && info && habito.metaCantidadSemanal && (
                 <div className="mt-1.5 space-y-1">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-[10px] text-gray-400">
-                      {sumaSemana}{habito.unidad ? ` ${habito.unidad}` : ""} / {habito.metaCantidadSemanal}{habito.unidad ? ` ${habito.unidad}` : ""} esta semana
+                      {periodo.progreso}{unidad} / {periodo.meta}{unidad} · {info.rango}
                     </span>
-                    <span className="text-[10px] font-semibold" style={{ color }}>
-                      {Math.min(100, Math.round((sumaSemana / habito.metaCantidadSemanal) * 100))}%
+                    <span className="text-[10px] font-semibold whitespace-nowrap" style={{ color }}>
+                      {periodo.cumplido
+                        ? info.estado
+                        : [`${Math.min(100, Math.round((periodo.progreso / periodo.meta) * 100))}%`, info.estado]
+                            .filter(Boolean)
+                            .join(" · ")}
                     </span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
-                        width: `${Math.min(100, (sumaSemana / habito.metaCantidadSemanal) * 100)}%`,
+                        width: `${Math.min(100, (periodo.progreso / periodo.meta) * 100)}%`,
                         backgroundColor: color,
                       }}
                     />

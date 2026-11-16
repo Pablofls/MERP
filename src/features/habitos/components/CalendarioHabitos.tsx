@@ -9,6 +9,8 @@ interface Props {
   selectedDate: string;
   onDayClick: (fecha: string) => void;
   vistaInicial?: "mensual" | "semanal";
+  /** Periodo actual de cada hábito "cada N días": en la vista semanal se sombrean sus días. */
+  periodos?: Record<string, { inicio: string; fin: string }>;
 }
 
 const DIAS_HEADER = ["L", "M", "X", "J", "V", "S", "D"];
@@ -31,7 +33,7 @@ function inicioSemana(date: Date): Date {
   return d;
 }
 
-export default function CalendarioHabitos({ habitos, registros, selectedDate, onDayClick, vistaInicial = "semanal" }: Props) {
+export default function CalendarioHabitos({ habitos, registros, selectedDate, onDayClick, vistaInicial = "semanal", periodos }: Props) {
   const [vista, setVista] = useState<"mensual" | "semanal">(vistaInicial);
   const [referencia, setReferencia] = useState(new Date());
   const hoyStr = hoyMonterrey();
@@ -203,6 +205,7 @@ export default function CalendarioHabitos({ habitos, registros, selectedDate, on
             <tbody className="divide-y divide-gray-50">
               {habitos.map((h, idx) => {
                 const color = getHabitColorByIndex(idx);
+                const periodo = periodos?.[h.id];
                 return (
                   <tr key={h.id}>
                     <td className="py-2 pr-2">
@@ -216,8 +219,14 @@ export default function CalendarioHabitos({ habitos, registros, selectedDate, on
                       const hecho = registradoEn(h.id, fecha);
                       const futuro = fecha > hoyStr;
                       const esSeleccionadoCol = fecha === selectedDate;
+                      const enPeriodo = !!periodo && fecha >= periodo.inicio && fecha <= periodo.fin;
                       return (
-                        <td key={fecha} className={`text-center py-2 px-0.5 ${esSeleccionadoCol && !futuro ? "bg-blue-50/50" : ""}`}>
+                        <td
+                          key={fecha}
+                          className={`text-center py-2 px-0.5 ${esSeleccionadoCol && !futuro && !enPeriodo ? "bg-blue-50/50" : ""}`}
+                          style={enPeriodo ? { backgroundColor: `${color}1a` } : undefined}
+                          title={enPeriodo ? "Cuenta para el periodo actual" : undefined}
+                        >
                           <span
                             className="w-6 h-6 rounded-md mx-auto flex items-center justify-center"
                             style={{

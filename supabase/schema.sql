@@ -169,15 +169,19 @@ create table habitos (
   topico                text not null,
   tipo_medida           text not null constraint habitos_tipo_medida_check check (tipo_medida in ('numerica','booleana')),
   unidad                text,                              -- solo numérica
-  frecuencia            text not null default 'diaria',    -- 'diaria' | 'semanal'
-  meta_semanal          integer,                           -- semanal, modo conteo (1..7)
-  meta_cantidad_semanal numeric,                           -- semanal numérica, modo acumulado
+  frecuencia            text not null default 'diaria',    -- 'diaria' | 'semanal' (= "cada N días")
+  periodo_dias          smallint,                          -- 20261115: N del periodo (2..30), solo 'semanal'
+  meta_semanal          integer,                           -- meta del periodo, modo conteo (1..periodo_dias)
+  meta_cantidad_semanal numeric,                           -- meta del periodo, numérica, modo acumulado
   activo                boolean not null default true,
   created_at            timestamptz default now(),
   constraint habitos_id_user_key unique (id, user_id),
   constraint habitos_frecuencia_ck check (frecuencia in ('diaria','semanal')),
-  constraint habitos_metas_ck check (
-    (meta_semanal is null or (frecuencia = 'semanal' and meta_semanal between 1 and 7))
+  constraint habitos_periodo_ck check (                      -- 20261115
+    (frecuencia = 'semanal') = (periodo_dias is not null)
+    and (periodo_dias is null or periodo_dias between 2 and 30)),
+  constraint habitos_metas_ck check (                        -- 20261115: tope = periodo_dias (antes 7)
+    (meta_semanal is null or (frecuencia = 'semanal' and meta_semanal between 1 and periodo_dias))
     and (meta_cantidad_semanal is null or (frecuencia = 'semanal' and tipo_medida = 'numerica' and meta_cantidad_semanal > 0))
     and not (meta_semanal is not null and meta_cantidad_semanal is not null)
     and (unidad is null or tipo_medida = 'numerica'))

@@ -11,6 +11,7 @@ import type {
   RegistroHabito,
 } from "@/lib/types";
 import { fechaHoy, fechaRelativa } from "@/lib/utils";
+import { calcularPeriodo, type PeriodoHabito } from "@/features/habitos/periodo";
 
 // ── Escolar ─────────────────────────────────────────────────────────────────────────────────────
 export const MATERIAS_DEMO: Materia[] = [
@@ -84,9 +85,9 @@ export function pendientesPersonalesDemo(): Pendiente[] {
 // ── Hábitos ─────────────────────────────────────────────────────────────────────────────────────
 export const HABITOS_DEMO: Habito[] = [
   { id: "demo-h1", topico: "Leer 20 minutos", tipoMedida: "booleana", frecuencia: "diaria", activo: true },
-  { id: "demo-h2", topico: "Correr", tipoMedida: "numerica", unidad: "km", frecuencia: "semanal", metaCantidadSemanal: 15, activo: true },
+  { id: "demo-h2", topico: "Correr", tipoMedida: "numerica", unidad: "km", frecuencia: "semanal", periodoDias: 7, metaCantidadSemanal: 15, activo: true },
   { id: "demo-h3", topico: "Tomar agua", tipoMedida: "numerica", unidad: "vasos", frecuencia: "diaria", activo: true },
-  { id: "demo-h4", topico: "Gimnasio", tipoMedida: "booleana", frecuencia: "semanal", metaSemanal: 4, activo: true },
+  { id: "demo-h4", topico: "Gimnasio", tipoMedida: "booleana", frecuencia: "semanal", periodoDias: 7, metaSemanal: 4, activo: true },
 ];
 
 /** ~5 semanas de registros con un patrón fijo (siempre el mismo para la misma fecha). */
@@ -110,14 +111,23 @@ export function registrosHabitosDemo(): RegistroHabito[] {
 /** Lo que muestra cada tarjeta del día en la vista previa. */
 export function resumenHabitosDemo(registros: RegistroHabito[]) {
   const hoy = fechaHoy();
-  const dow = (new Date(hoy + "T12:00:00").getDay() + 6) % 7; // lunes = 0
-  const lunes = fechaRelativa(-dow);
-  const semana = (habitoId: string) => registros.filter((r) => r.habitoId === habitoId && r.fecha >= lunes);
+  const periodos: Record<string, PeriodoHabito> = Object.fromEntries(
+    HABITOS_DEMO.filter((h) => h.frecuencia === "semanal").map((h) => [
+      h.id,
+      calcularPeriodo(
+        registros.filter((r) => r.habitoId === h.id),
+        h.periodoDias ?? 7,
+        h.metaCantidadSemanal ?? h.metaSemanal ?? 1,
+        h.metaCantidadSemanal ? "suma" : "conteo",
+        hoy
+      ),
+    ])
+  );
+  const rachaDiaria: Record<string, number> = { "demo-h1": 12, "demo-h3": 21 };
   return {
     hoy,
     registroDia: (habitoId: string) => registros.find((r) => r.habitoId === habitoId && r.fecha === hoy),
-    racha: { "demo-h1": 12, "demo-h2": 3, "demo-h3": 21, "demo-h4": 2 } as Record<string, number>,
-    sumaSemana: (habitoId: string) => semana(habitoId).reduce((s, r) => s + r.valor, 0),
-    conteoSemana: (habitoId: string) => semana(habitoId).filter((r) => r.valor > 0).length,
+    racha: (habitoId: string) => periodos[habitoId]?.racha ?? rachaDiaria[habitoId] ?? 0,
+    periodos,
   };
 }
