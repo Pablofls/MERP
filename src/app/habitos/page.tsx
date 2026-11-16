@@ -394,7 +394,6 @@ export default function HabitosPage() {
             registros={registros}
             selectedDate={selectedDate}
             onDayClick={setSelectedDate}
-            periodos={periodos}
           />
 
           {/* Indicador de día seleccionado (si no es hoy) */}

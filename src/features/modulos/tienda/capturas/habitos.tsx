@@ -23,7 +23,6 @@ export default function CapturasHabitos() {
         selectedDate={r.hoy}
         onDayClick={nada}
         vistaInicial={vista}
-        periodos={r.periodos}
       />
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-1">
         {HABITOS_DEMO.map((h, idx) => (
