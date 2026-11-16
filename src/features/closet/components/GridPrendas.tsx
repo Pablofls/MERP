@@ -131,13 +131,13 @@ function Tarjeta({
   onAlternarOutfit?: () => void;
 }) {
   return (
-    <div className="group/tarjeta relative shrink-0 snap-start w-36 sm:w-44 2xl:w-52">
+    <div className="group/tarjeta relative shrink-0 snap-start w-28 sm:w-36 2xl:w-40">
       <button
         type="button"
         onClick={onSeleccionar}
         title={prenda.nombre ? `${prenda.nombre} · editar` : "Editar prenda"}
         className={cn(
-          "block w-full aspect-square rounded-2xl bg-stone-100 hover:bg-stone-200/70 p-4 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900",
+          "block w-full aspect-square rounded-2xl bg-stone-100 hover:bg-stone-200/70 p-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900",
           enOutfit && "ring-2 ring-blue-900/80 ring-inset",
         )}
       >
