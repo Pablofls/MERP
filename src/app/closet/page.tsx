@@ -1,6 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { usePrendas } from "@/features/closet/hooks/usePrendas";
+import { useOutfit } from "@/features/closet/hooks/useOutfit";
+import { RANURAS } from "@/features/closet/lib/generarOutfit";
 import { GRUPOS, grupoDe, type ClaveGrupo } from "@/features/closet/lib/catalogo";
 import GridPrendas from "@/features/closet/components/GridPrendas";
 import GeneradorOutfit from "@/features/closet/components/GeneradorOutfit";
@@ -20,6 +22,11 @@ export default function ClosetPage() {
   const [seleccionada, setSeleccionada] = useState<Prenda | null>(null);
   const [grupo, setGrupo] = useState<ClaveGrupo | null>(null);
   const [vista, setVista] = useState<Vista>("prendas");
+  const estadoOutfit = useOutfit(prendas);
+  const enOutfit = useMemo(
+    () => new Set(RANURAS.map((r) => estadoOutfit.outfit[r]?.id).filter((id): id is string => !!id)),
+    [estadoOutfit.outfit],
+  );
 
   const opcionesFiltro = [
     { id: null, label: "Todo" },
@@ -27,7 +34,7 @@ export default function ClosetPage() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 pt-6 pb-6 space-y-4">
+    <div className="max-w-[1640px] mx-auto px-4 lg:px-8 pt-6 pb-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -65,7 +72,7 @@ export default function ClosetPage() {
         ))}
       </div>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8 lg:items-start">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_minmax(640px,44%)] lg:gap-8 2xl:gap-10 lg:items-start">
         <section className={cn("min-w-0", vista !== "prendas" && "hidden lg:block")}>
           {cargando && prendas.length === 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 pt-2">
@@ -86,14 +93,20 @@ export default function ClosetPage() {
           ) : (
             <div className="space-y-4">
               <FiltroChips opciones={opcionesFiltro} valor={grupo} onChange={(id) => setGrupo(id as ClaveGrupo | null)} />
-              <GridPrendas prendas={prendas} grupo={grupo} onSeleccionar={setSeleccionada} />
+              <GridPrendas
+                prendas={prendas}
+                grupo={grupo}
+                onSeleccionar={setSeleccionada}
+                enOutfit={enOutfit}
+                onAlternarOutfit={estadoOutfit.puede ? estadoOutfit.alternarPrenda : undefined}
+              />
             </div>
           )}
         </section>
 
         <aside className={cn("lg:sticky lg:top-6 space-y-3", vista !== "outfit" && "hidden lg:block")}>
           <h2 className="hidden lg:block text-xs font-semibold text-gray-500 uppercase tracking-wide">Outfit</h2>
-          <GeneradorOutfit prendas={prendas} />
+          <GeneradorOutfit prendas={prendas} estado={estadoOutfit} />
         </aside>
       </div>
 

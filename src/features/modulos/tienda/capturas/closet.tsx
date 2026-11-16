@@ -4,33 +4,39 @@ import GridPrendas from "@/features/closet/components/GridPrendas";
 import LienzoOutfit from "@/features/closet/components/LienzoOutfit";
 import Recortador from "@/features/closet/components/Recortador";
 import AjusteTamano from "@/features/closet/components/AjusteTamano";
-import { IconoShuffle } from "@/features/closet/components/GeneradorOutfit";
+import { IconoShuffle, PanelRanuras } from "@/features/closet/components/GeneradorOutfit";
 import { GRUPOS, type ClaveGrupo } from "@/features/closet/lib/catalogo";
-import type { Outfit } from "@/features/closet/lib/generarOutfit";
+import { RANURAS, type Outfit } from "@/features/closet/lib/generarOutfit";
 import CarruselCapturas from "../../components/CarruselCapturas";
 import { Encabezado, nada } from "../Pantalla";
 import { CONTORNO_DEMO, FOTO_RECORTE_DEMO, OUTFIT_CAPAS_DEMO, OUTFIT_DEMO, PRENDAS_DEMO } from "../demoCloset";
 
 // Mismo contenedor y columnas que src/app/closet/page.tsx en escritorio
-const PAGINA = "max-w-5xl mx-auto px-4 pt-6 pb-6 space-y-4";
+const PAGINA = "mx-auto px-8 pt-6 pb-6 space-y-4";
 const FILTROS = [{ id: null, label: "Todo" }, ...GRUPOS.map((g) => ({ id: g.clave, label: g.nombre }))];
 
 function PaginaCloset({ grupo, outfit, fijas }: { grupo: ClaveGrupo | null; outfit: Outfit; fijas?: Set<string> }) {
+  const enOutfit = new Set(RANURAS.map((r) => outfit[r]?.id).filter((id): id is string => !!id));
   return (
     <div className={PAGINA}>
       <Encabezado titulo="Closet" detalle={`${PRENDAS_DEMO.length} prendas`} accion="agregar" />
-      <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)_540px] gap-8 items-start">
         <section className="space-y-4 min-w-0">
           <FiltroChips opciones={FILTROS} valor={grupo} onChange={nada} />
-          <GridPrendas prendas={PRENDAS_DEMO} grupo={grupo} onSeleccionar={nada} />
+          <GridPrendas prendas={PRENDAS_DEMO} grupo={grupo} onSeleccionar={nada} enOutfit={enOutfit} onAlternarOutfit={nada} />
         </section>
         <aside className="space-y-3">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Outfit</h2>
-          <LienzoOutfit outfit={outfit} fijas={fijas} onAlternarFija={nada} />
-          <span className="w-full flex items-center justify-center gap-2 bg-blue-900 text-white text-sm font-semibold py-3 rounded-full">
-            <IconoShuffle className="w-4 h-4" />
-            Generar outfit
-          </span>
+          <div className="grid grid-cols-[minmax(0,1fr)_250px] gap-4 items-start">
+            <LienzoOutfit outfit={outfit} />
+            <div className="space-y-3">
+              <PanelRanuras prendas={PRENDAS_DEMO} outfit={outfit} fijas={fijas ?? new Set()} onMover={nada} onAlternarFija={nada} />
+              <span className="w-full flex items-center justify-center gap-2 bg-blue-900 text-white text-sm font-semibold py-3 rounded-full">
+                <IconoShuffle className="w-4 h-4" />
+                Generar outfit
+              </span>
+            </div>
+          </div>
         </aside>
       </div>
     </div>
@@ -67,7 +73,7 @@ export default function CapturasCloset() {
   return (
     <CarruselCapturas
       capturas={[
-        { titulo: "Tu closet y un outfit al azar", ruta: "/closet", contenido: <PaginaCloset grupo={null} outfit={OUTFIT_DEMO} /> },
+        { titulo: "Tu closet y un outfit a tu gusto", ruta: "/closet", contenido: <PaginaCloset grupo={null} outfit={OUTFIT_DEMO} /> },
         {
           titulo: "Recorta cada prenda a mano",
           ruta: "/closet",

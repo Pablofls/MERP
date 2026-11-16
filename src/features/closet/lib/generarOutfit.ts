@@ -106,3 +106,90 @@ export function generarOutfit(
   for (let i = 0; i < INTENTOS_DISTINTO && anterior !== null && firmaOutfit(o) === anterior; i++) o = sortear();
   return o;
 }
+
+// ── Armado manual ─────────────────────────────────────────────────────────────────────────────────
+
+/** Orden de las ranuras en el panel: de arriba hacia abajo, con las capas de la base hacia afuera. */
+export const RANURAS_PANEL: Ranura[] = ["gorra", "capa1", "capa2", "capa3", "bottom", "calzado", "accesorio"];
+
+export const NOMBRE_RANURA: Record<Ranura, string> = {
+  gorra: "Gorra",
+  capa1: "Capa 1 · base",
+  capa2: "Capa 2",
+  capa3: "Capa 3 · encima",
+  bottom: "Bottom",
+  calzado: "Calzado",
+  accesorio: "Accesorio",
+};
+
+const capaDe = (x?: Prenda) => (x ? categoria(x.categoria)?.capa : undefined);
+
+/** Ajusta las capas tras un cambio a mano: la capa 3 solo existe sobre un suéter; si no lo hay, la chamarra baja a capa 2. */
+export function normalizarOutfit(o: Outfit): Outfit {
+  const n: Outfit = { ...o };
+  if (n.capa3 && capaDe(n.capa2) !== 2) {
+    if (!n.capa2) n.capa2 = n.capa3;
+    delete n.capa3;
+  }
+  for (const r of RANURAS) if (!n[r]) delete n[r];
+  return n;
+}
+
+/**
+ * Prendas entre las que se navega en una ranura, en orden; `undefined` es "ninguna" (todas menos el bottom
+ * son opcionales). La capa 2 admite chamarras solo si no hay capa 3, y la capa 3 solo aparece sobre un suéter.
+ */
+export function opcionesRanura(prendas: Prenda[], ranura: Ranura, o: Outfit): (Prenda | undefined)[] {
+  const p = agrupar(prendas);
+  let pool: Prenda[];
+  switch (ranura) {
+    case "gorra": pool = p.gorras; break;
+    case "capa1": pool = p.camisas; break;
+    case "capa2": pool = o.capa3 ? p.sueteres : [...p.sueteres, ...p.chamarras]; break;
+    case "capa3": pool = capaDe(o.capa2) === 2 ? p.chamarras : []; break;
+    case "bottom": pool = p.bottoms; break;
+    case "calzado": pool = p.calzado; break;
+    case "accesorio": pool = p.accesorios; break;
+  }
+  return ranura === "bottom" ? pool : [undefined, ...pool];
+}
+
+/** La prenda anterior o siguiente (`paso` = -1 | 1) de una ranura, dando la vuelta. */
+export function moverRanura(prendas: Prenda[], o: Outfit, ranura: Ranura, paso: number): Outfit {
+  const ops = opcionesRanura(prendas, ranura, o);
+  if (ops.length < 2) return o;
+  const i = Math.max(0, ops.findIndex((x) => x?.id === o[ranura]?.id));
+  return normalizarOutfit({ ...o, [ranura]: ops[(i + paso + ops.length) % ops.length] });
+}
+
+/** Ranura del outfit donde está la prenda, si está. */
+export function ranuraDe(o: Outfit, prenda: Prenda): Ranura | undefined {
+  return RANURAS.find((r) => o[r]?.id === prenda.id);
+}
+
+/**
+ * Pone una prenda en su ranura (o la quita si ya estaba, salvo el bottom). Un suéter se mete bajo la chamarra
+ * que estuviera de capa 2; una chamarra va encima del suéter si lo hay, o como capa 2.
+ */
+export function alternarEnOutfit(o: Outfit, prenda: Prenda): Outfit {
+  const ya = ranuraDe(o, prenda);
+  if (ya) return ya === "bottom" ? o : normalizarOutfit({ ...o, [ya]: undefined });
+
+  const c = categoria(prenda.categoria);
+  const n: Outfit = { ...o };
+  if (!c) return o;
+  if (c.grupo === "gorras") n.gorra = prenda;
+  else if (c.grupo === "bottoms") n.bottom = prenda;
+  else if (c.grupo === "calzado") n.calzado = prenda;
+  else if (c.grupo === "accesorios") n.accesorio = prenda;
+  else if (c.capa === 1) n.capa1 = prenda;
+  else if (c.capa === 2) {
+    if (capaDe(n.capa2) === 3) n.capa3 = n.capa2;
+    n.capa2 = prenda;
+  } else if (capaDe(n.capa2) === 2) n.capa3 = prenda;
+  else {
+    n.capa2 = prenda;
+    delete n.capa3;
+  }
+  return normalizarOutfit(n);
+}
