@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useHotkey } from "@/lib/hooks/useHotkey";
 import type { Prenda } from "@/lib/types";
 import { categoria } from "../lib/catalogo";
 import { NOMBRE_RANURA, RANURAS_PANEL, opcionesRanura, type Outfit, type Ranura } from "../lib/generarOutfit";
@@ -15,6 +16,7 @@ import ImagenPrenda from "./ImagenPrenda";
 export default function GeneradorOutfit({ prendas, estado }: { prendas: Prenda[]; estado: EstadoOutfit }) {
   const [resaltada, setResaltada] = useState<Ranura | null>(null);
   const { outfit, fijas, faltan, puede, generar, alternarFija, mover } = estado;
+  const generarRef = useHotkey<HTMLButtonElement>("Generar", { disabled: !puede });
 
   if (!puede) {
     return (
@@ -28,7 +30,18 @@ export default function GeneradorOutfit({ prendas, estado }: { prendas: Prenda[]
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_280px] items-start">
-      <LienzoOutfit outfit={outfit} resaltada={resaltada} />
+      <div className="space-y-3">
+        <LienzoOutfit outfit={outfit} resaltada={resaltada} />
+        <button
+          ref={generarRef}
+          type="button"
+          onClick={generar}
+          className="w-full flex items-center justify-center gap-2 bg-blue-900 text-white text-sm font-semibold py-3 rounded-full hover:bg-blue-800 active:scale-[0.99] transition-all"
+        >
+          <IconoShuffle className="w-4 h-4" />
+          Generar outfit
+        </button>
+      </div>
       <div className="space-y-3">
         <PanelRanuras
           prendas={prendas}
@@ -38,14 +51,6 @@ export default function GeneradorOutfit({ prendas, estado }: { prendas: Prenda[]
           onAlternarFija={alternarFija}
           onResaltar={setResaltada}
         />
-        <button
-          type="button"
-          onClick={generar}
-          className="w-full flex items-center justify-center gap-2 bg-blue-900 text-white text-sm font-semibold py-3 rounded-full hover:bg-blue-800 active:scale-[0.99] transition-all"
-        >
-          <IconoShuffle className="w-4 h-4" />
-          Generar outfit
-        </button>
         <p className="text-[11px] text-gray-400 text-center leading-snug">
           Usa las flechas para elegir cada prenda. Lo que tenga candado se conserva al generar otro.
         </p>

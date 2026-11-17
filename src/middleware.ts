@@ -43,6 +43,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Skip Next.js internals, static assets and API routes (they have their own auth)
-    "/((?!_next/static|_next/image|favicon|icons|manifest\\.json|sw\\.js|api/).*)",
+    "/((?!_next/static|_next/image|favicon|icons|splash|manifest\\.json|sw\\.js|api/).*)",
   ],
 };

@@ -12,6 +12,7 @@ import FiltroChips from "@/components/ui/FiltroChips";
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import { useHotkey } from "@/lib/hooks/useHotkey";
 import type { Prenda } from "@/lib/types";
 
 type Vista = "prendas" | "outfit";
@@ -23,6 +24,7 @@ export default function ClosetPage() {
   const [grupo, setGrupo] = useState<ClaveGrupo | null>(null);
   const [vista, setVista] = useState<Vista>("prendas");
   const estadoOutfit = useOutfit(prendas);
+  const agregarHotkeyRef = useHotkey<HTMLButtonElement>("Agregar");
   const enOutfit = useMemo(
     () => new Set(RANURAS.map((r) => estadoOutfit.outfit[r]?.id).filter((id): id is string => !!id)),
     [estadoOutfit.outfit],
@@ -44,6 +46,7 @@ export default function ClosetPage() {
           </p>
         </div>
         <button
+          ref={agregarHotkeyRef}
           onClick={() => setAgregando(true)}
           data-tutorial-id="btn-agregar-prenda"
           className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
@@ -92,7 +95,7 @@ export default function ClosetPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <FiltroChips opciones={opcionesFiltro} valor={grupo} onChange={(id) => setGrupo(id as ClaveGrupo | null)} />
+              <FiltroChips opciones={opcionesFiltro} valor={grupo} onChange={(id) => setGrupo(id as ClaveGrupo | null)} atajos />
               <GridPrendas
                 prendas={prendas}
                 grupo={grupo}

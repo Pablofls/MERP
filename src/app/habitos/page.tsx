@@ -6,6 +6,7 @@ import CalendarioHabitos from "@/features/habitos/components/CalendarioHabitos";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import { fechaHoy, getHabitColorByIndex } from "@/lib/utils";
+import { useHotkey } from "@/lib/hooks/useHotkey";
 import type { Habito } from "@/lib/types";
 
 function FormHabito({
@@ -354,6 +355,8 @@ export default function HabitosPage() {
   const [editandoHabito, setEditandoHabito] = useState<Habito | null>(null);
   const hoy = fechaHoy();
   const [selectedDate, setSelectedDate] = useState(hoy);
+  const nuevoHotkeyRef = useHotkey<HTMLButtonElement>("Nuevo");
+  const hoyHotkeyRef = useHotkey<HTMLButtonElement>("Hoy", { disabled: selectedDate === hoy });
 
   const completadosDia = registros.filter((r) => r.fecha === selectedDate && r.valor > 0).length;
   const etiqueta = etiquetaFechaSeleccionada(selectedDate, hoy);
@@ -373,6 +376,7 @@ export default function HabitosPage() {
           </p>
         </div>
         <button
+          ref={nuevoHotkeyRef}
           onClick={() => setModalOpen(true)}
           data-tutorial-id="btn-nuevo-habito"
           className="flex items-center gap-1.5 bg-blue-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-800 transition-colors"
@@ -403,6 +407,7 @@ export default function HabitosPage() {
                 Viendo: {etiqueta.replace("el ", "")}
               </span>
               <button
+                ref={hoyHotkeyRef}
                 onClick={() => setSelectedDate(hoy)}
                 className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
               >

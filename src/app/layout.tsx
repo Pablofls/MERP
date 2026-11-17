@@ -31,14 +31,29 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/** Imágenes de arranque de iOS (PWA): [ancho CSS, alto CSS, dpr]. Generadas en public/splash. */
+const SPLASH_IOS: [number, number, number][] = [
+  [440, 956, 3], [402, 874, 3], [430, 932, 3], [393, 852, 3], [420, 912, 3],
+  [428, 926, 3], [390, 844, 3], [375, 812, 3], [360, 780, 3], [414, 896, 3],
+  [414, 896, 2], [375, 667, 2],
+];
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" style={{ backgroundColor: "#f9fafb" }}>
       <head>
+        {SPLASH_IOS.map(([w, h, dpr]) => (
+          <link
+            key={`${w}x${h}@${dpr}`}
+            rel="apple-touch-startup-image"
+            media={`(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${dpr}) and (orientation: portrait)`}
+            href={`/splash/splash-${w * dpr}x${h * dpr}.png`}
+          />
+        ))}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="MERP" />

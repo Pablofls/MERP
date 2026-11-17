@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useUser, useAuthLoading } from "@/lib/context/AuthContext";
+import PantallaCarga from "@/components/ui/PantallaCarga";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -18,11 +19,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [loading, user, isPublic, router]);
 
   if (!isPublic && (loading || user === null)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <span className="text-text-muted text-sm">Cargando...</span>
-      </div>
-    );
+    return <PantallaCarga />;
   }
 
   return <>{children}</>;

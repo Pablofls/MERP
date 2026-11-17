@@ -27,7 +27,7 @@ export default function GridPrendas({ prendas, grupo, onSeleccionar, enOutfit, o
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" onKeyDown={navegarConFlechas}>
       {secciones.map(({ c, items }) => (
         <Fila key={c.clave} titulo={etiquetaCategoria(c)} total={items.length}>
           {items.map((p) => (
@@ -43,6 +43,37 @@ export default function GridPrendas({ prendas, grupo, onSeleccionar, enOutfit, o
       ))}
     </div>
   );
+}
+
+const FLECHAS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+
+/**
+ * Flechas entre tarjetas: ←/→ dentro de la fila, ↑/↓ a la fila anterior/siguiente (misma posición o la última).
+ * Enter/Espacio usa la prenda (click nativo del botón) y E la edita.
+ */
+function navegarConFlechas(e: React.KeyboardEvent<HTMLDivElement>) {
+  if (!FLECHAS.includes(e.key) || e.altKey || e.metaKey || e.ctrlKey) return;
+  const actual = (e.target as HTMLElement).closest<HTMLElement>("[data-tarjeta]");
+  const fila = actual?.closest<HTMLElement>("[data-fila]");
+  if (!actual || !fila) return;
+  const tarjetas = (el: Element) => Array.from(el.querySelectorAll<HTMLElement>("[data-tarjeta]"));
+  const enFila = tarjetas(fila);
+  const i = enFila.indexOf(actual);
+  let destino: HTMLElement | undefined;
+  if (e.key === "ArrowLeft") destino = enFila[i - 1];
+  else if (e.key === "ArrowRight") destino = enFila[i + 1];
+  else {
+    const filas = Array.from(e.currentTarget.querySelectorAll<HTMLElement>("[data-fila]"));
+    const otra = filas[filas.indexOf(fila) + (e.key === "ArrowUp" ? -1 : 1)];
+    if (otra) {
+      const items = tarjetas(otra);
+      destino = items[Math.min(i, items.length - 1)];
+    }
+  }
+  e.preventDefault();
+  if (!destino) return;
+  destino.focus({ preventScroll: true });
+  destino.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
 }
 
 /** Carrusel horizontal con flechas a los lados cuando hay más prendas de las que caben. */
@@ -71,7 +102,7 @@ function Fila({ titulo, total, children }: { titulo: string; total: number; chil
   };
 
   return (
-    <section className="group/fila">
+    <section className="group/fila" data-fila>
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
         {titulo}
         <span className="ml-1.5 font-normal text-gray-300">{total}</span>
@@ -130,36 +161,54 @@ function Tarjeta({
   onSeleccionar: () => void;
   onAlternarOutfit?: () => void;
 }) {
+  const nombre = prenda.nombre || "la prenda";
   return (
     <div className="group/tarjeta relative shrink-0 snap-start w-28 sm:w-36 2xl:w-40">
       <button
         type="button"
-        onClick={onSeleccionar}
-        title={prenda.nombre ? `${prenda.nombre} · editar` : "Editar prenda"}
+        data-tarjeta
+        onClick={onAlternarOutfit ?? onSeleccionar}
+        onKeyDown={(e) => {
+          if (e.key.toLowerCase() === "e" && !e.altKey && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            onSeleccionar();
+          }
+        }}
+        aria-pressed={onAlternarOutfit ? enOutfit : undefined}
+        title={
+          onAlternarOutfit
+            ? `${enOutfit ? `Quitar ${nombre} del outfit` : `Poner ${nombre} en el outfit`} · E para editar`
+            : `Editar ${nombre}`
+        }
         className={cn(
-          "block w-full aspect-square rounded-2xl bg-stone-100 hover:bg-stone-200/70 p-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900",
+          "block w-full aspect-square rounded-2xl bg-stone-100 hover:bg-stone-200/70 p-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-900",
           enOutfit && "ring-2 ring-blue-900/80 ring-inset",
         )}
       >
         <ImagenPrenda prenda={prenda} className="w-full h-full transition-transform duration-200 group-hover/tarjeta:scale-105" />
       </button>
+      {enOutfit && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute top-2 left-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-900 text-white shadow-sm"
+        >
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+          </svg>
+        </span>
+      )}
       {onAlternarOutfit && (
         <button
           type="button"
-          onClick={onAlternarOutfit}
-          aria-pressed={enOutfit}
-          title={enOutfit ? "Quitar del outfit" : "Ponerla en el outfit"}
-          className={cn(
-            "absolute bottom-2 right-2 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm transition-all",
-            enOutfit
-              ? "bg-blue-900 text-white"
-              : "bg-white/95 text-gray-700 hover:text-gray-900 md:opacity-0 md:group-hover/tarjeta:opacity-100 focus-visible:opacity-100",
-          )}
+          onClick={onSeleccionar}
+          tabIndex={-1}
+          title="Editar prenda (E)"
+          className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-sm transition-all hover:text-gray-900 md:opacity-0 md:group-hover/tarjeta:opacity-100 md:group-focus-within/tarjeta:opacity-100"
         >
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d={enOutfit ? "m4.5 12.75 6 6 9-13.5" : "M12 4.5v15m7.5-7.5h-15"} />
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z" />
           </svg>
-          {enOutfit ? "En outfit" : "Usar"}
+          Editar
         </button>
       )}
     </div>

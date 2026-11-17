@@ -53,6 +53,24 @@ const ZOOM_MAX = 8;
 const PASO_ZOOM = 1.5; // botones +/− y teclas
 const MAX_HISTORIAL = 60;
 const VISTA_INICIAL: Vista = { z: 1, tx: 0, ty: 0 };
+/** Pizarrón: la foto ocupa esta fracción del escenario, dejando aire alrededor para marcar cerca de los bordes */
+const MARGEN_FOTO = 0.82;
+const ZOOM_MIN_PIZARRA = 0.5;
+const VISIBLE_MIN = 80; // px de la foto que siempre quedan dentro del escenario al moverla
+const FONDO_PIZARRA: React.CSSProperties = {
+  backgroundColor: "#f1f5f9",
+  backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 1px)",
+  backgroundSize: "18px 18px",
+};
+
+/** Escala y posición de la foto dentro del escenario a zoom 1 (px del marco). */
+interface Base {
+  s: number; // px de pantalla por px de imagen
+  ox: number;
+  oy: number;
+  iw: number;
+  ih: number;
+}
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 const ruta = (ps: Punto[]) => ps.map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`).join("");
@@ -107,6 +125,19 @@ export default function Recortador({
   const onCambioRef = useRef(onCambio);
   onCambioRef.current = onCambio;
 
+  // En edición la foto va sobre un escenario más grande (pizarrón); en vista previa el marco es la foto
+  const pizarra = !vistaPrevia;
+  const zMin = pizarra ? ZOOM_MIN_PIZARRA : 1;
+  const base: Base | null = (() => {
+    if (!dims || !tam.w || !tam.h) return null;
+    const s = Math.min(tam.w / dims.w, tam.h / dims.h) * (pizarra ? MARGEN_FOTO : 1);
+    const iw = dims.w * s;
+    const ih = dims.h * s;
+    return { s, iw, ih, ox: (tam.w - iw) / 2, oy: (tam.h - ih) / 2 };
+  })();
+  const baseRef = useRef(base);
+  baseRef.current = base;
+
   useEffect(() => {
     onCambioRef.current?.(contorno);
   }, [contorno]);
@@ -126,16 +157,27 @@ export default function Recortador({
   }, []);
 
   // ── Zoom ──────────────────────────────────────────────────────────────────────────────────────
-  /** Mantiene la foto cubriendo el marco (sin bordes vacíos) y el zoom entre 1× y ZOOM_MAX. */
+  /**
+   * Limita zoom y desplazamiento. Vista previa: la foto cubre el marco (sin bordes vacíos). Pizarrón: la foto se
+   * mueve libre, pero siempre queda al menos un trozo visible.
+   */
   function limitar(v: Vista): Vista {
     const { w, h } = tamRef.current;
-    const z = clamp(v.z, 1, ZOOM_MAX);
-    return { z, tx: clamp(v.tx, w - w * z, 0), ty: clamp(v.ty, h - h * z, 0) };
+    const z = clamp(v.z, zMin, ZOOM_MAX);
+    const b = baseRef.current;
+    if (!pizarra || !b) return { z, tx: clamp(v.tx, w - w * z, 0), ty: clamp(v.ty, h - h * z, 0) };
+    const mx = Math.min(VISIBLE_MIN, (b.iw * z) / 2);
+    const my = Math.min(VISIBLE_MIN, (b.ih * z) / 2);
+    return {
+      z,
+      tx: clamp(v.tx, mx - (b.ox + b.iw) * z, w - mx - b.ox * z),
+      ty: clamp(v.ty, my - (b.oy + b.ih) * z, h - my - b.oy * z),
+    };
   }
 
   /** Zoom a `z` dejando fijo el punto (fx, fy) del marco, partiendo de `base`. */
   function zoomA(base: Vista, z: number, fx: number, fy: number): Vista {
-    const z2 = clamp(z, 1, ZOOM_MAX);
+    const z2 = clamp(z, zMin, ZOOM_MAX);
     const r = z2 / base.z;
     return limitar({ z: z2, tx: fx - (fx - base.tx) * r, ty: fy - (fy - base.ty) * r });
   }
@@ -171,7 +213,7 @@ export default function Recortador({
         setVista((v) => zoomA(v, v.z * factor, p.x, p.y));
         return;
       }
-      if (vistaRef.current.z <= 1) return; // sin zoom, la rueda desplaza la ventana como siempre
+      if (!pizarra && vistaRef.current.z <= 1) return; // sin zoom, la rueda desplaza la ventana como siempre
       e.preventDefault();
       let dx = e.deltaX * escala;
       let dy = e.deltaY * escala;
@@ -205,7 +247,10 @@ export default function Recortador({
   }, [vistaPrevia, dims]);
 
   // Px de imagen por px de pantalla (tamaño de los controles y radios de toque), con el zoom incluido
-  const k = dims && tam.w ? dims.w / (tam.w * vista.z) : 1;
+  const k = base ? 1 / (base.s * vista.z) : 1;
+  // El SVG cubre todo el escenario; su viewBox en px de imagen se extiende más allá de la foto
+  const vb = base && { x: -base.ox / base.s, y: -base.oy / base.s, w: tam.w / base.s, h: tam.h / base.s };
+  const vistaEsInicial = vista.z === 1 && vista.tx === 0 && vista.ty === 0;
 
   const { puntos, cerrado } = contorno;
 
@@ -302,11 +347,13 @@ export default function Recortador({
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
+  /** Punto de la foto bajo el puntero; fuera de la foto se pega al borde más cercano. */
   function aImagen(e: React.PointerEvent): Punto {
     const r = svgRef.current!.getBoundingClientRect(); // ya incluye el zoom
+    const v = vb!;
     return {
-      x: clamp(((e.clientX - r.left) / r.width) * dims!.w, 0, dims!.w),
-      y: clamp(((e.clientY - r.top) / r.height) * dims!.h, 0, dims!.h),
+      x: clamp(v.x + ((e.clientX - r.left) / r.width) * v.w, 0, dims!.w),
+      y: clamp(v.y + ((e.clientY - r.top) / r.height) * v.h, 0, dims!.h),
     };
   }
 
@@ -327,7 +374,7 @@ export default function Recortador({
   const medios = cerrado ? puntos.map((p, i) => medio(p, puntos[(i + 1) % puntos.length])) : [];
 
   function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
-    if (vistaPrevia || !dims) return;
+    if (vistaPrevia || !dims || !vb) return;
     e.preventDefault();
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -389,7 +436,7 @@ export default function Recortador({
   }
 
   function onPointerMove(e: React.PointerEvent<SVGSVGElement>) {
-    if (vistaPrevia || !dims) return;
+    if (vistaPrevia || !dims || !vb) return;
 
     if (!punteros.current.has(e.pointerId)) {
       // Mouse sin presionar: línea guía del último punto al cursor
@@ -402,7 +449,7 @@ export default function Recortador({
       if (punteros.current.size < 2) return;
       const [a, b] = [...punteros.current.values()];
       const { dist0, medio0, vista0 } = pellizco.current;
-      const z = clamp(vista0.z * (distancia(a, b) / dist0), 1, ZOOM_MAX);
+      const z = clamp(vista0.z * (distancia(a, b) / dist0), zMin, ZOOM_MAX);
       // El punto de la foto que estaba bajo el centro de los dedos los sigue
       const cx = (medio0.x - vista0.tx) / vista0.z;
       const cy = (medio0.y - vista0.ty) / vista0.z;
@@ -489,11 +536,11 @@ export default function Recortador({
       puntos.forEach((q, i) => (i ? ctx.lineTo(...aLupa(q)) : ctx.moveTo(...aLupa(q))));
       if (cerrado) ctx.closePath();
       ctx.lineJoin = "round";
-      ctx.strokeStyle = "rgba(0,0,0,0.5)";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(255,255,255,0.85)";
+      ctx.lineWidth = 3.5;
       ctx.stroke();
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#111827";
+      ctx.lineWidth = 1.75;
       ctx.stroke();
     }
     const c = LUPA / 2;
@@ -509,7 +556,10 @@ export default function Recortador({
 
   // La lupa va arriba a la izquierda, o a la derecha si el dedo está en esa esquina del marco
   const lupaDerecha =
-    !!puntero && puntero.x / k + vista.tx < LUPA + 24 && puntero.y / k + vista.ty < LUPA + 24;
+    !!puntero &&
+    !!base &&
+    puntero.x / k + base.ox * vista.z + vista.tx < LUPA + 24 &&
+    puntero.y / k + base.oy * vista.z + vista.ty < LUPA + 24;
 
   const ayuda = cerrado
     ? "Arrastra los puntos para ajustar. Arrastra el punto medio de un lado para agregar otro."
@@ -533,23 +583,24 @@ export default function Recortador({
         </p>
       )}
 
-      {/* En escritorio el área es un contenedor de tamaño: la foto se encaja completa en él (unidades cq) */}
-      <div className={cn(amplio && "lg:flex-1 lg:min-w-0 lg:min-h-0 lg:flex lg:items-center lg:justify-center lg:[container-type:size]")}>
+      {/* Pizarrón: el escenario llena el espacio (alto altoMax en móvil, todo el panel en escritorio amplio) */}
+      <div className={cn(amplio && "lg:flex-1 lg:min-w-0 lg:min-h-0 lg:flex")}>
         <div
           ref={marcoRef}
           className={cn(
             "relative mx-auto select-none overflow-hidden rounded-lg bg-gray-100",
-            dims ? "w-[var(--ancho)]" : "w-full",
-            amplio && dims && "lg:w-[min(100cqw,calc(100cqh*var(--proporcion)))]",
+            pizarra ? "w-full h-[var(--alto)]" : dims ? "w-[var(--ancho)]" : "w-full",
+            pizarra && amplio && "lg:h-auto lg:flex-1",
           )}
           style={
-            dims
-              ? ({
-                  aspectRatio: `${dims.w} / ${dims.h}`,
-                  "--ancho": `min(100%, calc(${altoMax} * ${dims.w / dims.h}))`,
-                  "--proporcion": dims.w / dims.h,
-                } as React.CSSProperties)
-              : { minHeight: 160 }
+            pizarra
+              ? ({ ...FONDO_PIZARRA, "--alto": altoMax } as React.CSSProperties)
+              : dims
+                ? ({
+                    aspectRatio: `${dims.w} / ${dims.h}`,
+                    "--ancho": `min(100%, calc(${altoMax} * ${dims.w / dims.h}))`,
+                  } as React.CSSProperties)
+                : { minHeight: 160 }
           }
         >
           <div
@@ -564,13 +615,14 @@ export default function Recortador({
               draggable={false}
               onLoad={(e) => setDims({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
               onError={onErrorImagen}
-              className="block w-full h-full pointer-events-none"
+              className={cn("absolute block max-w-none pointer-events-none", pizarra && "shadow-md ring-1 ring-black/5", !base && "opacity-0")}
+              style={base ? { left: base.ox, top: base.oy, width: base.iw, height: base.ih } : undefined}
             />
 
-            {dims && (
+            {dims && vb && (
               <svg
                 ref={svgRef}
-                viewBox={`0 0 ${dims.w} ${dims.h}`}
+                viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
                 className={cn(
                   "absolute inset-0 w-full h-full",
                   !vistaPrevia && (mano ? (paneo.current ? "cursor-grabbing" : "cursor-grab") : cerrado ? "cursor-default" : "cursor-crosshair"),
@@ -584,21 +636,28 @@ export default function Recortador({
               >
                 {/* Fuera del contorno se oscurece */}
                 {cerrado && puntos.length >= 3 && (
-                  <path d={`M0 0H${dims.w}V${dims.h}H0Z${ruta(puntos)}Z`} fillRule="evenodd" fill="rgba(17,24,39,0.6)" />
+                  <path
+                    d={`M${vb.x} ${vb.y}h${vb.w}v${vb.h}h${-vb.w}Z${ruta(puntos)}Z`}
+                    fillRule="evenodd"
+                    fill="rgba(17,24,39,0.6)"
+                  />
                 )}
 
                 {/* Línea guía del último punto al mouse */}
                 {!cerrado && ultimo && cursor && (
-                  <line
-                    x1={ultimo.x} y1={ultimo.y} x2={cursor.x} y2={cursor.y}
-                    stroke="#fff" strokeWidth={trazo(1.5)} strokeDasharray={`${trazo(4)} ${trazo(4)}`}
-                  />
+                  <g>
+                    <line x1={ultimo.x} y1={ultimo.y} x2={cursor.x} y2={cursor.y} stroke="rgba(255,255,255,0.85)" strokeWidth={trazo(3)} />
+                    <line
+                      x1={ultimo.x} y1={ultimo.y} x2={cursor.x} y2={cursor.y}
+                      stroke="#111827" strokeWidth={trazo(1.5)} strokeDasharray={`${trazo(4)} ${trazo(4)}`}
+                    />
+                  </g>
                 )}
 
                 {puntos.length > 1 && (
                   <g fill="none" strokeLinejoin="round">
-                    <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="rgba(0,0,0,0.45)" strokeWidth={trazo(3.5)} />
-                    <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="#fff" strokeWidth={trazo(1.75)} />
+                    <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="rgba(255,255,255,0.85)" strokeWidth={trazo(4)} />
+                    <path d={ruta(puntos) + (cerrado ? "Z" : "")} stroke="#111827" strokeWidth={trazo(2)} />
                   </g>
                 )}
 
@@ -640,13 +699,13 @@ export default function Recortador({
           {/* Controles de zoom sobre la foto */}
           {!vistaPrevia && dims && (
             <div className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-full border border-gray-200 bg-white/90 p-0.5 shadow-sm backdrop-blur">
-              <BotonZoom onClick={() => zoomCentro(1 / PASO_ZOOM)} disabled={vista.z <= 1} titulo="Alejar (−)">
+              <BotonZoom onClick={() => zoomCentro(1 / PASO_ZOOM)} disabled={vista.z <= zMin} titulo="Alejar (−)">
                 <path strokeLinecap="round" d="M5 12h14" />
               </BotonZoom>
               <button
                 type="button"
                 onClick={() => setVista(VISTA_INICIAL)}
-                disabled={vista.z <= 1}
+                disabled={vistaEsInicial}
                 title="Ajustar a la pantalla (0)"
                 className="h-8 min-w-[3rem] rounded-full px-1 text-[11px] font-semibold tabular-nums text-gray-700 hover:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-transparent"
               >
